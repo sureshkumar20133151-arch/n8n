@@ -1,0 +1,208 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        -48
+      ],
+      "id": "c3280f0e-ab52-40db-b4a6-0c4b79c96c67",
+      "name": "When clicking \u2018Execute workflow\u2019"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -208,
+        -64
+      ],
+      "id": "ff9d15c9-45de-47a3-b973-b094ce3143f4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        144
+      ],
+      "id": "75a911ad-7afe-4a4d-8b7c-fa9e75d12120",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WjmAjaXaDUgMB3GY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -112,
+        160
+      ],
+      "id": "8ab8fb27-dd45-48b0-85e4-0f395e30a404",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I",
+          "mode": "list",
+          "cachedResultName": "Linkdin automation post ideas ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1060885205,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I/edit#gid=1060885205"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -64
+      ],
+      "id": "43254943-e002-4027-8555-dc820e53946d",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "DC8VoMvsGVYIAtvJ",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "-XUVlhXDqX",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        288,
+        -64
+      ],
+      "id": "a44c9e39-80ec-46d2-bd40-6a6b8bc2b8b9",
+      "name": "Create a post",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "R0Z8UeN8K3W0CTd2",
+          "name": "LinkedIn account suresh"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I",
+          "mode": "list",
+          "cachedResultName": "Linkdin automation post ideas ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1060885205,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I/edit#gid=1060885205"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -64
+      ],
+      "id": "8231f403-53bb-499a-80d9-242727f155e4",
+      "name": "Google Sheets Trigger1",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "DC8VoMvsGVYIAtvJ",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -496,
+        128
+      ],
+      "id": "fcb7632f-26d9-4b21-9882-ffe4600e6c40",
+      "name": "Webhook",
+      "webhookId": "225bf8da-d5e6-4525-aeb7-8ede2c8d6256"
+    }
+  ],
+  "connections": {
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        []
+      ]
+    }
+  }
+}

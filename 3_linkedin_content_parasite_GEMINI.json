@@ -1,0 +1,396 @@
+{
+  "name": "3. AI System - Viral LinkedIn Post Generator",
+  "nodes": [
+    {
+      "id": "node-form-submission",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "path": "linkedin-content-parasite",
+        "formTitle": "LinkedIn Accounts",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "LinkedIn Account Number 1 (URL)",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "LinkedIn Account Number 2 (URL)",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Number of Posts per Profile",
+              "fieldType": "number",
+              "requiredField": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-apify-scraper",
+      "name": "Run an Actor and get dataset",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "0guWZHsulb6dhYGJ",
+          "name": "Apify account 2"
+        }
+      },
+      "parameters": {
+        "actorId": "curious_coder~linkedin-post-scraper",
+        "runInput": "={{ JSON.stringify({ \"profileUrls\": [ $json[\"LinkedIn Account Number 1 (URL)\"], $json[\"LinkedIn Account Number 2 (URL)\"] ], \"maxPosts\": $json[\"Number of Posts per Profile\"] || 10, \"proxy\": { \"useApifyProxy\": true } }) }}"
+      }
+    },
+    {
+      "id": "node-loop-items",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "batchSize": 5
+      }
+    },
+    {
+      "id": "node-classify-chain",
+      "name": "Classify Post Relevance",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        700,
+        200
+      ],
+      "parameters": {
+        "prompt": "={{ \"Classify the following LinkedIn post according to the rules given.\\n\\nLinkedIn Post:\\n\" + ($json.text || $json.postText || $json.content || JSON.stringify($json)) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert LinkedIn content classifier for a software development and AI automation company.\n\nThe company provides:\n- Custom Software Development\n- Web Development\n- Full Stack Development\n- SaaS Development\n- Mobile App Development\n- AI Agents\n- Business Automation\n- Workflow Automation\n- API Integrations\n- CRM & ERP Solutions\n- Internal Business Systems\n- Cloud Applications\n- Digital Transformation\n\nA post is RELEVANT if it provides educational, practical, strategic, or implementation value related to:\n- Software Development\n- Web or Mobile Apps\n- AI / AI Agents\n- Automation\n- SaaS\n- APIs\n- Databases\n- Cloud\n- DevOps\n- System Architecture\n- Business Process Automation\n- Digital Transformation\n- Engineering Best Practices\n- Startup Technology\n- Real Client Projects / Case Studies\n- Business Growth through Technology\n\nA post is NOT RELEVANT if it is mainly about:\n- Personal updates, motivation, politics, religion, sports, entertainment, travel, food, lifestyle, memes\n- Company celebrations, birthday posts\n- Hiring posts without technical value\n- Sales promotions, generic marketing\n- Cryptocurrency trading, stock market tips\n\nPrioritize business value and educational content over technology buzzwords.\n\nReturn ONLY valid JSON. Never include explanations. Never use markdown.\nIf relevant: {\"verdict\":\"relevant\"}\nIf not relevant: {\"verdict\":\"not_relevant\"}",
+              "type": "systemMessage"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-gemini-model-1",
+      "name": "Google Gemini Chat Model (Classify)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        700,
+        400
+      ],
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "options": {
+          "temperature": 0
+        }
+      }
+    },
+    {
+      "id": "node-parse-verdict",
+      "name": "Clean JSON Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        950,
+        200
+      ],
+      "parameters": {
+        "jsCode": "\n// Clean up markdown fences from Gemini\nconst raw = $json.text || $json.output || $json.content || '';\nconst clean = raw.replace(/```json|```/gi, '').trim();\n\nlet verdict = \"not_relevant\";\ntry {\n    const parsed = JSON.parse(clean);\n    verdict = parsed.verdict;\n} catch(e) {}\n\nreturn {\n    json: {\n        verdict: verdict,\n        originalPost: $('Loop Over Items').item.json.text || $('Loop Over Items').item.json.postText || $('Loop Over Items').item.json.content || '',\n        postUrl: $('Loop Over Items').item.json.url || $('Loop Over Items').item.json.postUrl || '',\n        creator: $('Loop Over Items').item.json.authorName || $('Loop Over Items').item.json.author || '',\n        likes: $('Loop Over Items').item.json.likesCount || $('Loop Over Items').item.json.likes || 0,\n        comments: $('Loop Over Items').item.json.commentsCount || $('Loop Over Items').item.json.comments || 0,\n        postDate: $('Loop Over Items').item.json.postedAt || $('Loop Over Items').item.json.date || ''\n    }\n};\n"
+      }
+    },
+    {
+      "id": "node-filter-relevant",
+      "name": "Filter Relevant Posts",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1150,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "filter1",
+              "leftValue": "={{ $json.verdict }}",
+              "rightValue": "relevant",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-rewrite-chain",
+      "name": "Rewrite Post (AI Writer)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        1350,
+        200
+      ],
+      "parameters": {
+        "prompt": "={{ \"Rewrite this LinkedIn post in your unique voice while keeping the core message and value intact:\\n\\n\" + $json.originalPost }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert LinkedIn ghostwriter. Your job is to take an existing LinkedIn post and rewrite it in a fresh, original voice while preserving the core idea and value.\n\nYour writing style rules:\n- Use a no-fluff, direct, and young professional tone\n- Keep it conversational but smart\n- Use short paragraphs (1-2 sentences max per paragraph)\n- Start with a strong hook that stops the scroll\n- Include line breaks between paragraphs for readability\n- Do NOT use rhetorical questions\n- Do NOT use cliche phrases like \"In today's fast-paced world\" or \"Let's dive in\"\n- Do NOT sound robotic or corporate\n- Add relevant emojis sparingly (max 3-4 per post)\n- End with a clear call-to-action or thought-provoking statement\n- Keep the post between 150-250 words\n- Output ONLY the rewritten post text, nothing else",
+              "type": "systemMessage"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-gemini-model-2",
+      "name": "Google Gemini Chat Model (Rewrite)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        400
+      ],
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "options": {
+          "temperature": 0.8
+        }
+      }
+    },
+    {
+      "id": "node-extract-rewrite",
+      "name": "Prepare Google Sheets Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        200
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "g1",
+              "name": "Date",
+              "value": "={{ $json.postDate ? $toDateTime($json.postDate).format('yyyy-MM-dd') : $now.format('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "g2",
+              "name": "Creator",
+              "value": "={{ $('Filter Relevant Posts').item.json.creator }}",
+              "type": "string"
+            },
+            {
+              "id": "g3",
+              "name": "Post URL",
+              "value": "={{ $('Filter Relevant Posts').item.json.postUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "g4",
+              "name": "Original Post",
+              "value": "={{ $('Filter Relevant Posts').item.json.originalPost }}",
+              "type": "string"
+            },
+            {
+              "id": "g5",
+              "name": "Rewritten Post",
+              "value": "={{ $json.text || $json.output || $json.content || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "g6",
+              "name": "Likes",
+              "value": "={{ $('Filter Relevant Posts').item.json.likes }}",
+              "type": "number"
+            },
+            {
+              "id": "g7",
+              "name": "Comments",
+              "value": "={{ $('Filter Relevant Posts').item.json.comments }}",
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-google-sheets",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1850,
+        200
+      ],
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor and get dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run an Actor and get dataset": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Classify Post Relevance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Post Relevance": {
+      "main": [
+        [
+          {
+            "node": "Clean JSON Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Classify)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify Post Relevance",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean JSON Output": {
+      "main": [
+        [
+          {
+            "node": "Filter Relevant Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Relevant Posts": {
+      "main": [
+        [
+          {
+            "node": "Rewrite Post (AI Writer)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rewrite Post (AI Writer)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Google Sheets Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Rewrite)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Rewrite Post (AI Writer)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Google Sheets Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true
+}

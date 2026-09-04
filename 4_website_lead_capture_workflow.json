@@ -1,0 +1,186 @@
+{
+  "name": "4_website_lead_capture_workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9cd991ba-dcbe-45e4-8ece-bcf3eee57a48",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "webhook-trigger",
+      "name": "1. Webhook (Website Form)"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "fullName",
+              "value": "={{ $json.body.fullName }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.body.email }}"
+            },
+            {
+              "name": "whatsapp",
+              "value": "={{ $json.body.whatsapp }}"
+            },
+            {
+              "name": "service",
+              "value": "={{ $json.body.service }}"
+            },
+            {
+              "name": "budget",
+              "value": "={{ $json.body.budget }}"
+            },
+            {
+              "name": "timeline",
+              "value": "={{ $json.body.timeline }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.body.message }}"
+            },
+            {
+              "name": "submittedAt",
+              "value": "={{ $json.body.submittedAt || $now.format('yyyy-MM-dd HH:mm:ss') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "format-lead-data",
+      "name": "2. Format Lead Payload"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.submittedAt }}",
+            "Name": "={{ $json.fullName }}",
+            "Email": "={{ $json.email }}",
+            "WhatsApp": "={{ $json.whatsapp }}",
+            "Service": "={{ $json.service }}",
+            "Budget": "={{ $json.budget }}",
+            "Timeline": "={{ $json.timeline }}",
+            "Message": "={{ $json.message }}"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        480,
+        0
+      ],
+      "id": "google-sheets-append",
+      "name": "3. Google Sheets (Save Lead)"
+    },
+    {
+      "parameters": {
+        "fromEmail": "dev.sureshkumar01@gmail.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Thank you for contacting Suresh Kumar | Solo Developer",
+        "html": "<div style=\"font-family: sans-serif; padding: 20px;\"><h2>Hi {{ $json.fullName }},</h2><p>Thank you for reaching out! I received your request for <strong>{{ $json.service }}</strong>.</p><p>I am reviewing your details and will get back to you within 24 hours.</p><p>Best regards,<br><strong>Suresh Kumar</strong><br>Solo Developer | Madurai</p></div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        -100
+      ],
+      "id": "send-client-email",
+      "name": "4. Send Client Email (Optional)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"YOUR_CHAT_ID\",\n  \"text\": \"🚀 *NEW WEBSITE LEAD!*\\n\\n👤 *Name:* {{ $json.fullName }}\\n📧 *Email:* {{ $json.email }}\\n📱 *WhatsApp:* {{ $json.whatsapp }}\\n🛠️ *Service:* {{ $json.service }}\\n💰 *Budget:* {{ $json.budget }}\\n💬 *Message:* {{ $json.message }}\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        720,
+        100
+      ],
+      "id": "send-slack-whatsapp-crm",
+      "name": "5. Send Alert (WhatsApp / Telegram / CRM)"
+    }
+  ],
+  "connections": {
+    "1. Webhook (Website Form)": {
+      "main": [
+        [
+          {
+            "node": "2. Format Lead Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Format Lead Payload": {
+      "main": [
+        [
+          {
+            "node": "3. Google Sheets (Save Lead)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Google Sheets (Save Lead)": {
+      "main": [
+        [
+          {
+            "node": "4. Send Client Email (Optional)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "5. Send Alert (WhatsApp / Telegram / CRM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

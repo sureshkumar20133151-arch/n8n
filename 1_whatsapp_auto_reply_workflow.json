@@ -1,0 +1,105 @@
+{
+  "name": "WhatsApp Auto-Reply (Open-WA API)",
+  "nodes": [
+    {
+      "id": "node-webhook-inbound",
+      "name": "WhatsApp Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-inbound",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-construct-reply",
+      "name": "Construct Auto Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "phone",
+              "value": "={{ $json.body.from }}",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "senderName",
+              "value": "={{ $json.body.senderName }}",
+              "type": "string"
+            },
+            {
+              "id": "f3",
+              "name": "userMessage",
+              "value": "={{ $json.body.body }}",
+              "type": "string"
+            },
+            {
+              "id": "f4",
+              "name": "replyMessage",
+              "value": "={{ \"Hi \" + ($json.body.senderName || \"there\") + \"! Thank you for messaging us. We received your message: \\\"\" + ($json.body.body || \"\") + \"\\\". We will get back to you shortly!\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-send-reply",
+      "name": "Send WhatsApp Reply (Open-WA)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"={{ $json.phone }}\",\n  \"message\": \"={{ $json.replyMessage }}\"\n}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Inbound Webhook": {
+      "main": [
+        [
+          {
+            "node": "Construct Auto Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construct Auto Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply (Open-WA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true
+}

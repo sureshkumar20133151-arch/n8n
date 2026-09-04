@@ -1,0 +1,894 @@
+{
+  "id": "WfLinkedInScheduled04",
+  "name": "4. AI System - Scheduled LinkedIn Post Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 4 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Schedule Trigger (10 AM IST)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        336,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I",
+          "mode": "list",
+          "cachedResultName": "Linkdin automation post ideas ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Pending"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "node-sheets-read",
+      "name": "Get Pending Post Idea",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        464,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Vb6GWdLrAg3DKey4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.Topic }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node-if-check",
+      "name": "Has Pending Ideas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        704,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a top 1% LinkedIn Content Creator and Lead AI Architect & Full-Stack Developer (Suresh Kumar, founder of solodeveloper.pro).\n\nYour goal is to write viral, extremely engaging, highly practical, and story-driven LinkedIn posts that position Suresh as an industry expert while building massive trust with clients and developers.\n\n=== CORE WRITING RULES ===\n\n1. THE HOOK (Line 1): Must be an absolute scroll-stopper. Use a controversial opinion, counter-intuitive stat, or high-stakes story line. Never start with \"In today's fast-paced world\" or generic fluff.\n   Examples of top hooks:\n   - \"I replaced a \u20b94,00,000/month team workflow with a single 15-minute automation.\"\n   - \"90% of developers build React apps wrong. Here is the architecture mistake costing you speed.\"\n   - \"A client almost fired me because of a 3-second delay. Here is how I fixed it forever.\"\n\n2. NARRATIVE FLOW (Story & Value):\n   - Hook (Pattern interrupt)\n   - Background (Context, tension, real-world scenario)\n   - The Breakdown (Clear step-by-step breakdown using '\u2192' points)\n   - The Proof (Metrics: 300% faster, 40 hours saved, 0 downtime)\n   - The Golden Insight (A memorable 1-sentence takeaway)\n   - Call to Action (An open-ended question driving high-quality comments)\n\n3. FORMATTING & READABILITY:\n   - Short 1-2 sentence paragraphs max.\n   - Double line breaks between EVERY paragraph.\n   - Use '\u2192' for key points or lists.\n   - Maximum 3 contextual emojis in the whole post.\n   - Exactly 5 highly relevant hashtags at the bottom.\n\n=== CATEGORY-SPECIFIC FOCUS ===\n\nIf Category is \"Web Development\":\n\u2192 Focus on React, Next.js, Node.js, UI/UX architecture, performance optimization, and clean code principles.\n\u2192 Hashtags: #WebDevelopment #ReactJS #FullStack #JavaScript #SoloDeveloper\n\nIf Category is \"AI Automation\":\n\u2192 Focus on n8n workflows, AI agent integration, API connectivity, saving hundreds of manual hours, and zero-code scaling.\n\u2192 Hashtags: #AIAutomation #n8n #WorkflowAutomation #AI #NoCode\n\nIf Category is \"Business Growth\":\n\u2192 Focus on freelancing systems, client management, pricing strategies, scaling solo dev agencies, and developer productivity.\n\u2192 Hashtags: #BusinessGrowth #Freelancing #Entrepreneurship #ClientSuccess #SoloDeveloper\n\n=== INPUT DATA ===\nTopic: {{ $('Get Pending Post Idea').item.json[\"Topic\"] }}\nCategory: {{ $('Get Pending Post Idea').item.json[\"Category\"] }}\nTarget Audience: {{ $('Get Pending Post Idea').item.json[\"Target Audience\"] }}\nTone: {{ $('Get Pending Post Idea').item.json[\"Tone\"] }}\n\n=== OUTPUT REQUIREMENTS ===\nWrite ONLY the final post body. Do not include introductory notes, quotes, or meta-comments. Start directly with the hook."
+      },
+      "id": "node-llm-chain",
+      "name": "Generate LinkedIn Post",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.85
+        }
+      },
+      "id": "node-gemini-model",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        768
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WjmAjaXaDUgMB3GY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "-XUVlhXDqX",
+        "text": "={{ $('Generate LinkedIn Post').item.json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-linkedin-post",
+      "name": "Post to LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        112
+      ],
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "R0Z8UeN8K3W0CTd2",
+          "name": "LinkedIn account suresh"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1JmPTd-kARaWCe5VXK1bz4YbgUnR59S31DdZFypH4_3I",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Topic": "={{ $('Get Pending Post Idea').item.json.Topic }}",
+            "Status": "Posted",
+            "Posted Date": "={{ $now.format('dd-MM-yyyy') }}",
+            "Generated Post": "={{ $('Generate LinkedIn Post').item.json.text }}",
+            "row_number": 0
+          },
+          "matchingColumns": [
+            "Topic"
+          ],
+          "schema": [
+            {
+              "id": "Topic",
+              "displayName": "Topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category ",
+              "displayName": "Category ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Content Type",
+              "displayName": "Content Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Target Audience",
+              "displayName": "Target Audience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tone",
+              "displayName": "Tone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted Date",
+              "displayName": "Posted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Generated Post",
+              "displayName": "Generated Post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Video Link",
+              "displayName": "Video Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "urn",
+              "displayName": "urn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "node-sheets-update",
+      "name": "Mark as Posted",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3456,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Vb6GWdLrAg3DKey4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "node-no-ideas",
+      "name": "No Pending Ideas",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        688,
+        528
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        208,
+        304
+      ],
+      "id": "ee36eea2-7b1e-4644-9530-3e96ec1795c3",
+      "name": "When clicking \u2018Execute workflow\u2019"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "Set_Topic",
+      "name": "Restore Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        3200,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "sureshkumar20133151@gmail.com",
+        "subject": "={{ '\u2705 LinkedIn Post Published: ' + $('Get Pending Post Idea').item.json.Topic }}",
+        "emailType": "text",
+        "message": "={{ 'Your automated LinkedIn post was just published successfully!\\n\\nTopic: ' + $('Get Pending Post Idea').item.json.Topic + '\\nCategory: ' + $('Get Pending Post Idea').item.json.Category + '\\n\\nCheck your LinkedIn feed to view the post!' }}",
+        "options": {}
+      },
+      "id": "Send_Gmail",
+      "name": "Send Gmail Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3712,
+        304
+      ],
+      "webhookId": "871178cc-79d8-4771-84a6-eba53c06b72c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OftOS69xqYM7qKZ2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ ($('Get Pending Post Idea').first().json['Content Type'] || '').trim() }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": "Text & Image"
+            },
+            {
+              "operation": "equal",
+              "value2": "Text & Video"
+            },
+            {
+              "operation": "equal",
+              "value2": "Image"
+            },
+            {
+              "operation": "equal",
+              "value2": "Video"
+            },
+            {
+              "operation": "equal",
+              "value2": "Text"
+            }
+          ]
+        },
+        "fallbackOutput": 4
+      },
+      "id": "Switch_ContentType",
+      "name": "Check Content Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://image.pollinations.ai/prompt/' + encodeURIComponent('High quality professional LinkedIn infographic poster and visual breakdown about: ' + $('Get Pending Post Idea').first().json['Topic'] + '. Sleek infographic layout with bold headline text, step-by-step process flowchart, modern dark navy and vibrant cyan background, crisp vector icons, professional business graphic design, 4k ultra detailed, vector art masterpiece') + '?width=1200&height=1200&model=flux&nologo=true&enhance=true&seed=' + $now.timestamp }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "Generate_Image",
+      "name": "Generate AI Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1456,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "person": "-XUVlhXDqX",
+        "text": "={{ $('Generate LinkedIn Post').item.json.text }}",
+        "shareMediaCategory": "IMAGE",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "additionalFields": {}
+      },
+      "id": "Post_LinkedIn_Image",
+      "name": "Post to LinkedIn (Image)",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        304
+      ],
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "R0Z8UeN8K3W0CTd2",
+          "name": "LinkedIn account suresh"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://drive.google.com/uc?export=download&id=' + $('Get Pending Post Idea').item.json['Video Link'].match(/d\\/([a-zA-Z0-9_-]+)/)[1] }}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "Download_Video",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1456,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/rest/videos?action=initializeUpload",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "linkedInOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "LinkedIn-Version",
+              "value": "202401"
+            },
+            {
+              "name": "X-RestLi-Protocol-Version",
+              "value": "2.0.0"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"initializeUploadRequest\": {\n    \"owner\": \"urn:li:person:-XUVlhXDqX\",\n    \"fileSizeBytes\": {{ $binary.data.fileSize }},\n    \"uploadCaptions\": false,\n    \"uploadThumbnail\": false\n  }\n}",
+        "options": {}
+      },
+      "id": "Init_Video_Upload",
+      "name": "Init Video Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1616,
+        640
+      ],
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "R0Z8UeN8K3W0CTd2",
+          "name": "LinkedIn account suresh"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $json.value.uploadInstructions[0].uploadUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/octet-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        },
+        "specifyBody": "binary",
+        "inputDataFieldName": "data"
+      },
+      "id": "Upload_Video",
+      "name": "Upload Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1952,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    eTag: $input.item.json.headers.etag\n  }\n};"
+      },
+      "id": "Extract_ETag",
+      "name": "Extract ETag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/rest/videos?action=finalizeUpload",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "linkedInOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "LinkedIn-Version",
+              "value": "202401"
+            },
+            {
+              "name": "X-RestLi-Protocol-Version",
+              "value": "2.0.0"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"finalizeUploadRequest\": {\n    \"video\": \"{{ $('Init Video Upload').item.json.value.video }}\",\n    \"uploadToken\": \"\",\n    \"uploadedPartIds\": [\n      \"{{ $json.eTag }}\"\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "Finalize_Video",
+      "name": "Finalize Video Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2464,
+        528
+      ],
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "R0Z8UeN8K3W0CTd2",
+          "name": "LinkedIn account suresh"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "id": "Wait_Node",
+      "name": "Wait for Processing",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2704,
+        528
+      ],
+      "webhookId": "1cee6f50-d602-45e4-b31c-4f469880962e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/rest/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "linkedInOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "LinkedIn-Version",
+              "value": "202401"
+            },
+            {
+              "name": "X-RestLi-Protocol-Version",
+              "value": "2.0.0"
+            },
+            {
+              "name": "X-RestLi-Method",
+              "value": "create"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"author\": \"urn:li:person:-XUVlhXDqX\",\n  \"commentary\": \"{{ $('Generate LinkedIn Post').item.json.text }}\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"id\": \"{{ $('Init Video Upload').item.json.value.video }}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+        "options": {}
+      },
+      "id": "Post_Video",
+      "name": "Post to LinkedIn (Video)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2960,
+        528
+      ],
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "R0Z8UeN8K3W0CTd2",
+          "name": "LinkedIn account suresh"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (10 AM IST)": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Post Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Post Idea": {
+      "main": [
+        [
+          {
+            "node": "Has Pending Ideas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Pending Ideas?": {
+      "main": [
+        [
+          {
+            "node": "Generate LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Pending Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate LinkedIn Post",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Check Content Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "ai_languageModel": []
+    },
+    "Post to LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Restore Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Post Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Topic": {
+      "main": [
+        [
+          {
+            "node": "Mark as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Posted": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Content Type": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate AI Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post to LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Image": {
+      "main": [
+        [
+          {
+            "node": "Post to LinkedIn (Image)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to LinkedIn (Image)": {
+      "main": [
+        [
+          {
+            "node": "Restore Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Init Video Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Video Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video": {
+      "main": [
+        [
+          {
+            "node": "Extract ETag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract ETag": {
+      "main": [
+        [
+          {
+            "node": "Finalize Video Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Video Upload": {
+      "main": [
+        [
+          {
+            "node": "Wait for Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Processing": {
+      "main": [
+        [
+          {
+            "node": "Post to LinkedIn (Video)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to LinkedIn (Video)": {
+      "main": [
+        [
+          {
+            "node": "Restore Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

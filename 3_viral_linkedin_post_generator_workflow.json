@@ -1,0 +1,141 @@
+{
+  "name": "3. AI System - Viral LinkedIn Post Generator",
+  "nodes": [
+    {
+      "id": "node-form-submission",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "path": "linkedin-viral-generator",
+        "formTitle": "LinkedIn Accounts",
+        "formDescription": "Please add two LinkedIn accounts of your favourite creators to then be able to scrape their posts.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "LinkedIn Account Number 1 (URL)",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "LinkedIn Account Number 2 (URL)",
+              "fieldType": "text",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-run-actor",
+      "name": "Run an Actor and get dataset",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "account1",
+              "value": "={{ String($json['LinkedIn Account Number 1 (URL)'] || '') }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "account2",
+              "value": "={{ String($json['LinkedIn Account Number 2 (URL)'] || '') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-loop-items",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        700,
+        300
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "node-message-model",
+      "name": "Message a model",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        930,
+        300
+      ],
+      "parameters": {
+        "resource": "chat",
+        "operation": "create",
+        "model": "openai/gpt-oss-20b",
+        "prompt": {
+          "messages": [
+            {
+              "role": "user",
+              "content": "={{ \"Write a viral LinkedIn post based on this content: \" + (typeof $json.content === 'object' ? JSON.stringify($json.content) : String($json.content || 'Create a high-converting tech and AI post')) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2048
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor and get dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run an Actor and get dataset": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true
+}
