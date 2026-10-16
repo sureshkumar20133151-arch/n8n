@@ -5,7 +5,7 @@ class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
-    this.systemInstruction = process.env.SYSTEM_INSTRUCTION || buildSystemPrompt();
+    this.systemInstruction = buildSystemPrompt();
     this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '10', 10);
     
     // Store conversation history per WhatsApp chat ID
@@ -95,7 +95,7 @@ class GeminiService {
             contents: history,
             config: {
               systemInstruction: this.systemInstruction,
-              temperature: 0.7,
+              temperature: 0.3,
             }
           });
           if (response && response.text) break;
