@@ -102,7 +102,15 @@ class GeminiService {
         } catch (err) {
           lastErr = err;
           const errMsg = err.message || String(err);
-          if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('404')) {
+          if (
+            errMsg.includes('429') ||
+            errMsg.includes('quota') ||
+            errMsg.includes('404') ||
+            errMsg.includes('503') ||
+            errMsg.includes('UNAVAILABLE') ||
+            errMsg.includes('high demand') ||
+            errMsg.includes('overloaded')
+          ) {
             console.warn(`[Gemini Quota/Availability] Model ${m} failed (${errMsg.slice(0, 80)}...). Trying fallback...`);
             continue;
           }
@@ -111,6 +119,7 @@ class GeminiService {
       }
 
       if (!response || !response.text) {
+        history.pop();
         throw lastErr || new Error("Failed to get response from all Gemini models");
       }
 
