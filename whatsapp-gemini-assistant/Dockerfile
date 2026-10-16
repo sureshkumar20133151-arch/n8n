@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libc6 \
     libcairo2 \
     libcups2 \
+    dbus \
     libdbus-1-3 \
     libexpat1 \
     libfontconfig1 \
