@@ -64,6 +64,11 @@ const client = new Client({
   authStrategy: new LocalAuth({
     dataPath: './.wwebjs_auth'
   }),
+  webVersionCache: {
+    type: 'remote',
+    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-js/main/dist/wppconnect-wa.js'
+  },
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
   puppeteer: {
     headless: true,
     ...(browserPath ? { executablePath: browserPath } : {}),
@@ -78,7 +83,7 @@ const client = new Client({
       '--single-process',
       '--disable-extensions',
       '--disable-software-rasterizer',
-      '--headless=new'
+      '--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"'
     ]
   }
 });
@@ -86,6 +91,9 @@ const client = new Client({
 let browserOpened = false;
 let latestQrDataUrl = null;
 let isClientReady = false;
+let currentStatus = 'Starting WhatsApp browser...';
+let loadingPercent = 0;
+let clientError = null;
 
 // Display QR Code on terminal and open a clean web page in browser for easy scanning
 client.on('qr', async (qr) => {
@@ -351,6 +359,8 @@ client.on('message_create', async (msg) => {
 });
 
 client.on('loading_screen', (percent, message) => {
+  loadingPercent = percent;
+  currentStatus = `Loading WhatsApp Web: ${percent}% (${message})`;
   console.log(`⏳ Loading WhatsApp: ${percent}% - ${message}`);
 });
 
@@ -363,6 +373,8 @@ process.on('uncaughtException', (err) => {
 });
 
 client.initialize().catch((err) => {
+  currentStatus = `Initialization Error: ${err.message || err}`;
+  clientError = err.message || err;
   console.error('❌ [Client Initialization Error]:', err);
 });
 
@@ -464,17 +476,19 @@ const server = http.createServer((req, res) => {
     <html lang="en">
     <head>
       <meta charset="utf-8">
-      <meta http-equiv="refresh" content="5">
+      <meta http-equiv="refresh" content="4">
       <title>Starting WhatsApp Assistant...</title>
       <style>
         body { font-family: -apple-system, sans-serif; background: #111b21; color: #e9edef; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #202c33; padding: 32px; border-radius: 16px; text-align: center; }
+        .card { background: #202c33; padding: 36px; border-radius: 16px; text-align: center; max-width: 460px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .status-box { background: #111b21; color: #25d366; padding: 12px 18px; border-radius: 8px; font-family: monospace; font-size: 13px; margin: 18px 0; border: 1px solid #374248; word-break: break-word; }
       </style>
     </head>
     <body>
       <div class="card">
-        <h2>WhatsApp Assistant is starting up...</h2>
-        <p style="color:#8696a0;">Please wait, page will refresh automatically in 5s.</p>
+        <h2 style="color:#25d366;margin-top:0;">WhatsApp Assistant Starting...</h2>
+        <div class="status-box">${currentStatus}</div>
+        <p style="color:#8696a0;font-size:13px;line-height:1.5;">Rendering WhatsApp Web in cloud Chromium. QR code will appear here automatically.</p>
       </div>
     </body>
     </html>
