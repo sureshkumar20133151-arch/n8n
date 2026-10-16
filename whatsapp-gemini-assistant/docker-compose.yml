@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  whatsapp-gemini-bot:
+    build: .
+    container_name: whatsapp-gemini-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Persist WhatsApp session across restarts
+      - ./auth_session:/app/.wwebjs_auth

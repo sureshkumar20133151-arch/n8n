@@ -1,0 +1,26 @@
+{
+  "name": "whatsapp-gemini-assistant",
+  "version": "1.0.0",
+  "description": "WhatsApp AI Assistant powered by Google Gemini API with multimodal vision support and conversation memory",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "gemini",
+    "ai",
+    "assistant",
+    "whatsapp-bot",
+    "multimodal"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^2.24.0",
+    "dotenv": "^16.4.7",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.7"
+  }
+}
