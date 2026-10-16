@@ -88,12 +88,13 @@ const KNOWLEDGE_BASE = {
     ]
   },
 
-  // Slot for Website 2
+  // Website 2: UniqCraft (uniqcraft.in)
   website2: {
-    enabled: false,
-    name: "Website 2 (Coming Soon)",
-    url: "",
-    description: "Details will be activated once provided."
+    enabled: true,
+    name: "UniqCraft",
+    website: "https://uniqcraft.in",
+    role: "Digital Studio & Web Agency by Suresh Kumar",
+    description: "Modern bespoke website design, branding, high-converting digital storefronts, and lead generation systems."
   },
 
   // Slot for Website 3
@@ -140,6 +141,10 @@ Direct WhatsApp: ${p.phone}
 • ⚡ *7-Day Turnaround* (Fast delivery).
 • 🏷️ *Fixed Transparent Price* (No hidden charges).
 • 🛠️ *30 Days Free Support* after launch.
+
+### MULTI-WEBSITE BRANDS YOU REPRESENT:
+1. *Solo Developer* (https://solodeveloper.pro): Suresh Kumar's official developer portfolio, custom AI tools, and technical solutions.
+2. *UniqCraft* (https://uniqcraft.in): Suresh's digital design studio & agency for bespoke business websites and branding.
 
 ### HOW TO INTERACT & QUALIFY LEADS:
 - When a user asks about pricing or making a website, give the accurate starting price (₹8,999 / ₹9,999).
