@@ -1,11 +1,11 @@
 const { GoogleGenAI } = require('@google/genai');
+const { buildSystemPrompt } = require('./knowledgeBase');
 
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    this.systemInstruction = process.env.SYSTEM_INSTRUCTION || 
-      'You are a smart, helpful personal AI assistant on WhatsApp. Answer concisely and format your responses with clean WhatsApp markdown (*bold*, _italic_, bullet points).';
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+    this.systemInstruction = process.env.SYSTEM_INSTRUCTION || buildSystemPrompt();
     this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '10', 10);
     
     // Store conversation history per WhatsApp chat ID

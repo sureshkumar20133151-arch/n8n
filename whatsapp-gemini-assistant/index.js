@@ -186,6 +186,52 @@ connectToWhatsApp();
 
 // HTTP server for Render port-binding, UptimeRobot, and Web QR viewing
 const server = http.createServer((req, res) => {
+  // CORS support for website chatbots
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+    return res.end();
+  }
+
+  // REST API endpoint for Website Chatbots (Option B)
+  if (req.url === '/api/chat' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const userMsg = (payload.message || '').trim();
+        const sessionId = payload.sessionId || `web_${Date.now()}`;
+
+        if (!userMsg) {
+          res.writeHead(400, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          return res.end(JSON.stringify({ error: 'Message is required' }));
+        }
+
+        const reply = await gemini.generateResponse(sessionId, userMsg);
+
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        return res.end(JSON.stringify({ reply, sessionId }));
+      } catch (apiErr) {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        return res.end(JSON.stringify({ error: apiErr.message }));
+      }
+    });
+    return;
+  }
+
   if (req.url === '/healthz' || req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
