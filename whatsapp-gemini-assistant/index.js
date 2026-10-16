@@ -74,7 +74,11 @@ const client = new Client({
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-software-rasterizer',
+      '--headless=new'
     ]
   }
 });
@@ -350,7 +354,17 @@ client.on('loading_screen', (percent, message) => {
   console.log(`⏳ Loading WhatsApp: ${percent}% - ${message}`);
 });
 
-client.initialize();
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ [Unhandled Rejection]:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ [Uncaught Exception]:', err);
+});
+
+client.initialize().catch((err) => {
+  console.error('❌ [Client Initialization Error]:', err);
+});
 
 // Automatically dismiss any "What's new" or intro popups that WhatsApp Web shows
 setInterval(async () => {
