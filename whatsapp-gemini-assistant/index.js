@@ -232,6 +232,59 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // REST API endpoint for sending outbound WhatsApp messages (for n8n & webhooks)
+  if (req.url === '/api/send-message' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const phone = (payload.phone || '').toString().trim();
+        const message = (payload.message || '').trim();
+
+        if (!phone || !message) {
+          res.writeHead(400, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          return res.end(JSON.stringify({ error: 'phone and message are required' }));
+        }
+
+        if (!isClientReady || !sock) {
+          res.writeHead(503, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          return res.end(JSON.stringify({ error: 'WhatsApp client is not currently connected' }));
+        }
+
+        let cleanDigits = phone.replace(/\D/g, '');
+        // If 10 digits (common for Indian mobile numbers), prepend '91'
+        if (cleanDigits.length === 10) {
+          cleanDigits = '91' + cleanDigits;
+        }
+
+        const jid = `${cleanDigits}@s.whatsapp.net`;
+        await sock.sendMessage(jid, { text: message });
+        console.log(`📤 [Outbound] WhatsApp message sent to ${jid}`);
+
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        return res.end(JSON.stringify({ success: true, jid, status: 'sent' }));
+      } catch (err) {
+        console.error('Error sending outbound WhatsApp message:', err);
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   if (req.url === '/healthz' || req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
