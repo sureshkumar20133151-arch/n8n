@@ -4,12 +4,14 @@ const {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  downloadMediaMessage
+  downloadMediaMessage,
+  Browsers
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
 const qrcodeTerminal = require('qrcode-terminal');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const GeminiService = require('./geminiService');
@@ -44,6 +46,16 @@ if (!fs.existsSync(authDir)) {
 async function connectToWhatsApp() {
   try {
     currentStatus = 'Initializing WebSocket connection...';
+
+    // 1. Clean up any previous socket instance to prevent duplicate connections
+    if (sock) {
+      try {
+        sock.ev.removeAllListeners();
+        sock.ws?.close();
+      } catch (e) {}
+      sock = null;
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
     const { version, isLatest } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307], isLatest: true }));
 
@@ -54,8 +66,11 @@ async function connectToWhatsApp() {
       logger: pino({ level: 'silent' }),
       auth: state,
       printQRInTerminal: false,
-      browser: ['Ubuntu', 'Chrome', '20.0.04'],
-      syncFullHistory: false
+      browser: Browsers.macOS('Desktop'),
+      syncFullHistory: false,
+      keepAliveIntervalMs: 25000,
+      defaultQueryTimeoutMs: 60000,
+      connectTimeoutMs: 60000
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -80,9 +95,12 @@ async function connectToWhatsApp() {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
         currentStatus = `Connection closed (Code: ${statusCode}). Reconnecting: ${shouldReconnect}`;
-        console.log(`⚠️ Connection closed due to:`, lastDisconnect?.error, `, reconnecting: ${shouldReconnect}`);
+        console.log(`⚠️ Connection closed (Code: ${statusCode}), reconnecting: ${shouldReconnect}`);
 
-        if (shouldReconnect) {
+        if (statusCode === DisconnectReason.restartRequired) {
+          console.log('🔄 Restart required by WhatsApp handshake (Code 515). Reconnecting in 1s...');
+          setTimeout(connectToWhatsApp, 1000);
+        } else if (shouldReconnect) {
           setTimeout(connectToWhatsApp, 3000);
         } else {
           console.log('Logged out from WhatsApp. Clear .baileys_auth and rescan.');
@@ -381,4 +399,18 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 Web service listening on port ${PORT}`);
+
+  // 24/7 Keep-Alive Self-Ping (Prevents Render Free Tier from going to sleep after 15m)
+  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || 'https://whatsapp-assistant-iqpi.onrender.com';
+  console.log(`⏰ Starting 24/7 Keep-Alive monitor for ${keepAliveUrl} (Every 8 minutes)`);
+  setInterval(() => {
+    try {
+      const client = keepAliveUrl.startsWith('https') ? https : http;
+      client.get(`${keepAliveUrl}/healthz`, (res) => {
+        // Resets Render idle timer
+      }).on('error', () => {
+        // Ignore errors during spin-up
+      });
+    } catch (e) {}
+  }, 8 * 60 * 1000);
 });
