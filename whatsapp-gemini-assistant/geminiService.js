@@ -330,9 +330,11 @@ class GeminiService {
           dispatchLeadToN8n(leadPayload);
 
           // Feed function response back to Gemini to get conversational reply
+          // Preserve original model parts (includes thought_signature required by newer Gemini models)
+          const modelParts = response.candidates[0].content.parts;
           history.push({
             role: 'model',
-            parts: [{ functionCall: fnCall }]
+            parts: modelParts
           });
 
           history.push({
@@ -368,9 +370,11 @@ class GeminiService {
           dispatchDemoBookingToN8n(bookingPayload);
 
           // Feed function response back to Gemini to get conversational reply
+          // Preserve original model parts (includes thought_signature required by newer Gemini models)
+          const modelPartsDemo = response.candidates[0].content.parts;
           history.push({
             role: 'model',
-            parts: [{ functionCall: fnCall }]
+            parts: modelPartsDemo
           });
 
           history.push({
@@ -409,9 +413,11 @@ class GeminiService {
           dispatchProposalToN8n(proposalPayload);
 
           // Feed function response back to Gemini to get conversational reply
+          // Preserve original model parts (includes thought_signature required by newer Gemini models)
+          const modelPartsProposal = response.candidates[0].content.parts;
           history.push({
             role: 'model',
-            parts: [{ functionCall: fnCall }]
+            parts: modelPartsProposal
           });
 
           history.push({
@@ -444,11 +450,18 @@ class GeminiService {
 
       const replyText = response.text || "Thank you! I have noted your requirements. How else can I assist your business today?";
 
-      // Append assistant's turn to history
-      history.push({
-        role: 'model',
-        parts: [{ text: replyText }]
-      });
+      // Append assistant's turn to history — preserve original parts to retain thought_signature
+      if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+        history.push({
+          role: 'model',
+          parts: response.candidates[0].content.parts
+        });
+      } else {
+        history.push({
+          role: 'model',
+          parts: [{ text: replyText }]
+        });
+      }
 
       return replyText;
     } catch (error) {
