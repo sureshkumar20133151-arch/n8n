@@ -127,9 +127,13 @@ async function connectToWhatsApp() {
           const isGroup = remoteJid.endsWith('@g.us');
           const isFromMe = msg.key.fromMe;
 
-          // If from me, only respond if it's sent to own chat (Notes / Message yourself)
+          // If from me, only allow if sent to own chat (Message Yourself / Notes to self for testing)
           if (isFromMe) {
-            continue;
+            const myJid = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
+            const isSelfChat = myJid && remoteJid === myJid;
+            if (!isSelfChat) {
+              continue;
+            }
           }
 
           // Extract text from various message types
