@@ -36,10 +36,10 @@ const KNOWLEDGE_BASE = {
         description: "Full-featured online store with product catalog, Razorpay/UPI/Stripe payment gateways, mobile-first checkout, order management, and admin panel."
       },
       {
-        title: "AI Chatbots & WhatsApp Automation",
+        title: "Autonomous AI Agents & WhatsApp Automation",
         startingPrice: "Custom Quote",
         delivery: "5-7 days",
-        description: "Custom WhatsApp AI agents with Tamil & English NLP, 24/7 lead qualification, Gemini/Claude integration, auto-reply bots, and CRM sync."
+        description: "Custom WhatsApp AI Agents with Tamil, Tanglish & English NLP, 24/7 lead qualification, Gemini/Claude integration, intelligent reasoning, and CRM sync."
       },
       {
         title: "Chrome Extensions & Web Scrapers",
@@ -86,23 +86,6 @@ const KNOWLEDGE_BASE = {
       "PostgreSQL", "FastAPI / Python", "n8n Automation", "Baileys WhatsApp Engine",
       "Google Gemini AI", "Vercel", "Render"
     ]
-  },
-
-  // Website 2: UniqCraft (uniqcraft.in)
-  website2: {
-    enabled: true,
-    name: "UniqCraft",
-    website: "https://uniqcraft.in",
-    role: "Digital Studio & Web Agency by Suresh Kumar",
-    description: "Modern bespoke website design, branding, high-converting digital storefronts, and lead generation systems."
-  },
-
-  // Slot for Website 3
-  website3: {
-    enabled: false,
-    name: "Website 3 (Coming Soon)",
-    url: "",
-    description: "Details will be activated once provided."
   }
 };
 
@@ -138,11 +121,11 @@ Direct WhatsApp: ${p.phone}
      
      Do you have a project ready to start?"
 
-   - If user asks "Do you build AI WhatsApp bots?":
-     Answer ONLY about AI Bots:
-     "Yes! We build custom WhatsApp AI Chatbots powered by Gemini/Claude with native Tamil & English NLP. They qualify leads, answer FAQs 24/7, and sync leads to Google Sheets/CRM.
+   - If user asks "Do you build AI WhatsApp Agents?":
+     Answer ONLY about AI Agents:
+     "Yes! We build custom WhatsApp AI Agents powered by Gemini/Claude with native Tamil & English NLP. They qualify leads, answer FAQs 24/7, and sync leads to Google Sheets/CRM.
      
-     What business or task do you want your WhatsApp bot to handle?"
+     What business or task do you want your WhatsApp agent to handle?"
 
    - If user asks "Can I see your portfolio projects?":
      Answer ONLY about projects:
