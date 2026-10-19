@@ -179,6 +179,14 @@ function dispatchLeadToN8n(leadData) {
   }
 }
 
+const fs = require('fs');
+const path = require('path');
+
+const HISTORY_DIR = path.resolve('./.baileys_auth/chat_histories');
+if (!fs.existsSync(HISTORY_DIR)) {
+  fs.mkdirSync(HISTORY_DIR, { recursive: true });
+}
+
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
@@ -197,15 +205,52 @@ class GeminiService {
     }
   }
 
+  getHistoryFilePath(chatId) {
+    const cleanId = chatId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    return path.join(HISTORY_DIR, `${cleanId}.json`);
+  }
+
   getOrCreateHistory(chatId) {
     if (!this.historyStore.has(chatId)) {
+      const filePath = this.getHistoryFilePath(chatId);
+      if (fs.existsSync(filePath)) {
+        try {
+          const raw = fs.readFileSync(filePath, 'utf-8');
+          const data = JSON.parse(raw);
+          if (Array.isArray(data)) {
+            console.log(`📂 [History Restored] Loaded ${data.length} turns for ${chatId}`);
+            this.historyStore.set(chatId, data);
+            return data;
+          }
+        } catch (e) {
+          console.warn(`[History Load Error] for ${chatId}:`, e.message);
+        }
+      }
       this.historyStore.set(chatId, []);
     }
     return this.historyStore.get(chatId);
   }
 
+  saveHistory(chatId) {
+    try {
+      const history = this.historyStore.get(chatId);
+      if (history) {
+        const filePath = this.getHistoryFilePath(chatId);
+        fs.writeFileSync(filePath, JSON.stringify(history, null, 2), 'utf-8');
+      }
+    } catch (e) {
+      console.warn(`[History Save Error] for ${chatId}:`, e.message);
+    }
+  }
+
   resetHistory(chatId) {
     this.historyStore.delete(chatId);
+    try {
+      const filePath = this.getHistoryFilePath(chatId);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (e) {}
   }
 
   /**
@@ -487,6 +532,9 @@ class GeminiService {
         });
       }
 
+      // Save updated history to disk
+      this.saveHistory(chatId);
+
       return replyText;
     } catch (error) {
       console.error(`[Gemini Error]`, error);
@@ -495,6 +543,7 @@ class GeminiService {
       if (history && history.length > 0) {
         history.pop();
       }
+      this.saveHistory(chatId);
       return `Vanakkam! Thavarana thagaval irunthathu, ippo sari seithuvittom. Could you please send that again?`;
     }
   }
