@@ -34,7 +34,12 @@ const LEAD_TOOLS = [{
         budgetStatus: { type: 'STRING', description: 'Budget status (Allocated, Deciding, Guidance needed)' },
         leadScore: { type: 'STRING', enum: ['Hot', 'Warm', 'Cold'], description: 'Lead priority score' },
         sureshClosingScript: { type: 'STRING', description: 'Mini 2-3 bullet cheat-sheet for Suresh to close on the call: Opening hook, pain to poke, exact offer to pitch' },
-        followupStrategy: { type: 'STRING', description: 'Specific follow-up message template tailored for this lead' }
+        followupStrategy: { type: 'STRING', description: 'Specific follow-up message template tailored for this lead' },
+        pipelineStage: { type: 'STRING', description: 'CRM Pipeline Stage: 1. NEW LEAD, 2. QUALIFIED, 3. DISCOVERY COMPLETED, 4. STRATEGY CALL BOOKED, 5. PROPOSAL SENT, 6. NEGOTIATION, 7. WON (CLOSED), 8. LOST' },
+        conversationIntent: { type: 'STRING', description: 'Conversation Intent: Ready To Buy, Urgent Problem, Comparing Options, Researching, Just Curious' },
+        estimatedDealValue: { type: 'STRING', description: 'Estimated Deal Value (e.g. ₹9,999, ₹19,999, ₹29,999, ₹49,999)' },
+        winProbability: { type: 'STRING', description: 'Win Probability percentage (e.g. 80%, 50%, 25%)' },
+        revenueForecast: { type: 'STRING', description: 'Weighted Revenue Forecast (Estimated Deal Value × Win Probability)' }
       },
       required: ['company', 'problemCategory']
     }
