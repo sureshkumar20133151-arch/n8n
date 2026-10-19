@@ -1,5 +1,58 @@
 const { GoogleGenAI } = require('@google/genai');
+const https = require('https');
 const { buildSystemPrompt } = require('./knowledgeBase');
+
+const LEAD_TOOLS = [{
+  functionDeclarations: [{
+    name: 'saveLeadDetails',
+    description: 'Call this tool to save qualified lead information into Suresh\'s CRM/Google Sheet and alert Suresh whenever the customer shares their name, company, industry, pain points, or requirements.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        name: { type: 'STRING', description: 'Name of the contact person' },
+        company: { type: 'STRING', description: 'Name of their business or company' },
+        industry: { type: 'STRING', description: 'Industry or business niche (e.g. Construction, Clinic, Retail)' },
+        location: { type: 'STRING', description: 'City or business location' },
+        problemType: { type: 'STRING', description: 'Growth, Operations, or Digital Transformation' },
+        painPoint: { type: 'STRING', description: 'Specific bottleneck, challenge, or pain point' },
+        dreamOutcome: { type: 'STRING', description: 'Goal, target outcome, or desired result' },
+        recommendedSolution: { type: 'STRING', description: 'The custom package or solution recommended' },
+        leadScore: { type: 'STRING', enum: ['Hot', 'Warm', 'Cold'], description: 'Lead priority score' }
+      },
+      required: ['company', 'problemType']
+    }
+  }]
+}];
+
+function dispatchLeadToN8n(leadData) {
+  try {
+    const postData = JSON.stringify(leadData);
+    const options = {
+      hostname: 'suresh-n8n-fhr6.onrender.com',
+      port: 443,
+      path: '/webhook/whatsapp-direct-lead',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    };
+
+    const req = https.request(options, (res) => {
+      console.log(`📡 [n8n Webhook] Lead logged successfully! Status: ${res.statusCode}`);
+    });
+
+    req.on('error', (e) => {
+      console.error(`⚠️ [n8n Webhook Error] Failed to log lead: ${e.message}`);
+    });
+
+    req.write(postData);
+    req.end();
+  } catch (err) {
+    console.error(`[Dispatch Error]:`, err.message);
+  }
+}
 
 class GeminiService {
   constructor() {
@@ -92,6 +145,7 @@ class GeminiService {
 
       let response = null;
       let lastErr = null;
+      let chosenModel = this.modelName;
 
       for (const m of modelsToTry) {
         try {
@@ -101,9 +155,13 @@ class GeminiService {
             config: {
               systemInstruction: this.systemInstruction,
               temperature: 0.3,
+              tools: LEAD_TOOLS
             }
           });
-          if (response && response.text) break;
+          if (response) {
+            chosenModel = m;
+            break;
+          }
         } catch (err) {
           lastErr = err;
           const errMsg = err.message || String(err);
@@ -123,12 +181,55 @@ class GeminiService {
         }
       }
 
-      if (!response || !response.text) {
+      if (!response) {
         history.pop();
         throw lastErr || new Error("Failed to get response from all Gemini models");
       }
 
-      const replyText = response.text || "I didn't receive a text response from Gemini.";
+      // Check if model triggered saveLeadDetails tool
+      if (response.functionCalls && response.functionCalls.length > 0) {
+        const fnCall = response.functionCalls[0];
+        if (fnCall.name === 'saveLeadDetails') {
+          console.log(`🎯 [Lead Captured via Tool]:`, fnCall.args);
+          
+          const leadPayload = {
+            ...fnCall.args,
+            phone: chatId.replace(/[^0-9]/g, '')
+          };
+          dispatchLeadToN8n(leadPayload);
+
+          // Feed function response back to Gemini to get conversational reply
+          history.push({
+            role: 'model',
+            parts: [{ functionCall: fnCall }]
+          });
+
+          history.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: fnCall.name,
+                response: { status: 'logged_successfully', message: 'Lead recorded in Suresh\'s CRM' }
+              }
+            }]
+          });
+
+          // Generate final conversational text response
+          const followup = await this.ai.models.generateContent({
+            model: chosenModel,
+            contents: history,
+            config: {
+              systemInstruction: this.systemInstruction,
+              temperature: 0.3,
+              tools: LEAD_TOOLS
+            }
+          });
+
+          response = followup;
+        }
+      }
+
+      const replyText = response.text || "Thank you! I have noted your details. How else can I assist your business today?";
 
       // Append assistant's turn to history
       history.push({
