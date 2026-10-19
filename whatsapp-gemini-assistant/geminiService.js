@@ -5,26 +5,35 @@ const { buildSystemPrompt } = require('./knowledgeBase');
 const LEAD_TOOLS = [{
   functionDeclarations: [{
     name: 'saveLeadDetails',
-    description: 'Call this tool to save qualified lead information into Suresh\'s CRM/Google Sheet and alert Suresh whenever the customer shares their name, company, industry, pain points, or requirements.',
+    description: 'Call this tool to save complete AI sales intelligence, business diagnosis, and qualified lead information into Suresh\'s CRM/Google Sheet and alert Suresh whenever the customer shares business details.',
     parameters: {
       type: 'OBJECT',
       properties: {
         name: { type: 'STRING', description: 'Name of the contact person' },
         company: { type: 'STRING', description: 'Name of their business or company' },
-        industry: { type: 'STRING', description: 'Industry or business niche (e.g. Construction, Clinic, Retail)' },
+        industry: { type: 'STRING', description: 'Industry or business niche' },
         location: { type: 'STRING', description: 'City or business location' },
         teamSize: { type: 'STRING', description: 'Team size or employee count' },
+        revenueRange: { type: 'STRING', description: 'Business Revenue Range (Below ₹5L, ₹5L-₹25L, ₹25L-₹1Cr, ₹1Cr+)' },
+        decisionMaker: { type: 'STRING', description: 'Role of the contact: Owner, Partner, Manager, or Employee' },
         monthlyEnquiries: { type: 'STRING', description: 'Average monthly enquiries/leads' },
-        currentSource: { type: 'STRING', description: 'How customers currently find them (Google, Referrals, Ads, etc.)' },
+        currentSource: { type: 'STRING', description: 'How customers currently find them (Google, Instagram, Referrals, Ads, Offline)' },
+        websiteStatus: { type: 'STRING', description: 'Current website status: No Website, Outdated, Slow, or Active' },
+        businessStage: { type: 'STRING', description: 'Business Stage: Early Stage, Scaling, or Established' },
         problemType: { type: 'STRING', description: 'Growth Problem, Operations Problem, or Digital Transformation' },
         painPoint: { type: 'STRING', description: 'Specific bottleneck, challenge, or pain point' },
+        painSeverity: { type: 'STRING', description: 'Pain Severity: Moderate, High, or Critical' },
         dreamOutcome: { type: 'STRING', description: 'Goal, target outcome, or desired result in 6 months' },
+        lostOpportunity: { type: 'STRING', description: 'Estimated lost inquiries or revenue per month due to this bottleneck' },
         currentTools: { type: 'STRING', description: 'Tools currently used (Excel, Sheets, WhatsApp Business, CRM, None)' },
         aiExperience: { type: 'STRING', description: 'Previous AI experience (Yes, No, Only ChatGPT)' },
+        urgency: { type: 'STRING', description: 'Urgency Level: Low, Medium, High, or Critical' },
         timeline: { type: 'STRING', description: 'Expected project timeline (Immediate, This month, Exploring)' },
         budgetStatus: { type: 'STRING', description: 'Budget status (Allocated, Deciding, Guidance needed)' },
         recommendedSolution: { type: 'STRING', description: 'The custom package or solution recommended' },
-        leadScore: { type: 'STRING', enum: ['Hot', 'Warm', 'Cold'], description: 'Lead priority score' }
+        grandSlamOffer: { type: 'STRING', description: 'Personalized Grand Slam Offer tailored to this business (Offer name + key components + expected transformation)' },
+        leadScore: { type: 'STRING', enum: ['Hot', 'Warm', 'Cold'], description: 'Lead priority score' },
+        nextAction: { type: 'STRING', description: 'Recommended next step for Suresh (e.g. Schedule discovery call, Send custom proposal)' }
       },
       required: ['company', 'problemType']
     }
@@ -197,7 +206,7 @@ class GeminiService {
       if (response.functionCalls && response.functionCalls.length > 0) {
         const fnCall = response.functionCalls[0];
         if (fnCall.name === 'saveLeadDetails') {
-          console.log(`🎯 [Lead Captured via Tool]:`, fnCall.args);
+          console.log(`🎯 [Sales Intelligence Captured via Tool]:`, fnCall.args);
           
           const leadPayload = {
             ...fnCall.args,
@@ -216,7 +225,7 @@ class GeminiService {
             parts: [{
               functionResponse: {
                 name: fnCall.name,
-                response: { status: 'logged_successfully', message: 'Lead recorded in Suresh\'s CRM' }
+                response: { status: 'logged_successfully', message: 'Sales intelligence recorded in Suresh\'s CRM' }
               }
             }]
           });
@@ -236,7 +245,7 @@ class GeminiService {
         }
       }
 
-      const replyText = response.text || "Thank you! I have noted your details. How else can I assist your business today?";
+      const replyText = response.text || "Thank you! I have noted your requirements. How else can I assist your business today?";
 
       // Append assistant's turn to history
       history.push({
