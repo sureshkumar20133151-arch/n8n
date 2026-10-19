@@ -50,8 +50,55 @@ const LEAD_TOOLS = [{
       },
       required: ['company', 'problemCategory']
     }
+  },
+  {
+    name: 'bookStrategyDemo',
+    description: 'Call this tool whenever a customer or prospect agrees to a demo or strategy call, selects a time slot (e.g. "Today 4:30 PM", "Tomorrow 11 AM"), or confirms a live consultation with Suresh.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        prospectName: { type: 'STRING', description: 'Name of the person booking the demo' },
+        company: { type: 'STRING', description: 'Business or company name' },
+        industry: { type: 'STRING', description: 'Industry or business category' },
+        demoTimeSlot: { type: 'STRING', description: 'Selected time slot (e.g. Today at 4:30 PM IST, Tomorrow at 11:00 AM IST)' },
+        meetingType: { type: 'STRING', enum: ['Google Meet', 'WhatsApp Call', 'Phone Call'], description: 'Meeting channel format' },
+        painPoint: { type: 'STRING', description: 'Core problem to demonstrate solving' },
+        notes: { type: 'STRING', description: 'Any special requests or details mentioned' }
+      },
+      required: ['prospectName', 'demoTimeSlot']
+    }
   }]
 }];
+
+function dispatchDemoBookingToN8n(bookingData) {
+  try {
+    const postData = JSON.stringify(bookingData);
+    const options = {
+      hostname: 'suresh-n8n-fhr6.onrender.com',
+      port: 443,
+      path: '/webhook/demo-booking',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    };
+
+    const req = https.request(options, (res) => {
+      console.log(`📡 [n8n Webhook] Demo Booking dispatched! Status: ${res.statusCode}`);
+    });
+
+    req.on('error', (e) => {
+      console.error(`⚠️ [n8n Webhook Error] Failed to log demo booking: ${e.message}`);
+    });
+
+    req.write(postData);
+    req.end();
+  } catch (err) {
+    console.error(`[Demo Dispatch Error]:`, err.message);
+  }
+}
 
 function dispatchLeadToN8n(leadData) {
   try {
@@ -78,6 +125,7 @@ function dispatchLeadToN8n(leadData) {
 
     req.write(postData);
     req.end();
+
   } catch (err) {
     console.error(`[Dispatch Error]:`, err.message);
   }
@@ -250,6 +298,48 @@ class GeminiService {
           });
 
           // Generate final conversational text response
+          const followup = await this.ai.models.generateContent({
+            model: chosenModel,
+            contents: history,
+            config: {
+              systemInstruction: this.systemInstruction,
+              temperature: 0.3,
+              tools: LEAD_TOOLS
+            }
+          });
+
+          response = followup;
+        } else if (fnCall.name === 'bookStrategyDemo') {
+          console.log(`📅 [Strategy Demo Booked via Tool]:`, fnCall.args);
+          
+          const bookingPayload = {
+            ...fnCall.args,
+            phone: chatId.replace(/[^0-9]/g, ''),
+            meetingLink: 'https://meet.google.com/jdf-qrvw-tkm'
+          };
+          dispatchDemoBookingToN8n(bookingPayload);
+
+          // Feed function response back to Gemini to get conversational reply
+          history.push({
+            role: 'model',
+            parts: [{ functionCall: fnCall }]
+          });
+
+          history.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: fnCall.name,
+                response: {
+                  status: 'confirmed',
+                  meetingLink: 'https://meet.google.com/jdf-qrvw-tkm',
+                  message: 'Demo slot reserved successfully on Google Calendar. Confirmation sent.'
+                }
+              }
+            }]
+          });
+
+          // Generate final conversational confirmation response
           const followup = await this.ai.models.generateContent({
             model: chosenModel,
             contents: history,

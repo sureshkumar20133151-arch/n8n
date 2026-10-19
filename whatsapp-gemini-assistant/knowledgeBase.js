@@ -4,6 +4,8 @@
 const { INDUSTRY_KNOWLEDGE, detectIndustry, formatIndustryPrompt } = require('./industryKnowledgeBase');
 const { formatOfferEnginePrompt, generateGrandSlamOffer } = require('./offerEngine');
 const { formatOutreachEnginePrompt, generateOutreachScript, generateAuditDeliveryMessage } = require('./outreachEngine');
+const { formatBookingEnginePrompt, getSuggestedDemoSlots, generateBookingConfirmation } = require('./bookingEngine');
+
 
 const KNOWLEDGE_BASE = {
   companyProfile: {
@@ -165,6 +167,8 @@ ${offerFormula}
 
 ${outreachPlaybook}
 
+${formatBookingEnginePrompt()}
+
 ==================================================
 5. SERVICES & STARTING PRICES
 ==================================================
@@ -211,6 +215,9 @@ module.exports = {
   detectIndustry,
   generateGrandSlamOffer,
   generateOutreachScript,
-  generateAuditDeliveryMessage
+  generateAuditDeliveryMessage,
+  getSuggestedDemoSlots,
+  generateBookingConfirmation
 };
+
 
