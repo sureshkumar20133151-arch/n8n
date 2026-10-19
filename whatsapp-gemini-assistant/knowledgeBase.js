@@ -5,6 +5,7 @@ const { INDUSTRY_KNOWLEDGE, detectIndustry, formatIndustryPrompt } = require('./
 const { formatOfferEnginePrompt, generateGrandSlamOffer } = require('./offerEngine');
 const { formatOutreachEnginePrompt, generateOutreachScript, generateAuditDeliveryMessage } = require('./outreachEngine');
 const { formatBookingEnginePrompt, getSuggestedDemoSlots, generateBookingConfirmation } = require('./bookingEngine');
+const { formatProposalEnginePrompt, generateProposalDossier, generateProposalWhatsAppMessage, generateProposalEmailHtml } = require('./proposalEngine');
 
 
 const KNOWLEDGE_BASE = {
@@ -168,6 +169,7 @@ ${offerFormula}
 ${outreachPlaybook}
 
 ${formatBookingEnginePrompt()}
+${formatProposalEnginePrompt()}
 
 ==================================================
 5. SERVICES & STARTING PRICES
@@ -217,7 +219,10 @@ module.exports = {
   generateOutreachScript,
   generateAuditDeliveryMessage,
   getSuggestedDemoSlots,
-  generateBookingConfirmation
+  generateBookingConfirmation,
+  generateProposalDossier,
+  generateProposalWhatsAppMessage,
+  generateProposalEmailHtml
 };
 
 

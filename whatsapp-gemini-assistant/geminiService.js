@@ -67,8 +67,56 @@ const LEAD_TOOLS = [{
       },
       required: ['prospectName', 'demoTimeSlot']
     }
+  },
+  {
+    name: 'generateAndSendProposal',
+    description: 'Call this tool to generate and dispatch the personalized Grand Slam Proposal, interactive blueprint, and 3-tier pricing options to the prospect via WhatsApp and Email, advancing the CRM pipeline stage to 7. PROPOSAL SENT.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        prospectName: { type: 'STRING', description: 'Name of the contact person' },
+        company: { type: 'STRING', description: 'Business or company name' },
+        industry: { type: 'STRING', description: 'Industry or business niche' },
+        email: { type: 'STRING', description: 'Email address of the prospect for proposal delivery' },
+        painPoint: { type: 'STRING', description: 'Core problem to solve' },
+        dreamOutcome: { type: 'STRING', description: 'Target result or outcome' },
+        recommendedTier: { type: 'STRING', description: 'Recommended Tier (e.g. Tier 2: Autonomous AI Growth System)' },
+        notes: { type: 'STRING', description: 'Any special inclusions or customization requests' }
+      },
+      required: ['prospectName', 'company']
+    }
   }]
 }];
+
+function dispatchProposalToN8n(proposalData) {
+  try {
+    const postData = JSON.stringify(proposalData);
+    const options = {
+      hostname: 'suresh-n8n-fhr6.onrender.com',
+      port: 443,
+      path: '/webhook/proposal-delivery',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    };
+
+    const req = https.request(options, (res) => {
+      console.log(`📡 [n8n Webhook] Proposal Delivery dispatched! Status: ${res.statusCode}`);
+    });
+
+    req.on('error', (e) => {
+      console.error(`⚠️ [n8n Webhook Error] Failed to dispatch proposal: ${e.message}`);
+    });
+
+    req.write(postData);
+    req.end();
+  } catch (err) {
+    console.error(`[Proposal Dispatch Error]:`, err.message);
+  }
+}
 
 function dispatchDemoBookingToN8n(bookingData) {
   try {
@@ -334,6 +382,46 @@ class GeminiService {
                   status: 'confirmed',
                   meetingLink: 'https://meet.google.com/jdf-qrvw-tkm',
                   message: 'Demo slot reserved successfully on Google Calendar. Confirmation sent.'
+                }
+              }
+            }]
+          });
+
+          // Generate final conversational confirmation response
+          const followup = await this.ai.models.generateContent({
+            model: chosenModel,
+            contents: history,
+            config: {
+              systemInstruction: this.systemInstruction,
+              temperature: 0.3,
+              tools: LEAD_TOOLS
+            }
+          });
+
+          response = followup;
+        } else if (fnCall.name === 'generateAndSendProposal') {
+          console.log(`📑 [Proposal Generated via Tool]:`, fnCall.args);
+          
+          const proposalPayload = {
+            ...fnCall.args,
+            phone: chatId.replace(/[^0-9]/g, '')
+          };
+          dispatchProposalToN8n(proposalPayload);
+
+          // Feed function response back to Gemini to get conversational reply
+          history.push({
+            role: 'model',
+            parts: [{ functionCall: fnCall }]
+          });
+
+          history.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: fnCall.name,
+                response: {
+                  status: 'proposal_dispatched',
+                  message: 'The custom Grand Slam proposal, 3-tier pricing options, and architecture blueprint were delivered via WhatsApp and Email. Stage updated to 7. PROPOSAL SENT.'
                 }
               }
             }]
