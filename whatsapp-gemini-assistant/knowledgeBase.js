@@ -36,10 +36,10 @@ const KNOWLEDGE_BASE = {
         description: "Full-featured online store with product catalog, Razorpay/UPI/Stripe payment gateways, mobile-first checkout, order management, and admin panel."
       },
       {
-        title: "Autonomous AI Agents & WhatsApp Automation",
+        title: "AI Agents & WhatsApp Automation",
         startingPrice: "Custom Quote",
         delivery: "5-7 days",
-        description: "Custom WhatsApp AI Agents with Tamil, Tanglish & English NLP, 24/7 lead qualification, Gemini/Claude integration, intelligent reasoning, and CRM sync."
+        description: "Custom WhatsApp AI agents with Tamil & English NLP, 24/7 autonomous lead qualification, Gemini/Claude integration, and CRM sync."
       },
       {
         title: "Chrome Extensions & Web Scrapers",
@@ -121,11 +121,11 @@ Direct WhatsApp: ${p.phone}
      
      Do you have a project ready to start?"
 
-   - If user asks "Do you build AI WhatsApp Agents?":
+   - If user asks "Do you build AI Agents?":
      Answer ONLY about AI Agents:
      "Yes! We build custom WhatsApp AI Agents powered by Gemini/Claude with native Tamil & English NLP. They qualify leads, answer FAQs 24/7, and sync leads to Google Sheets/CRM.
      
-     What business or task do you want your WhatsApp agent to handle?"
+     What business or workflow do you want your AI Agent to handle?"
 
    - If user asks "Can I see your portfolio projects?":
      Answer ONLY about projects:
