@@ -5,7 +5,7 @@ const { buildSystemPrompt } = require('./knowledgeBase');
 const LEAD_TOOLS = [{
   functionDeclarations: [{
     name: 'saveLeadDetails',
-    description: 'Call this tool to save complete AI sales intelligence, business diagnosis, and qualified lead information into Suresh\'s CRM/Google Sheet and alert Suresh whenever the customer shares business details.',
+    description: 'Call this tool to save complete AI sales intelligence, business diagnosis, Grand Slam Offer, and closing strategy into Suresh\'s CRM/Google Sheet and alert Suresh whenever the customer shares business details.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -15,27 +15,28 @@ const LEAD_TOOLS = [{
         location: { type: 'STRING', description: 'City or business location' },
         teamSize: { type: 'STRING', description: 'Team size or employee count' },
         revenueRange: { type: 'STRING', description: 'Business Revenue Range (Below ₹5L, ₹5L-₹25L, ₹25L-₹1Cr, ₹1Cr+)' },
-        decisionMaker: { type: 'STRING', description: 'Role of the contact: Owner, Partner, Manager, or Employee' },
+        authorityLevel: { type: 'STRING', description: 'Authority Level: Decision Maker, Influencer, Researcher, or Employee' },
         monthlyEnquiries: { type: 'STRING', description: 'Average monthly enquiries/leads' },
         currentSource: { type: 'STRING', description: 'How customers currently find them (Google, Instagram, Referrals, Ads, Offline)' },
-        websiteStatus: { type: 'STRING', description: 'Current website status: No Website, Outdated, Slow, or Active' },
-        businessStage: { type: 'STRING', description: 'Business Stage: Early Stage, Scaling, or Established' },
-        problemType: { type: 'STRING', description: 'Growth Problem, Operations Problem, or Digital Transformation' },
+        currentProcess: { type: 'STRING', description: 'Their existing before-workflow (e.g. Instagram -> WhatsApp -> Manual reply -> Meeting -> Excel)' },
+        buyingTrigger: { type: 'STRING', description: 'Why looking now? (e.g. New launch, expansion, lost customers, seasonal demand)' },
+        problemCategory: { type: 'STRING', description: 'Lead Generation, Lead Conversion, Customer Management, Internal Efficiency, Automation, or Digital Presence' },
         painPoint: { type: 'STRING', description: 'Specific bottleneck, challenge, or pain point' },
         painSeverity: { type: 'STRING', description: 'Pain Severity: Moderate, High, or Critical' },
         dreamOutcome: { type: 'STRING', description: 'Goal, target outcome, or desired result in 6 months' },
         lostOpportunity: { type: 'STRING', description: 'Estimated lost inquiries or revenue per month due to this bottleneck' },
         currentTools: { type: 'STRING', description: 'Tools currently used (Excel, Sheets, WhatsApp Business, CRM, None)' },
-        aiExperience: { type: 'STRING', description: 'Previous AI experience (Yes, No, Only ChatGPT)' },
+        transformationStatement: { type: 'STRING', description: 'Before State + After State + Mechanism (e.g. Convert Instagram visitors into qualified consultation bookings using an AI enquiry & follow-up system)' },
+        grandSlamOffer: { type: 'STRING', description: 'Personalized Grand Slam Offer tailored to this business (Offer name + key inclusions)' },
+        aiConfidence: { type: 'STRING', description: 'Diagnosis Confidence Score (e.g. 92%) with a 1-sentence rationale' },
         urgency: { type: 'STRING', description: 'Urgency Level: Low, Medium, High, or Critical' },
         timeline: { type: 'STRING', description: 'Expected project timeline (Immediate, This month, Exploring)' },
         budgetStatus: { type: 'STRING', description: 'Budget status (Allocated, Deciding, Guidance needed)' },
-        recommendedSolution: { type: 'STRING', description: 'The custom package or solution recommended' },
-        grandSlamOffer: { type: 'STRING', description: 'Personalized Grand Slam Offer tailored to this business (Offer name + key components + expected transformation)' },
         leadScore: { type: 'STRING', enum: ['Hot', 'Warm', 'Cold'], description: 'Lead priority score' },
-        nextAction: { type: 'STRING', description: 'Recommended next step for Suresh (e.g. Schedule discovery call, Send custom proposal)' }
+        sureshClosingScript: { type: 'STRING', description: 'Mini 2-3 bullet cheat-sheet for Suresh to close on the call: Opening hook, pain to poke, exact offer to pitch' },
+        followupStrategy: { type: 'STRING', description: 'Specific follow-up message template tailored for this lead' }
       },
-      required: ['company', 'problemType']
+      required: ['company', 'problemCategory']
     }
   }]
 }];
@@ -56,7 +57,7 @@ function dispatchLeadToN8n(leadData) {
     };
 
     const req = https.request(options, (res) => {
-      console.log(`📡 [n8n Webhook] Lead logged successfully! Status: ${res.statusCode}`);
+      console.log(`📡 [n8n Webhook] Sales Intelligence Dossier logged! Status: ${res.statusCode}`);
     });
 
     req.on('error', (e) => {
@@ -206,7 +207,7 @@ class GeminiService {
       if (response.functionCalls && response.functionCalls.length > 0) {
         const fnCall = response.functionCalls[0];
         if (fnCall.name === 'saveLeadDetails') {
-          console.log(`🎯 [Sales Intelligence Captured via Tool]:`, fnCall.args);
+          console.log(`🎯 [AI Sales Intelligence Generated via Tool]:`, fnCall.args);
           
           const leadPayload = {
             ...fnCall.args,
