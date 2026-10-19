@@ -249,6 +249,30 @@ class GeminiService {
         userParts.push({ text: "Please analyze this image and explain what you see in detail." });
       }
 
+      // Sanitize history to prevent corrupt state (e.g. unfinished tool calls from previous errors)
+      while (history.length > 0 && history[history.length - 1].role === 'user') {
+        const lastUser = history[history.length - 1];
+        // If last turn was a plain user message that failed to get a model reply, remove it so we don't double-push
+        if (lastUser.parts && lastUser.parts.some(p => p.text)) {
+          history.pop();
+        } else {
+          break;
+        }
+      }
+
+      // Filter out any orphaned functionCall or functionResponse parts from previous crashes
+      for (let i = history.length - 1; i >= 0; i--) {
+        const turn = history[i];
+        if (turn.role === 'model' && turn.parts && turn.parts.some(p => p.functionCall)) {
+          // If the next turn is not a functionResponse, this model turn was incomplete
+          const nextTurn = history[i + 1];
+          if (!nextTurn || nextTurn.role !== 'user' || !nextTurn.parts.some(p => p.functionResponse)) {
+            history.splice(i);
+            break;
+          }
+        }
+      }
+
       // Append user turn to history
       history.push({
         role: 'user',
@@ -466,7 +490,12 @@ class GeminiService {
       return replyText;
     } catch (error) {
       console.error(`[Gemini Error]`, error);
-      return `❌ *Error generating AI response*: ${error.message || error}`;
+      // Remove the failed user turn to prevent permanent conversational deadlock
+      const history = this.historyStore.get(chatId);
+      if (history && history.length > 0) {
+        history.pop();
+      }
+      return `Vanakkam! Thavarana thagaval irunthathu, ippo sari seithuvittom. Could you please send that again?`;
     }
   }
 }
