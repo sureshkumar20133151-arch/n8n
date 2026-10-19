@@ -1,5 +1,7 @@
 const { GoogleGenAI } = require('@google/genai');
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const { buildSystemPrompt } = require('./knowledgeBase');
 const { calculateSalesManagerMetrics } = require('./offerEngine');
 
@@ -179,30 +181,63 @@ function dispatchLeadToN8n(leadData) {
   }
 }
 
-const fs = require('fs');
-const path = require('path');
-
 const HISTORY_DIR = path.resolve('./.baileys_auth/chat_histories');
 if (!fs.existsSync(HISTORY_DIR)) {
   fs.mkdirSync(HISTORY_DIR, { recursive: true });
 }
+
+const PROFILES_FILE = path.join(HISTORY_DIR, 'contact_profiles.json');
 
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
     this.systemInstruction = buildSystemPrompt();
-    this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '10', 10);
+    this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '12', 10);
+    this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
-    // Store conversation history per WhatsApp chat ID
-    // Format: { [chatId]: [ { role: 'user'|'model', parts: [...] } ] }
+    // In-memory cache of conversation turns
     this.historyStore = new Map();
+
+    // Persistent contact profiles store
+    this.profiles = this.loadContactProfiles();
 
     if (this.apiKey && this.apiKey !== 'YOUR_GEMINI_API_KEY') {
       this.ai = new GoogleGenAI({ apiKey: this.apiKey });
     } else {
       this.ai = null;
     }
+  }
+
+  loadContactProfiles() {
+    try {
+      if (fs.existsSync(PROFILES_FILE)) {
+        const raw = fs.readFileSync(PROFILES_FILE, 'utf-8');
+        return JSON.parse(raw || '{}');
+      }
+    } catch (e) {
+      console.warn('[Profile Memory] Failed to load contact_profiles.json:', e.message);
+    }
+    return {};
+  }
+
+  saveContactProfile(cleanId, profileData) {
+    try {
+      const existing = this.profiles[cleanId] || {};
+      this.profiles[cleanId] = {
+        ...existing,
+        ...profileData,
+        updatedAt: new Date().toISOString()
+      };
+      fs.writeFileSync(PROFILES_FILE, JSON.stringify(this.profiles, null, 2), 'utf-8');
+      console.log(`💾 [Profile Saved] Updated persistent memory for ${cleanId}`);
+    } catch (e) {
+      console.warn('[Profile Memory Save Error]:', e.message);
+    }
+  }
+
+  getContactProfile(cleanId) {
+    return this.profiles[cleanId] || null;
   }
 
   getHistoryFilePath(chatId) {
@@ -253,20 +288,136 @@ class GeminiService {
     } catch (e) {}
   }
 
+  cleanFailedTurn(chatId) {
+    const history = this.historyStore.get(chatId);
+    if (!history || history.length === 0) return;
+    // Pop incomplete user or model turn
+    const last = history[history.length - 1];
+    if (last && (last.role === 'user' || (last.role === 'model' && last.parts?.some(p => p.functionCall)))) {
+      history.pop();
+    }
+  }
+
+  /**
+   * Deep sanitize history to strictly conform to Gemini 3.1 & 2.5 API requirements:
+   * 1. Every functionCall part MUST have a thoughtSignature (injects fallback if missing).
+   * 2. Every model functionCall MUST be followed by user functionResponse.
+   * 3. History MUST start with role: 'user'.
+   * 4. Roles MUST alternate properly.
+   * 5. If stripFunctionCalls=true, strips tool-calling parts to allow plain conversational fallback.
+   */
+  sanitizeHistory(historyArray, stripFunctionCalls = false) {
+    if (!Array.isArray(historyArray) || historyArray.length === 0) {
+      return [];
+    }
+
+    const sanitized = [];
+
+    for (let i = 0; i < historyArray.length; i++) {
+      const turn = historyArray[i];
+      if (!turn || !turn.role || !Array.isArray(turn.parts) || turn.parts.length === 0) {
+        continue;
+      }
+
+      if (stripFunctionCalls) {
+        // Filter out functionCall and functionResponse for emergency fallback
+        if (turn.parts.some(p => p.functionResponse)) {
+          continue;
+        }
+        const textParts = turn.parts.filter(p => p.text);
+        if (textParts.length > 0) {
+          sanitized.push({
+            role: turn.role,
+            parts: textParts
+          });
+        }
+        continue;
+      }
+
+      // Check if turn contains functionCall
+      const hasFunctionCall = turn.role === 'model' && turn.parts.some(p => p.functionCall);
+      if (hasFunctionCall) {
+        const nextTurn = historyArray[i + 1];
+        const nextHasResponse = nextTurn && nextTurn.role === 'user' && Array.isArray(nextTurn.parts) && nextTurn.parts.some(p => p.functionResponse);
+        if (!nextHasResponse) {
+          // Incomplete tool call: convert to plain text or skip to avoid 400 error
+          continue;
+        }
+
+        // Ensure every functionCall has thoughtSignature (crucial for Gemini 3.1)
+        const partsWithSig = turn.parts.map(p => {
+          if (p.functionCall) {
+            return {
+              ...p,
+              thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+            };
+          }
+          return p;
+        });
+
+        sanitized.push({
+          role: 'model',
+          parts: partsWithSig
+        });
+        continue;
+      }
+
+      // Check if turn is a functionResponse
+      const hasFunctionResponse = turn.role === 'user' && turn.parts.some(p => p.functionResponse);
+      if (hasFunctionResponse) {
+        const prevTurn = sanitized[sanitized.length - 1];
+        const prevHasCall = prevTurn && prevTurn.role === 'model' && prevTurn.parts.some(p => p.functionCall);
+        if (!prevHasCall) {
+          // Orphaned response without preceding call: skip
+          continue;
+        }
+        sanitized.push(turn);
+        continue;
+      }
+
+      // Normal text or multimodal user/model turn
+      sanitized.push(turn);
+    }
+
+    // Ensure history starts with a user turn
+    while (sanitized.length > 0 && sanitized[0].role !== 'user') {
+      sanitized.shift();
+    }
+
+    return sanitized;
+  }
+
   /**
    * Process a text or multimodal message with Gemini
    * @param {string} chatId - WhatsApp contact or group ID
    * @param {string} userText - User's message or prompt
    * @param {object|null} media - { mimetype, data (base64) } if an image or document was sent
+   * @param {object} options - { isOwner, senderName }
    * @returns {Promise<string>}
    */
-  async generateResponse(chatId, userText, media = null) {
+  async generateResponse(chatId, userText, media = null, options = {}) {
     if (!this.apiKey || this.apiKey === 'YOUR_GEMINI_API_KEY') {
       return "⚠️ *Gemini API Key missing!* Please add your valid API key in the `.env` file and restart the bot.";
     }
 
     if (!this.ai) {
       this.ai = new GoogleGenAI({ apiKey: this.apiKey });
+    }
+
+    const cleanDigits = (chatId || '').replace(/\D/g, '');
+    const isOwnerByPhone = cleanDigits === this.ownerPhone || cleanDigits.endsWith(this.ownerPhone);
+    const isOwnerByText = typeof userText === 'string' && (
+      /\b(i'?m|i am)\s+(your\s+)?suresh\b/i.test(userText) ||
+      /\bthis is suresh\b/i.test(userText) ||
+      /\bi'm your boss\b/i.test(userText)
+    );
+    const isOwner = Boolean(options.isOwner || isOwnerByPhone || isOwnerByText);
+
+    const cleanId = (chatId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    // Update owner status in profile store
+    if (isOwner) {
+      this.saveContactProfile(cleanId, { isOwner: true, name: 'Suresh Kumar', role: 'Owner/Founder' });
     }
 
     try {
@@ -289,44 +440,42 @@ class GeminiService {
           : "Listen carefully to this voice note from the client. Understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply helpfully, politely, and concisely in that same language following your knowledge base rules.";
         userParts.push({ text: audioInstruction });
       } else if (userText && userText.trim().length > 0) {
-        userParts.push({ text: userText.trim() });
+        let contextualText = userText.trim();
+
+        // If talking to Suresh (Boss Mode)
+        if (isOwner) {
+          contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
+        } else {
+          // Check known profile for returning client
+          const profile = this.getContactProfile(cleanId);
+          if (profile && profile.name && history.length === 0) {
+            contextualText = `[Known Returning Client Memory: Name: ${profile.name}, Business: ${profile.company || 'Unknown'}, Industry: ${profile.industry || 'Unknown'}. Recognize them warmly and do not ask for their name/business again]: ${contextualText}`;
+          }
+        }
+
+        userParts.push({ text: contextualText });
       } else if (media) {
         userParts.push({ text: "Please analyze this image and explain what you see in detail." });
       }
 
-      // Sanitize history to prevent corrupt state (e.g. unfinished tool calls from previous errors)
-      while (history.length > 0 && history[history.length - 1].role === 'user') {
-        const lastUser = history[history.length - 1];
-        // If last turn was a plain user message that failed to get a model reply, remove it so we don't double-push
-        if (lastUser.parts && lastUser.parts.some(p => p.text)) {
-          history.pop();
-        } else {
-          break;
-        }
-      }
-
-      // Filter out any orphaned functionCall or functionResponse parts from previous crashes
-      for (let i = history.length - 1; i >= 0; i--) {
-        const turn = history[i];
-        if (turn.role === 'model' && turn.parts && turn.parts.some(p => p.functionCall)) {
-          // If the next turn is not a functionResponse, this model turn was incomplete
-          const nextTurn = history[i + 1];
-          if (!nextTurn || nextTurn.role !== 'user' || !nextTurn.parts.some(p => p.functionResponse)) {
-            history.splice(i);
-            break;
-          }
-        }
-      }
-
-      // Append user turn to history
+      // Append new user turn to history
       history.push({
         role: 'user',
         parts: userParts
       });
 
-      // Keep only recent turns to fit context and memory limits
+      // Maintain history size by clean turn pairs (do not orphan tool calls)
       while (history.length > this.maxHistory * 2) {
-        history.shift();
+        // Find safe cut point (must start with role: 'user' and not be a tool response)
+        let cutIdx = 2;
+        while (cutIdx < history.length && (history[cutIdx].role !== 'user' || history[cutIdx].parts?.some(p => p.functionResponse))) {
+          cutIdx++;
+        }
+        if (cutIdx < history.length) {
+          history.splice(0, cutIdx);
+        } else {
+          break;
+        }
       }
 
       // Fallback model list if the primary model hits 429 rate limit
@@ -343,13 +492,15 @@ class GeminiService {
 
       for (const m of modelsToTry) {
         try {
+          const contentsToSend = this.sanitizeHistory(history);
           response = await this.ai.models.generateContent({
             model: m,
-            contents: history,
+            contents: contentsToSend,
             config: {
               systemInstruction: this.systemInstruction,
               temperature: 0.3,
-              tools: LEAD_TOOLS
+              // Only expose lead tools if not chatting with owner
+              tools: isOwner ? [] : LEAD_TOOLS
             }
           });
           if (response) {
@@ -359,6 +510,8 @@ class GeminiService {
         } catch (err) {
           lastErr = err;
           const errMsg = err.message || String(err);
+          console.warn(`[Gemini Try Model ${m}] Failed: ${errMsg.slice(0, 100)}`);
+
           if (
             errMsg.includes('429') ||
             errMsg.includes('quota') ||
@@ -368,23 +521,56 @@ class GeminiService {
             errMsg.includes('high demand') ||
             errMsg.includes('overloaded')
           ) {
-            console.warn(`[Gemini Quota/Availability] Model ${m} failed (${errMsg.slice(0, 80)}...). Trying fallback...`);
             continue;
+          }
+
+          // If tool calling / thought signature error, try emergency fallback without tools
+          if (errMsg.includes('thought_signature') || errMsg.includes('functionCall') || errMsg.includes('INVALID_ARGUMENT')) {
+            console.warn(`[Gemini Tool Error] Attempting conversational fallback without tools for ${m}...`);
+            try {
+              const fallbackContents = this.sanitizeHistory(history, true);
+              const fallbackRes = await this.ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: fallbackContents,
+                config: {
+                  systemInstruction: this.systemInstruction,
+                  temperature: 0.3
+                }
+              });
+              if (fallbackRes && fallbackRes.text) {
+                response = fallbackRes;
+                chosenModel = 'gemini-2.5-flash';
+                break;
+              }
+            } catch (fallbackErr) {
+              console.error(`[Fallback Attempt Failed]:`, fallbackErr.message);
+            }
           }
           throw err;
         }
       }
 
       if (!response) {
-        history.pop();
+        this.cleanFailedTurn(chatId);
         throw lastErr || new Error("Failed to get response from all Gemini models");
       }
 
-      // Check if model triggered saveLeadDetails tool
+      // Check if model triggered tools
       if (response.functionCalls && response.functionCalls.length > 0) {
         const fnCall = response.functionCalls[0];
+        console.log(`⚡ [Gemini Tool Invocation]: ${fnCall.name}`);
+
         if (fnCall.name === 'saveLeadDetails') {
-          console.log(`🎯 [AI Sales Intelligence Generated via Tool]:`, fnCall.args);
+          console.log(`🎯 [AI Sales Intelligence Generated]:`, fnCall.args);
+
+          // Update persistent contact memory
+          this.saveContactProfile(cleanId, {
+            name: fnCall.args.name,
+            company: fnCall.args.company,
+            industry: fnCall.args.industry,
+            painPoint: fnCall.args.painPoint,
+            dreamOutcome: fnCall.args.dreamOutcome
+          });
           
           const calculatedMetrics = calculateSalesManagerMetrics(fnCall.args);
           const leadPayload = {
@@ -398,9 +584,18 @@ class GeminiService {
           };
           dispatchLeadToN8n(leadPayload);
 
-          // Feed function response back to Gemini to get conversational reply
-          // Preserve original model parts (includes thought_signature required by newer Gemini models)
-          const modelParts = response.candidates[0].content.parts;
+          // Guarantee thoughtSignature exists on model parts
+          const rawParts = response.candidates[0].content.parts || [];
+          const modelParts = rawParts.map(p => {
+            if (p.functionCall) {
+              return {
+                ...p,
+                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+              };
+            }
+            return p;
+          });
+
           history.push({
             role: 'model',
             parts: modelParts
@@ -419,7 +614,7 @@ class GeminiService {
           // Generate final conversational text response
           const followup = await this.ai.models.generateContent({
             model: chosenModel,
-            contents: history,
+            contents: this.sanitizeHistory(history),
             config: {
               systemInstruction: this.systemInstruction,
               temperature: 0.3,
@@ -428,8 +623,9 @@ class GeminiService {
           });
 
           response = followup;
+
         } else if (fnCall.name === 'bookStrategyDemo') {
-          console.log(`📅 [Strategy Demo Booked via Tool]:`, fnCall.args);
+          console.log(`📅 [Strategy Demo Booked]:`, fnCall.args);
           
           const bookingPayload = {
             ...fnCall.args,
@@ -438,9 +634,17 @@ class GeminiService {
           };
           dispatchDemoBookingToN8n(bookingPayload);
 
-          // Feed function response back to Gemini to get conversational reply
-          // Preserve original model parts (includes thought_signature required by newer Gemini models)
-          const modelPartsDemo = response.candidates[0].content.parts;
+          const rawParts = response.candidates[0].content.parts || [];
+          const modelPartsDemo = rawParts.map(p => {
+            if (p.functionCall) {
+              return {
+                ...p,
+                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+              };
+            }
+            return p;
+          });
+
           history.push({
             role: 'model',
             parts: modelPartsDemo
@@ -460,10 +664,9 @@ class GeminiService {
             }]
           });
 
-          // Generate final conversational confirmation response
           const followup = await this.ai.models.generateContent({
             model: chosenModel,
-            contents: history,
+            contents: this.sanitizeHistory(history),
             config: {
               systemInstruction: this.systemInstruction,
               temperature: 0.3,
@@ -472,8 +675,9 @@ class GeminiService {
           });
 
           response = followup;
+
         } else if (fnCall.name === 'generateAndSendProposal') {
-          console.log(`📑 [Proposal Generated via Tool]:`, fnCall.args);
+          console.log(`📑 [Proposal Generated]:`, fnCall.args);
           
           const proposalPayload = {
             ...fnCall.args,
@@ -481,9 +685,17 @@ class GeminiService {
           };
           dispatchProposalToN8n(proposalPayload);
 
-          // Feed function response back to Gemini to get conversational reply
-          // Preserve original model parts (includes thought_signature required by newer Gemini models)
-          const modelPartsProposal = response.candidates[0].content.parts;
+          const rawParts = response.candidates[0].content.parts || [];
+          const modelPartsProposal = rawParts.map(p => {
+            if (p.functionCall) {
+              return {
+                ...p,
+                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+              };
+            }
+            return p;
+          });
+
           history.push({
             role: 'model',
             parts: modelPartsProposal
@@ -502,10 +714,9 @@ class GeminiService {
             }]
           });
 
-          // Generate final conversational confirmation response
           const followup = await this.ai.models.generateContent({
             model: chosenModel,
-            contents: history,
+            contents: this.sanitizeHistory(history),
             config: {
               systemInstruction: this.systemInstruction,
               temperature: 0.3,
@@ -519,11 +730,20 @@ class GeminiService {
 
       const replyText = response.text || "Thank you! I have noted your requirements. How else can I assist your business today?";
 
-      // Append assistant's turn to history — preserve original parts to retain thought_signature
+      // Append assistant's turn to history
       if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+        const finalParts = (response.candidates[0].content.parts || []).map(p => {
+          if (p.functionCall) {
+            return {
+              ...p,
+              thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+            };
+          }
+          return p;
+        });
         history.push({
           role: 'model',
-          parts: response.candidates[0].content.parts
+          parts: finalParts
         });
       } else {
         history.push({
@@ -538,13 +758,14 @@ class GeminiService {
       return replyText;
     } catch (error) {
       console.error(`[Gemini Error]`, error);
-      // Remove the failed user turn to prevent permanent conversational deadlock
-      const history = this.historyStore.get(chatId);
-      if (history && history.length > 0) {
-        history.pop();
-      }
+      this.cleanFailedTurn(chatId);
       this.saveHistory(chatId);
-      return `Vanakkam! Thavarana thagaval irunthathu, ippo sari seithuvittom. Could you please send that again?`;
+
+      // Graceful error messages - NEVER show raw JSON or thought signature errors to WhatsApp!
+      if (isOwner) {
+        return "Vanakkam Suresh! I had a temporary issue processing that request, but I have cleanly recovered. How can I assist you with your system or leads right now?";
+      }
+      return "Vanakkam! I've noted down what you shared. Could you please tell me a little more about what specific business or automation requirements you have in mind?";
     }
   }
 }

@@ -197,11 +197,26 @@ async function connectToWhatsApp() {
           console.log(`📩 [Incoming] From: ${senderName} (${remoteJid})`);
           console.log(`💬 Message: "${body || (isAudio ? '[Voice Note / Audio sent]' : '[Image sent]')}"`);
 
+          const ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
+          const cleanSenderDigits = remoteJid.replace(/\D/g, '');
+          const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone || cleanSenderDigits.endsWith(ownerPhone));
+
+          // Handle quick reset command for clean state
+          if (prompt.toLowerCase() === '!reset' || prompt.toLowerCase() === '/reset') {
+            gemini.resetHistory(remoteJid);
+            const resetReply = isOwner
+              ? "✅ Conversation history has been cleanly reset, Suresh! How can I assist you today?"
+              : "✅ Conversation restarted. How can I assist you today?";
+            await sock.sendMessage(remoteJid, { text: resetReply }, { quoted: msg });
+            console.log(`🔄 [Reset] History cleared for ${remoteJid}\n`);
+            continue;
+          }
+
           // Send typing indicator
           await sock.sendPresenceUpdate('composing', remoteJid);
 
           // Generate response with Gemini AI
-          const reply = await gemini.generateResponse(remoteJid, prompt, mediaPayload);
+          const reply = await gemini.generateResponse(remoteJid, prompt, mediaPayload, { isOwner, senderName });
 
           await sock.sendPresenceUpdate('paused', remoteJid);
 
