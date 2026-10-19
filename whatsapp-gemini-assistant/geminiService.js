@@ -1,6 +1,7 @@
 const { GoogleGenAI } = require('@google/genai');
 const https = require('https');
 const { buildSystemPrompt } = require('./knowledgeBase');
+const { calculateSalesManagerMetrics } = require('./offerEngine');
 
 const LEAD_TOOLS = [{
   functionDeclarations: [{
@@ -39,7 +40,12 @@ const LEAD_TOOLS = [{
         conversationIntent: { type: 'STRING', description: 'Conversation Intent: Ready To Buy, Urgent Problem, Comparing Options, Researching, Just Curious' },
         estimatedDealValue: { type: 'STRING', description: 'Estimated Deal Value (e.g. ₹9,999, ₹19,999, ₹29,999, ₹49,999)' },
         winProbability: { type: 'STRING', description: 'Win Probability percentage (e.g. 80%, 50%, 25%)' },
-        revenueForecast: { type: 'STRING', description: 'Weighted Revenue Forecast (Estimated Deal Value × Win Probability)' }
+        revenueForecast: { type: 'STRING', description: 'Weighted Revenue Forecast (Estimated Deal Value × Win Probability)' },
+        priorityRank: { type: 'STRING', description: 'Priority Rank: #1 Priority (VIP Closing Call), #2 Priority (High Probability), #3 Priority (Nurture & Demo), #4 Priority (Automated Follow-up)' },
+        aiRecommendedAction: { type: 'STRING', description: 'AI Recommended Action: Call Now (Direct Closing Call), Send Proposal & Interactive Wireframe, Send Case Study & ROI Breakdown, Schedule Demo / Walkthrough, Reactivate via Automated Nurture Sequence' },
+        dealRisk: { type: 'STRING', description: 'Deal Risk: Low Risk (Fast close expected), Medium Risk, or High Risk with reason' },
+        closingProbabilityReason: { type: 'STRING', description: 'Detailed reason explaining why this deal has high or low closing probability' },
+        nextBestMessage: { type: 'STRING', description: 'Exact personalized copy-paste WhatsApp message ready for Suresh to send to close or advance the deal' }
       },
       required: ['company', 'problemCategory']
     }
@@ -214,8 +220,14 @@ class GeminiService {
         if (fnCall.name === 'saveLeadDetails') {
           console.log(`🎯 [AI Sales Intelligence Generated via Tool]:`, fnCall.args);
           
+          const calculatedMetrics = calculateSalesManagerMetrics(fnCall.args);
           const leadPayload = {
             ...fnCall.args,
+            priorityRank: fnCall.args.priorityRank || calculatedMetrics.priorityRank,
+            aiRecommendedAction: fnCall.args.aiRecommendedAction || calculatedMetrics.aiRecommendedAction,
+            dealRisk: fnCall.args.dealRisk || calculatedMetrics.dealRisk,
+            closingProbabilityReason: fnCall.args.closingProbabilityReason || calculatedMetrics.closingProbabilityReason,
+            nextBestMessage: fnCall.args.nextBestMessage || calculatedMetrics.nextBestMessage,
             phone: chatId.replace(/[^0-9]/g, '')
           };
           dispatchLeadToN8n(leadPayload);

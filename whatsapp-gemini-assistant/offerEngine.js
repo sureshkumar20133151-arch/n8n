@@ -226,6 +226,7 @@ function generateGrandSlamOffer(lead = {}) {
   const maturity = determineOfferMaturityLevel(lead);
   const valueGap = calculateValueGap(lead);
   const deal = calculatePipelineDeal(lead);
+  const salesManager = calculateSalesManagerMetrics({ ...lead, pipelineDeal: deal });
   const followups = generatePersonalizedFollowups({ ...lead, grandSlamOffer: `${company} — ${mod.offerTemplate}` });
 
   const coreOfferName = `${company} — ${mod.offerTemplate}`;
@@ -235,6 +236,12 @@ function generateGrandSlamOffer(lead = {}) {
     company,
     industry: mod.name,
     pipelineDeal: deal,
+    salesManager,
+    priorityRank: salesManager.priorityRank,
+    aiRecommendedAction: salesManager.aiRecommendedAction,
+    dealRisk: salesManager.dealRisk,
+    closingProbabilityReason: salesManager.closingProbabilityReason,
+    nextBestMessage: salesManager.nextBestMessage,
     offerMaturityLevel: maturity.level,
     maturityDescription: maturity.deliverables,
     coreOfferName,
@@ -254,6 +261,136 @@ function generateGrandSlamOffer(lead = {}) {
       callToAction: `Can I walk you through a 10-minute live demonstration on WhatsApp or Google Meet tomorrow?`
     },
     followups
+  };
+}
+
+/**
+ * Calculate AI Sales Manager Priority Score (0-100), Rank, Recommended Action, Deal Risk, Probability Reason, and Next Best Message
+ * @param {object} lead
+ * @returns {object}
+ */
+function calculateSalesManagerMetrics(lead = {}) {
+  // 1. Pain Severity Score (max 25)
+  const painSev = (lead.painSeverity || '').toLowerCase();
+  let painScore = 15;
+  if (painSev.includes('critical')) painScore = 25;
+  else if (painSev.includes('high')) painScore = 20;
+  else if (painSev.includes('mod')) painScore = 12;
+  else if (painSev.includes('low')) painScore = 5;
+
+  // 2. Buying Intent Score (max 25)
+  const intent = (lead.conversationIntent || lead.pipelineDeal?.conversationIntent || '').toLowerCase();
+  let intentScore = 15;
+  if (intent.includes('ready to buy')) intentScore = 25;
+  else if (intent.includes('urgent')) intentScore = 22;
+  else if (intent.includes('comparing')) intentScore = 16;
+  else if (intent.includes('researching')) intentScore = 10;
+  else if (intent.includes('curious')) intentScore = 5;
+
+  // 3. Budget Availability Score (max 20)
+  const budget = (lead.budgetStatus || '').toLowerCase();
+  let budgetScore = 12;
+  if (budget.includes('allocated')) budgetScore = 20;
+  else if (budget.includes('deciding')) budgetScore = 15;
+  else if (budget.includes('guidance')) budgetScore = 10;
+  else if (budget.includes('none') || budget.includes('no')) budgetScore = 3;
+
+  // 4. Timeline Urgency Score (max 15)
+  const timeline = (lead.timeline || '').toLowerCase();
+  const urgency = (lead.urgency || '').toLowerCase();
+  let timelineScore = 10;
+  if (timeline.includes('immediate') || urgency.includes('critical')) timelineScore = 15;
+  else if (timeline.includes('month') || urgency.includes('high')) timelineScore = 12;
+  else if (timeline.includes('exploring') || urgency.includes('low')) timelineScore = 5;
+
+  // 5. Revenue Potential Score (max 15)
+  const rev = (lead.revenueRange || '').toLowerCase();
+  let revenueScore = 10;
+  if (rev.includes('1cr+')) revenueScore = 15;
+  else if (rev.includes('25l') || rev.includes('1cr')) revenueScore = 13;
+  else if (rev.includes('5l') || rev.includes('25l')) revenueScore = 10;
+  else revenueScore = 6;
+
+  const priorityScore = Math.min(100, painScore + intentScore + budgetScore + timelineScore + revenueScore);
+
+  // Priority Rank
+  let priorityRank = "#3 Priority (Nurture & Demo)";
+  if (priorityScore >= 80) {
+    priorityRank = "#1 Priority (VIP Closing Call)";
+  } else if (priorityScore >= 65) {
+    priorityRank = "#2 Priority (High Probability)";
+  } else if (priorityScore < 50) {
+    priorityRank = "#4 Priority (Automated Follow-up)";
+  }
+
+  // AI Recommended Action
+  let aiRecommendedAction = "Schedule Demo / Walkthrough";
+  if (priorityScore >= 80 && (intent.includes('ready') || intent.includes('urgent') || timeline.includes('immediate') || painSev.includes('critical'))) {
+    aiRecommendedAction = "Call Now (Direct Closing Call)";
+  } else if (intent.includes('comparing')) {
+    aiRecommendedAction = "Send Proposal & Interactive Wireframe";
+  } else if (budget.includes('guidance') || intent.includes('researching')) {
+    aiRecommendedAction = "Send Case Study & ROI Breakdown";
+  } else if (priorityScore < 50) {
+    aiRecommendedAction = "Reactivate via Automated Nurture Sequence";
+  }
+
+  // Deal Risk
+  const auth = (lead.authorityLevel || '').toLowerCase();
+  let dealRisk = "Low Risk (Fast close expected)";
+  const riskReasons = [];
+  if (auth.includes('employee') || auth.includes('researcher')) {
+    riskReasons.push("Non-decision maker contact");
+  }
+  if (budget.includes('guidance') || budget.includes('none') || budget.includes('no')) {
+    riskReasons.push("Budget unallocated");
+  }
+  if (timeline.includes('exploring') || intent.includes('curious')) {
+    riskReasons.push("Low urgency / exploring");
+  }
+
+  if (riskReasons.length >= 2) {
+    dealRisk = `High Risk (${riskReasons.join(', ')})`;
+  } else if (riskReasons.length === 1) {
+    dealRisk = `Medium Risk (${riskReasons[0]})`;
+  }
+
+  // Closing Probability Reason
+  const positiveSignals = [];
+  if (auth.includes('decision') || auth.includes('founder') || auth.includes('owner')) positiveSignals.push('Direct Decision Maker');
+  if (budget.includes('allocated')) positiveSignals.push('Allocated Budget');
+  if (timeline.includes('immediate') || urgency.includes('high') || urgency.includes('critical')) positiveSignals.push('Urgent Timeline');
+  if (painScore >= 20) positiveSignals.push('Critical Pain');
+  if (revenueScore >= 12) positiveSignals.push('Strong Revenue Base');
+
+  const closingProbabilityReason = positiveSignals.length > 0
+    ? `Score: ${priorityScore}/100. High probability drivers: ${positiveSignals.join(', ')}.`
+    : `Score: ${priorityScore}/100. Nurture required: Needs decision-maker buy-in and timeline confirmation.`;
+
+  // Next Best Message (WhatsApp ready copy-paste)
+  const name = lead.name || 'Friend';
+  const company = lead.company || 'your business';
+  const pain = lead.painPoint || 'lead bottlenecks';
+  const offer = lead.grandSlamOffer || 'Growth & AI System';
+
+  let nextBestMessage = "";
+  if (aiRecommendedAction.includes('Call Now')) {
+    nextBestMessage = `வணக்கம் ${name}! Suresh here from SoloDeveloper. I reviewed your requirements for ${company} regarding ${pain}. I've mapped out a live 10-minute solution architecture. Do you have 10 minutes today around 4 PM for a quick WhatsApp call?`;
+  } else if (aiRecommendedAction.includes('Proposal')) {
+    nextBestMessage = `Hi ${name}, Suresh from SoloDeveloper. I put together the architecture breakdown for ${offer} for ${company}. It shows exactly how we eliminate ${pain}. Should I send the PDF over WhatsApp or email?`;
+  } else if (aiRecommendedAction.includes('Case Study')) {
+    nextBestMessage = `Hi ${name}! Suresh here. We recently helped a similar business eliminate "${pain}" and achieve results in 14 days without complexity. Would you like a 3-minute video breakdown of how it works?`;
+  } else {
+    nextBestMessage = `வணக்கம் ${name}, Suresh from SoloDeveloper. Just checking in on ${company}. Are you still looking to solve "${pain}" this month? Let me know and I can share a tailored plan!`;
+  }
+
+  return {
+    priorityScore,
+    priorityRank,
+    aiRecommendedAction,
+    dealRisk,
+    closingProbabilityReason,
+    nextBestMessage
   };
 }
 
@@ -312,7 +449,15 @@ Whenever you diagnose a customer's business and call saveLeadDetails, formulate 
    • Zero-Complexity Guarantee: Suresh personally fine-tunes the system until the client's team is 100% comfortable.
 
 8. [REASON TO ACT NOW (URGENCY)]:
-   Connect directly to their BUYING TRIGGER (e.g. upcoming project launch, festival rush, or competitors taking market share) + "Suresh accepts only 2 custom client builds per fortnight to maintain 100% engineering quality."`;
+   Connect directly to their BUYING TRIGGER (e.g. upcoming project launch, festival rush, or competitors taking market share) + "Suresh accepts only 2 custom client builds per fortnight to maintain 100% engineering quality."
+
+9. [AI SALES MANAGER STRATEGIC DECISION FIELDS]:
+   When calling saveLeadDetails, also formulate the 5 strategic manager metrics:
+   • priorityRank: "#1 Priority (VIP Closing Call)", "#2 Priority (High Probability)", "#3 Priority (Nurture & Demo)", or "#4 Priority (Automated Follow-up)"
+   • aiRecommendedAction: "Call Now (Direct Closing Call)", "Send Proposal & Interactive Wireframe", "Send Case Study & ROI Breakdown", "Schedule Demo / Walkthrough", or "Reactivate via Automated Nurture Sequence"
+   • dealRisk: "Low Risk (Fast close expected)", "Medium Risk (...)", or "High Risk (...)"
+   • closingProbabilityReason: Rationale explaining why the deal will close (e.g. "Direct Decision Maker, allocated budget, critical pain")
+   • nextBestMessage: Exact personalized WhatsApp message ready for Suresh to copy, paste, and send.`;
 }
 
 module.exports = {
@@ -321,6 +466,7 @@ module.exports = {
   calculateValueGap,
   determineOfferMaturityLevel,
   calculatePipelineDeal,
+  calculateSalesManagerMetrics,
   generatePersonalizedFollowups,
   OBJECTION_BUSTING_BONUSES,
   RISK_REVERSAL_GUARANTEES,
@@ -328,3 +474,4 @@ module.exports = {
   PIPELINE_STAGES,
   CONVERSATION_INTENTS
 };
+
