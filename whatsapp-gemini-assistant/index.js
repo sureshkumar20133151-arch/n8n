@@ -141,8 +141,9 @@ async function connectToWhatsApp() {
 
           const body = textMessage.trim();
 
-          // Handle Image / Media
+          // Handle Image / Media / Voice Note
           let mediaPayload = null;
+          let isAudio = false;
           if (msg.message.imageMessage) {
             try {
               const buffer = await downloadMediaMessage(msg, 'buffer', {});
@@ -152,6 +153,22 @@ async function connectToWhatsApp() {
               };
             } catch (mediaErr) {
               console.error('Failed to download image:', mediaErr.message);
+            }
+          } else if (msg.message.audioMessage) {
+            try {
+              console.log(`🎙️ [Incoming Voice Note] Downloading audio stream from ${remoteJid}...`);
+              const buffer = await downloadMediaMessage(msg, 'buffer', {});
+              const rawMime = msg.message.audioMessage.mimetype || 'audio/ogg; codecs=opus';
+              const cleanMime = rawMime.split(';')[0].trim();
+              mediaPayload = {
+                mimetype: cleanMime || 'audio/ogg',
+                data: buffer.toString('base64'),
+                isAudio: true
+              };
+              isAudio = true;
+              console.log(`🎙️ [Voice Note Downloaded] ${buffer.length} bytes, MIME: ${cleanMime}`);
+            } catch (mediaErr) {
+              console.error('Failed to download audio message:', mediaErr.message);
             }
           }
 
@@ -173,7 +190,7 @@ async function connectToWhatsApp() {
 
           const senderName = msg.pushName || 'Friend';
           console.log(`📩 [Incoming] From: ${senderName} (${remoteJid})`);
-          console.log(`💬 Message: "${body || '[Image sent]'}"`);
+          console.log(`💬 Message: "${body || (isAudio ? '[Voice Note / Audio sent]' : '[Image sent]')}"`);
 
           // Send typing indicator
           await sock.sendPresenceUpdate('composing', remoteJid);

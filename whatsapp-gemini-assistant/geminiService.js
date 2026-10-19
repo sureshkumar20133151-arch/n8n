@@ -60,7 +60,12 @@ class GeminiService {
         });
       }
 
-      if (userText && userText.trim().length > 0) {
+      if (media && media.isAudio) {
+        const audioInstruction = (userText && userText.trim().length > 0)
+          ? `The user sent this voice note with additional text: "${userText.trim()}". Listen carefully to the voice note, understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply naturally, politely, and concisely in that same language following your knowledge base rules.`
+          : "Listen carefully to this voice note from the client. Understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply helpfully, politely, and concisely in that same language following your knowledge base rules.";
+        userParts.push({ text: audioInstruction });
+      } else if (userText && userText.trim().length > 0) {
         userParts.push({ text: userText.trim() });
       } else if (media) {
         userParts.push({ text: "Please analyze this image and explain what you see in detail." });
