@@ -116,7 +116,8 @@ async function connectToWhatsApp() {
     });
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
-      if (type !== 'notify') return;
+      // Handle both notify (new incoming messages) and append (synced/pending messages)
+      if (type !== 'notify' && type !== 'append') return;
 
       for (const msg of messages) {
         try {
