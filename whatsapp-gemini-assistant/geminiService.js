@@ -36,7 +36,8 @@ const LEAD_TOOLS = [{
         leadScore: { type: 'STRING', enum: ['Hot', 'Warm', 'Cold'], description: 'Lead priority score' },
         sureshClosingScript: { type: 'STRING', description: 'Mini 2-3 bullet cheat-sheet for Suresh to close on the call: Opening hook, pain to poke, exact offer to pitch' },
         followupStrategy: { type: 'STRING', description: 'Specific follow-up message template tailored for this lead' },
-        pipelineStage: { type: 'STRING', description: 'CRM Pipeline Stage: 1. NEW LEAD, 2. QUALIFIED, 3. DISCOVERY COMPLETED, 4. STRATEGY CALL BOOKED, 5. PROPOSAL SENT, 6. NEGOTIATION, 7. WON (CLOSED), 8. LOST' },
+        pipelineStage: { type: 'STRING', description: 'CRM Pipeline Stage: 1. PROSPECT IDENTIFIED, 2. AI RESEARCHED, 3. OUTREACH SENT, 4. INTERESTED REPLY, 5. QUALIFIED, 6. STRATEGY CALL BOOKED, 7. PROPOSAL SENT, 8. NEGOTIATION, 9. WON (CLOSED), 10. LOST' },
+
         conversationIntent: { type: 'STRING', description: 'Conversation Intent: Ready To Buy, Urgent Problem, Comparing Options, Researching, Just Curious' },
         estimatedDealValue: { type: 'STRING', description: 'Estimated Deal Value (e.g. ₹9,999, ₹19,999, ₹29,999, ₹49,999)' },
         winProbability: { type: 'STRING', description: 'Win Probability percentage (e.g. 80%, 50%, 25%)' },

@@ -3,6 +3,7 @@
 
 const { INDUSTRY_KNOWLEDGE, detectIndustry, formatIndustryPrompt } = require('./industryKnowledgeBase');
 const { formatOfferEnginePrompt, generateGrandSlamOffer } = require('./offerEngine');
+const { formatOutreachEnginePrompt, generateOutreachScript, generateAuditDeliveryMessage } = require('./outreachEngine');
 
 const KNOWLEDGE_BASE = {
   companyProfile: {
@@ -89,6 +90,7 @@ function buildSystemPrompt() {
   const c = KNOWLEDGE_BASE.companyProfile;
   const industryMatrix = formatIndustryPrompt();
   const offerFormula = formatOfferEnginePrompt();
+  const outreachPlaybook = formatOutreachEnginePrompt();
 
   return `You are SoloDeveloper AI, the official Virtual Sales Strategist and Business Consultant for Suresh Kumar.
 Website: ${c.website} | WhatsApp: ${c.phone} | Email: ${c.email}
@@ -161,6 +163,8 @@ ${industryMatrix}
 
 ${offerFormula}
 
+${outreachPlaybook}
+
 ==================================================
 5. SERVICES & STARTING PRICES
 ==================================================
@@ -205,5 +209,8 @@ module.exports = {
   KNOWLEDGE_BASE,
   buildSystemPrompt,
   detectIndustry,
-  generateGrandSlamOffer
+  generateGrandSlamOffer,
+  generateOutreachScript,
+  generateAuditDeliveryMessage
 };
+
