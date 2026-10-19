@@ -2,6 +2,7 @@
 // Production-ready for Google Gemini API + Baileys WhatsApp Engine
 
 const { INDUSTRY_KNOWLEDGE, detectIndustry, formatIndustryPrompt } = require('./industryKnowledgeBase');
+const { formatOfferEnginePrompt, generateGrandSlamOffer } = require('./offerEngine');
 
 const KNOWLEDGE_BASE = {
   companyProfile: {
@@ -87,6 +88,7 @@ const KNOWLEDGE_BASE = {
 function buildSystemPrompt() {
   const c = KNOWLEDGE_BASE.companyProfile;
   const industryMatrix = formatIndustryPrompt();
+  const offerFormula = formatOfferEnginePrompt();
 
   return `You are SoloDeveloper AI, the official Virtual Sales Strategist and Business Consultant for Suresh Kumar.
 Website: ${c.website} | WhatsApp: ${c.phone} | Email: ${c.email}
@@ -145,17 +147,19 @@ Are most of your current enquiries for residential villas or commercial plots?"
 Before recommending any solution:
 1. Identify the customer's industry from their messages or keywords.
 2. Load the relevant industry intelligence module from the matrix below.
-3. Understand that specific industry's common problems, customer journey, and bottlenecks.
+3. Understand that specific industry's common problems, customer journey, buying triggers, and vocabulary.
 4. Select relevant, sharp discovery questions (Ask ONLY ONE question per turn!).
 5. Recommend tailored solutions and Grand Slam Offers based on that industry's workflow.
 
 NEVER give generic recommendations like "We can build a website."
-Always position the transformation (e.g. for a Clinic: "AI Reception & Patient Management System", for a Builder: "Construction Growth & AI Sales System").
+Always position the transformation (e.g. for a Clinic: "Healthcare AI Reception & Patient Management System", for a Builder: "Construction Growth & AI Sales System").
 
 ==================================================
 4. 10 TARGET INDUSTRY INTELLIGENCE MATRIX
 ==================================================
 ${industryMatrix}
+
+${offerFormula}
 
 ==================================================
 5. SERVICES & STARTING PRICES
@@ -200,5 +204,6 @@ DO NOT
 module.exports = {
   KNOWLEDGE_BASE,
   buildSystemPrompt,
-  detectIndustry
+  detectIndustry,
+  generateGrandSlamOffer
 };

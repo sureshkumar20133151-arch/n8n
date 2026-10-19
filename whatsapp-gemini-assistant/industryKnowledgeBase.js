@@ -1,5 +1,6 @@
 // SOLODEVELOPER AI BUSINESS AGENT - INDUSTRY SPECIFIC INTELLIGENCE BASE
-// Contains domain-specific diagnosis, customer journeys, pain points, discovery questions, and Grand Slam Offers for 10 industries.
+// Production-ready for Google Gemini API + Baileys WhatsApp Engine
+// Contains domain-specific diagnosis, buying triggers, authority language, customer journeys, pain points, discovery questions, and Grand Slam Offers for 10 industries.
 
 const INDUSTRY_KNOWLEDGE = {
   construction: {
@@ -8,6 +9,19 @@ const INDUSTRY_KNOWLEDGE = {
     keywords: [
       "builder", "construction", "contractor", "civil contractor", "architect",
       "real estate developer", "turnkey", "building materials", "renovation", "flats builder"
+    ],
+    buyingTriggers: [
+      "Launching a new apartment or gated community project",
+      "Competitor builders gaining more inquiries from social media",
+      "Need to sell remaining apartment units or villas faster",
+      "Entering premium residential segment (₹1Cr+ villas)",
+      "Sales team overwhelmed during site visits and losing WhatsApp inquiries",
+      "Upcoming festive/New Year construction buying season"
+    ],
+    authorityLanguage: [
+      "Site visit", "Project brochure", "Floor plan", "Built-up area (sq.ft)",
+      "Possession date", "RERA approval", "Elevation design", "Turnkey contracting",
+      "Foundation & structural work", "Materials specification"
     ],
     commonProblems: [
       "Not getting enough qualified project enquiries",
@@ -55,6 +69,18 @@ const INDUSTRY_KNOWLEDGE = {
       "interior", "interior designer", "home interiors", "villa design",
       "modular kitchen", "decor", "architecture", "interior architect", "space designer"
     ],
+    buyingTriggers: [
+      "Want to transition from low-budget flats to high-ticket luxury villas",
+      "Opening a new design studio or experience center",
+      "Instagram engagement dropped or leads are tire-kickers who don't convert",
+      "Too many low-budget inquiries asking for unrealistically cheap quotes",
+      "Need to showcase 3D portfolio professionally to justify premium design charges"
+    ],
+    authorityLanguage: [
+      "2BHK / 3BHK", "Luxury Villa", "Modular kitchen", "False ceiling",
+      "Moodboard", "3D Photorealistic render", "Turnkey interior execution",
+      "Material finishes", "Lighting & acoustics", "Design consultation fee"
+    ],
     commonProblems: [
       "Not enough premium and luxury villa clients",
       "Instagram leads bouncing without consultation booking",
@@ -100,6 +126,19 @@ const INDUSTRY_KNOWLEDGE = {
       "real estate", "property", "developer", "plots", "layout", "apartment",
       "villa", "land broker", "flats", "gated community", "farmland", "realtor"
     ],
+    buyingTriggers: [
+      "New layout or plotting project launch (pre-launch phase)",
+      "Running expensive Meta or Google Ads and need to stop lead wastage",
+      "Sales agents wasting 80% of their day answering casual tire-kickers",
+      "High cancellation rate on site visits",
+      "Need faster booking turnover for upcoming phase launch"
+    ],
+    authorityLanguage: [
+      "DTCP approved", "RERA registered", "Gated community layout",
+      "Square feet (sq.ft) / Cent / Acre", "Guideline value vs Market value",
+      "Clear title deed", "Villa plots", "Amenities clubhouse",
+      "Site tour appointment", "Token advance"
+    ],
     commonProblems: [
       "High volume of tire-kickers and casual inquiries wasting sales agents' time",
       "Unverified buyer budgets and location preferences",
@@ -143,6 +182,18 @@ const INDUSTRY_KNOWLEDGE = {
     keywords: [
       "clinic", "doctor", "hospital", "dental", "pediatrics", "dermatologist",
       "wellness", "healthcare", "physiotherapy", "ayurveda", "eye clinic", "skin clinic"
+    ],
+    buyingTriggers: [
+      "Opening a new branch, multi-specialty center, or expanding OPD hours",
+      "Reception staff overwhelmed by calls and patients complaining about wait times",
+      "High no-show rate (15-25%) on confirmed appointments",
+      "Losing new patient inquiries after 8 PM and on weekends",
+      "Starting new specialized department (e.g. Laser cosmetic dental, IVF, Hair restoration)"
+    ],
+    authorityLanguage: [
+      "Consultation", "In-clinic appointment", "OPD timings", "Doctor availability",
+      "Token number", "Specialist consultation fee", "Follow-up checkup",
+      "Procedure slot", "Patient records", "Waiting lounge"
     ],
     commonProblems: [
       "Missed patient inquiries during surgeries and after clinic hours (after 8 PM)",
@@ -188,6 +239,18 @@ const INDUSTRY_KNOWLEDGE = {
       "restaurant", "cafe", "cloud kitchen", "food delivery", "bakery",
       "catering", "dining", "sweet stall", "bistro", "fast food"
     ],
+    buyingTriggers: [
+      "High 25-30% Swiggy/Zomato commission eating restaurant profit margins",
+      "Opening a new cloud kitchen branch or outdoor dining patio",
+      "Weekend table booking rush creating phone chaos and customer walkouts",
+      "Want to build direct customer repeat database for festival offers",
+      "Launching corporate catering or party booking menu"
+    ],
+    authorityLanguage: [
+      "Dine-in", "Table reservation", "Weekend rush & waitlist", "Digital QR menu",
+      "Direct WhatsApp ordering", "Zero aggregator commission", "Average Order Value (AOV)",
+      "Instant UPI settlement", "Chef special / Combos"
+    ],
     commonProblems: [
       "Paying high 25%–30% aggregator commissions to Swiggy/Zomato on every order",
       "Slow, manual order taking and price checking on WhatsApp",
@@ -230,6 +293,18 @@ const INDUSTRY_KNOWLEDGE = {
     keywords: [
       "boutique", "retail shop", "clothing store", "sarees", "jewelry",
       "fashion store", "footwear", "electronics shop", "textiles", "apparel"
+    ],
+    buyingTriggers: [
+      "Instagram and WhatsApp flooded with 'price please' inquiries that staff can't handle",
+      "Customers messaging late at night after the physical shop closes",
+      "Upcoming festival season (Diwali, Pongal, Wedding season) needing 24/7 sales capacity",
+      "Tired of manual UPI screenshot verification and delayed dispatch",
+      "Excess seasonal inventory that needs fast clearance"
+    ],
+    authorityLanguage: [
+      "Catalog browsing", "Size & color availability", "Price inquiries",
+      "Stock clearance", "Fast-moving collection", "Pure silk / Gold / Silver hallmarked",
+      "Cash on Delivery (COD) verification", "Dispatch tracking", "Festive collection launch"
     ],
     commonProblems: [
       "Manual price, color, and size inquiries on WhatsApp consuming staff all day",
@@ -274,6 +349,18 @@ const INDUSTRY_KNOWLEDGE = {
       "coaching", "academy", "tuition", "institute", "school", "college",
       "training", "spoken english", "neet coaching", "ias academy", "computer center", "upsc"
     ],
+    buyingTriggers: [
+      "Upcoming annual admission season (NEET, JEE, TNPSC, School admissions)",
+      "Phone lines jammed with parent inquiries about fees and syllabus",
+      "Low attendance for free orientation demo classes",
+      "Opening new online batch or weekend coaching program",
+      "Competitor academies using modern digital enrollment"
+    ],
+    authorityLanguage: [
+      "Admission season", "Batch timings (Morning / Evening)", "Syllabus brochure PDF",
+      "Demo lecture registration", "Entrance test score", "Tuition fee structure",
+      "Study material dispatch", "Attendance tracking", "Parent orientation"
+    ],
     commonProblems: [
       "High inquiry volume during admission season overwhelming staff phone lines",
       "Slow response to parent fee and syllabus inquiries causing drop-offs",
@@ -316,6 +403,18 @@ const INDUSTRY_KNOWLEDGE = {
     keywords: [
       "manufacturer", "factory", "industrial", "b2b supplier", "fabrication",
       "machinery", "packaging", "raw materials", "exporter", "wholesaler", "oem"
+    ],
+    buyingTriggers: [
+      "Expanding factory production capacity or installing new machinery",
+      "Frustrated with 3 days of back-and-forth emails to collect technical specs for RFQs",
+      "Want to target export markets (USA, Gulf, Europe) and need high digital credibility",
+      "Trade portal leads (IndiaMART/Alibaba) lack seriousness or technical clarity",
+      "Want to attract corporate OEM contracts with institutional buyers"
+    ],
+    authorityLanguage: [
+      "RFQ (Request for Quote)", "Technical drawing (CAD / PDF)", "MOQ (Minimum Order Quantity)",
+      "Tolerances & microns", "Material grade / ASTM specs", "Purchase Order (PO)",
+      "Factory audit & ISO certification", "Lead time / Dispatch schedule", "B2B commercial quotation"
     ],
     commonProblems: [
       "Inbound inquiries lack technical specs, drawings, or order volume details",
@@ -361,6 +460,18 @@ const INDUSTRY_KNOWLEDGE = {
       "chartered accountant", "ca firm", "lawyer", "advocate", "tax consultant",
       "financial advisor", "consulting", "legal", "audit", "management consultant", "cpa"
     ],
+    buyingTriggers: [
+      "Upcoming tax filing or audit compliance deadlines (July, September, March rush)",
+      "Senior partners wasting billable hours answering basic preliminary questions",
+      "Messy WhatsApp chats losing track of client KYC and financial documents",
+      "Want to transition from low-ticket compliance to high-value monthly advisory retainers",
+      "Expanding practice with new associate partners"
+    ],
+    authorityLanguage: [
+      "Billable hours", "Client discovery consultation", "KYC & financial documents upload",
+      "ITR / GST compliance", "Audit & statutory filing", "Monthly corporate retainer",
+      "Penalty avoidance", "Tax advisory proposal", "Confidential onboarding"
+    ],
     commonProblems: [
       "Wasting high-value billable hours answering basic repetitive tax/legal queries",
       "Chasing clients manually for KYC and financial documents over messy WhatsApp chats",
@@ -404,6 +515,18 @@ const INDUSTRY_KNOWLEDGE = {
     keywords: [
       "ecommerce", "d2c", "online store", "shopify", "woocommerce", "d2c brand",
       "cosmetics", "skincare", "apparel", "accessories", "supplements", "direct to consumer"
+    ],
+    buyingTriggers: [
+      "Meta ad costs (CAC) rising and cart abandonment above 70%",
+      "Customer support team flooded with 'Where is my order?' (WISMO) WhatsApp messages",
+      "Launching a new product line or seasonal sale",
+      "Want to convert one-time buyers into repeat VIP subscribers",
+      "Current website loading slowly (above 3 seconds) hurting conversion rate"
+    ],
+    authorityLanguage: [
+      "Cart abandonment rate", "1-Click UPI checkout", "Return on Ad Spend (ROAS)",
+      "WISMO (Where is my order)", "Customer Acquisition Cost (CAC)", "Lifetime Value (LTV)",
+      "COD confirmation & RTO reduction", "Automated tracking webhook", "Repeat purchase rate"
     ],
     commonProblems: [
       "High Customer Acquisition Cost (CAC) on Meta and Google Ads eating profit margins",
@@ -468,6 +591,8 @@ function formatIndustryPrompt() {
   return Object.values(INDUSTRY_KNOWLEDGE).map((m, idx) => `
 [${idx + 1}. INDUSTRY: ${m.name.toUpperCase()}]
 • Keywords: ${m.keywords.join(', ')}
+• Buying Triggers (Why looking now?): ${m.buyingTriggers.join('; ')}
+• Authority Vocabulary (Speak like an industry insider!): ${m.authorityLanguage.join(', ')}
 • Common Problems: ${m.commonProblems.join('; ')}
 • Typical Customer Journey: ${m.customerJourney.join(' -> ')}
 • Consultative Discovery Questions (Ask ONLY ONE at a time!): ${m.discoveryQuestions.map(q => `"${q}"`).join(', ')}
