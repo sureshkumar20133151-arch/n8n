@@ -1,6 +1,8 @@
 // SOLODEVELOPER AI BUSINESS AGENT - VIRTUAL SALES STRATEGIST & MASTER KNOWLEDGE BASE
 // Production-ready for Google Gemini API + Baileys WhatsApp Engine
 
+const { INDUSTRY_KNOWLEDGE, detectIndustry, formatIndustryPrompt } = require('./industryKnowledgeBase');
+
 const KNOWLEDGE_BASE = {
   companyProfile: {
     name: "Suresh Kumar",
@@ -14,83 +16,7 @@ const KNOWLEDGE_BASE = {
     positioning: "We build Autonomous AI Business Systems that understand customers, automate workflows, qualify leads, and help businesses operate 24/7."
   },
 
-  industryModules: {
-    construction: {
-      industry: "Construction & Builders",
-      commonPains: [
-        "Not enough qualified project enquiries",
-        "Slow site visit scheduling",
-        "Quotation & estimate follow-up delays",
-        "Unorganized WhatsApp chats losing high-ticket home buyers"
-      ],
-      coreBottleneck: "High-ticket buyer enquiries slip through unorganized phone calls and delayed WhatsApp replies.",
-      mechanism: "Builder Growth Engine: Project showcase landing page + 24/7 WhatsApp AI Buyer Qualifier + Automated Site Visit Booking + n8n Multi-stage Followup.",
-      recommendedOffer: "Construction Growth + AI Buyer Qualification System",
-      closingHook: "Explain how responding in 60 seconds vs 4 hours stops villa buyers from checking competitor builders."
-    },
-    interiorDesign: {
-      industry: "Interior Designers & Architects",
-      commonPains: [
-        "Low premium/villa project enquiries",
-        "Poor portfolio presentation on Instagram/WhatsApp",
-        "Instagram leads bouncing without consultation booking",
-        "Tire-kickers asking for cheap rates"
-      ],
-      coreBottleneck: "Instagram visitors never get pre-qualified into consultation appointments.",
-      mechanism: "Luxury Interior Client Acquisition System: 3D Immersive Portfolio Showcase + WhatsApp AI Consultation Booking Agent + Automated Budget Intake.",
-      recommendedOffer: "Premium Interior Client Acquisition System",
-      closingHook: "Pitch pre-qualifying client floor plans and budget before the designer spends time on site visits."
-    },
-    clinicHealthcare: {
-      industry: "Clinics, Doctors & Healthcare",
-      commonPains: [
-        "Reception staff overwhelmed with repetitive calls",
-        "Missed patient inquiries during surgeries and after clinic hours",
-        "Patient appointment no-shows and rescheduling chaos"
-      ],
-      coreBottleneck: "Manual phone booking creates patient drop-offs and administrative burnout.",
-      mechanism: "AI Reception & Patient Management System: 24/7 WhatsApp AI Receptionist in Tamil & English + Instant Slot Booking + Automated WhatsApp Reminders.",
-      recommendedOffer: "Healthcare AI Reception & Patient Management System",
-      closingHook: "Highlight zero missed patient inquiries after 8 PM and automated WhatsApp appointment reminders reducing no-shows."
-    },
-    realEstate: {
-      industry: "Real Estate & Property Developers",
-      commonPains: [
-        "High inquiry volume but poor buyer quality (tire-kickers)",
-        "Unverified buyer budget and location preference",
-        "Slow agent follow-ups losing serious property investors"
-      ],
-      coreBottleneck: "Agents waste hours on unqualified leads while high-intent property buyers move on.",
-      mechanism: "Real Estate AI Lead Conversion System: WhatsApp AI Buyer Pre-Qualification + Automated Budget/Location Matching + Calendar Site Tour Booking.",
-      recommendedOffer: "Real Estate AI Lead Conversion & Tour Booking System",
-      closingHook: "Show how the AI instantly filters buyers with budget above ₹50L and books site tours automatically."
-    },
-    retailEcommerce: {
-      industry: "Retail, Boutiques & E-Commerce",
-      commonPains: [
-        "Manual order taking and price checking on WhatsApp",
-        "Abandoned inquiries when customer service is offline",
-        "Payment screenshot confirmation delays",
-        "Repetitive questions about sizing, stock, and delivery"
-      ],
-      coreBottleneck: "Manual chat replies waste staff hours and lose impulsive buyers.",
-      mechanism: "Autonomous WhatsApp Storefront: Mobile-first catalog + WhatsApp Instant Checkout + Razorpay/UPI integration + Automated Delivery Tracking.",
-      recommendedOffer: "Autonomous Retail Growth & WhatsApp Store System",
-      closingHook: "Demonstrate instant catalog browsing and UPI checkout directly inside WhatsApp without manual staff intervention."
-    },
-    b2bServices: {
-      industry: "Agencies, Consultants & B2B Services",
-      commonPains: [
-        "Unqualified inbound inquiries wasting sales call time",
-        "Endless proposal preparation for deals that do not close",
-        "Manual lead tracking in messy Excel spreadsheets"
-      ],
-      coreBottleneck: "Lack of consultative qualification before the discovery call.",
-      mechanism: "B2B Client Acquisition System: High-credibility website + AI Lead Qualifier + Automated Calendar Scheduling + n8n CRM Pipeline.",
-      recommendedOffer: "B2B Lead Acquisition & Qualification System",
-      closingHook: "Focus on automating lead qualification so Suresh/the founder only speaks to clients with verified budgets."
-    }
-  },
+  industries: INDUSTRY_KNOWLEDGE,
 
   services: [
     {
@@ -160,15 +86,7 @@ const KNOWLEDGE_BASE = {
 
 function buildSystemPrompt() {
   const c = KNOWLEDGE_BASE.companyProfile;
-  const im = KNOWLEDGE_BASE.industryModules;
-
-  const industryGuide = Object.entries(im).map(([key, item]) => `
-[INDUSTRY: ${item.industry.toUpperCase()}]
-• Common Pains: ${item.commonPains.join('; ')}
-• Core Bottleneck: ${item.coreBottleneck}
-• Transformation Mechanism: ${item.mechanism}
-• Recommended Grand Slam Offer: "${item.recommendedOffer}"
-• Suresh Call Angle: ${item.closingHook}`).join('\n');
+  const industryMatrix = formatIndustryPrompt();
 
   return `You are SoloDeveloper AI, the official Virtual Sales Strategist and Business Consultant for Suresh Kumar.
 Website: ${c.website} | WhatsApp: ${c.phone} | Email: ${c.email}
@@ -198,7 +116,7 @@ Example of inference from natural conversation:
 Client: "I run Apex Builders in Madurai. We have 12 staff. We get enquiries from Instagram and referrals, but our staff misses WhatsApp replies when we are on construction sites."
 
 From this single message, you INFER:
-- Industry: Construction & Builders
+- Industry: Construction & Civil Contractors
 - Team Size: 12 members (10-50 range)
 - Location: Madurai
 - Authority Level: Decision Maker (Owner/Founder)
@@ -209,7 +127,7 @@ From this single message, you INFER:
 - Pain Point: Delayed replies to WhatsApp buyer enquiries due to on-site work
 - Pain Severity: Critical (high project value)
 - Dream Outcome: Instant 24/7 buyer response and automated site visit booking
-- Recommended Offer: Construction Growth + AI Buyer Qualification System
+- Recommended Offer: Construction Growth & AI Sales System
 - Next Action & Call Priority: 🔥 Call within 15 mins (Hot Lead)
 
 Visible message to client:
@@ -222,12 +140,25 @@ Are most of your current enquiries for residential villas or commercial plots?"
 (Notice: Short, professional, 1 relevant forward question, NO interrogation!)
 
 ==================================================
-3. INDUSTRY-SPECIFIC SALES INTELLIGENCE MATRIX
+3. INDUSTRY-SPECIFIC INTELLIGENCE FLOW
 ==================================================
-${industryGuide}
+Before recommending any solution:
+1. Identify the customer's industry from their messages or keywords.
+2. Load the relevant industry intelligence module from the matrix below.
+3. Understand that specific industry's common problems, customer journey, and bottlenecks.
+4. Select relevant, sharp discovery questions (Ask ONLY ONE question per turn!).
+5. Recommend tailored solutions and Grand Slam Offers based on that industry's workflow.
+
+NEVER give generic recommendations like "We can build a website."
+Always position the transformation (e.g. for a Clinic: "AI Reception & Patient Management System", for a Builder: "Construction Growth & AI Sales System").
 
 ==================================================
-4. SERVICES & STARTING PRICES
+4. 10 TARGET INDUSTRY INTELLIGENCE MATRIX
+==================================================
+${industryMatrix}
+
+==================================================
+5. SERVICES & STARTING PRICES
 ==================================================
 • Portfolio Website: Starts at ₹8,999 (5–7 days)
 • Business Website: Starts at ₹9,999 (7–10 days)
@@ -238,7 +169,7 @@ ${industryGuide}
 • Guarantees: 7-Day Fast Turnaround, 100% Fixed Pricing, 30-Day Free Post-Launch Support.
 
 ==================================================
-5. HOT LEAD HANDOVER TO SURESH
+6. HOT LEAD HANDOVER TO SURESH
 ==================================================
 When a lead shows high interest, asks for a custom quote, or after 3-4 natural turns:
 "I would love to connect you directly with Suresh for a 10-minute strategy call to map out the exact system for your business.
@@ -246,7 +177,7 @@ When a lead shows high interest, asks for a custom quote, or after 3-4 natural t
 Would you prefer a quick WhatsApp call or Google Meet tomorrow?"
 
 ==================================================
-6. ACTIONABLE CLOSING SCRIPT & TIMER REQUIREMENTS
+7. ACTIONABLE CLOSING SCRIPT & TIMER REQUIREMENTS
 ==================================================
 When calling the saveLeadDetails tool:
 1. sureshClosingScript MUST contain:
@@ -268,5 +199,6 @@ DO NOT
 
 module.exports = {
   KNOWLEDGE_BASE,
-  buildSystemPrompt
+  buildSystemPrompt,
+  detectIndustry
 };
