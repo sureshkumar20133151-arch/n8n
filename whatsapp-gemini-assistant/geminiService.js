@@ -16,6 +16,8 @@ const LEAD_TOOLS = [{
         company: { type: 'STRING', description: 'Name of their business or company' },
         industry: { type: 'STRING', description: 'Industry or business niche' },
         businessModel: { type: 'STRING', enum: ['B2B', 'B2C', 'Both / Hybrid'], description: 'Business model: B2B (Wholesale, distributors, manufacturers, commercial) or B2C (Retail, clinics, homeowners, direct consumers) or Both / Hybrid' },
+        age: { type: 'STRING', description: 'Age or approximate age of the customer' },
+        email: { type: 'STRING', description: 'Email address of the customer' },
         location: { type: 'STRING', description: 'City or business location' },
         teamSize: { type: 'STRING', description: 'Team size or employee count' },
         revenueRange: { type: 'STRING', description: 'Business Revenue Range (Below ₹5L, ₹5L-₹25L, ₹25L-₹1Cr, ₹1Cr+)' },
@@ -473,6 +475,8 @@ class GeminiService {
         company: args.company,
         industry: args.industry,
         businessModel: args.businessModel,
+        age: args.age,
+        email: args.email,
         painPoint: args.painPoint,
         dreamOutcome: args.dreamOutcome
       });
@@ -602,15 +606,45 @@ class GeminiService {
       } else if (userText && userText.trim().length > 0) {
         let contextualText = userText.trim();
 
+        const trimmedLower = userText.trim().toLowerCase();
+        const hasTamil = /[\u0B80-\u0BFF]/.test(userText);
+        const asksForTamil = /\b(tamil|தமிழ்)\b/i.test(userText);
+        const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
+        const isDeclining = /(எனக்கு எதும் தெரிஞ்சுக்க வேண்டாம்|வேண்டாம்|not interested|dont want|don't want|nothing needed|stop|leave me|விருப்பமில்லை)/i.test(trimmedLower);
+
+        // Immediate respectful opt-out response (never pitch or interrogate when client says no)
+        if (isDeclining && !isOwner) {
+          const declineReply = (hasTamil || asksForTamil)
+            ? "கண்டிப்பாக, உங்கள் முடிவை மதிக்கிறேன்! உங்கள் நேரத்திற்கு மிக்க நன்றி. எதிர்காலத்தில் உங்கள் பிசினஸுக்கு Modern Website அல்லது WhatsApp Automation தேவைப்பட்டால், SoloDeveloper.pro-ல் Suresh-ஐ (+91 93615 99097) எப்போது வேண்டுமானாலும் தொடர்பு கொள்ளலாம். உங்கள் நாள் சிறக்கட்டும், வணக்கம்! 🙏"
+            : "Understood! Thank you so much for your time. If you ever need a modern website or WhatsApp automation in the future, feel free to reach out to Suresh (+91 93615 99097) at SoloDeveloper.pro. Have a wonderful day ahead! 🙏";
+
+          history.push({ role: 'user', parts: [{ text: userText }] });
+          history.push({ role: 'model', parts: [{ text: declineReply }] });
+          this.saveHistory(chatId);
+          return declineReply;
+        }
+
         // If talking to Suresh (Boss Mode)
         if (isOwner) {
           contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
+        } else if (isAskingIdentity) {
+          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI Business Consultant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
         } else {
           // Check known profile for returning client
           const profile = this.getContactProfile(cleanId);
           if (profile && profile.name && history.length === 0) {
-            contextualText = `[Known Returning Client Memory: Name: ${profile.name}, Business: ${profile.company || 'Unknown'}, Industry: ${profile.industry || 'Unknown'}. Recognize them warmly and do not ask for their name/business again]: ${contextualText}`;
+            const isBareGreeting = /^(hi|hello|hey|vanakkam|வணக்கம்|hola)[\s!.]*$/i.test(trimmedLower);
+            if (isBareGreeting) {
+              contextualText = `[Context Note: Contact previously connected as ${profile.name}. Since they sent a fresh greeting, greet them warmly, re-introduce SoloDeveloper.pro and Suresh Kumar politely without being overly presumptuous or assuming they remember past chats, and ask how you can help them today]: ${contextualText}`;
+            } else {
+              contextualText = `[Context Note: Returning contact ${profile.name} (${profile.company || ''})]: ${contextualText}`;
+            }
           }
+        }
+
+        // STRICT SCRIPT & LANGUAGE DIRECTIVE
+        if (hasTamil || asksForTamil) {
+          contextualText = `[CRITICAL SCRIPT DIRECTIVE: The user communicated in Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish (no "Romba nalla vishayam", "puriyuthu", etc.). Keep technical & business terms like WhatsApp, Website, Orders, Booking, Demo, Staff, Stock, Price in clean English]: ${contextualText}`;
         }
 
         userParts.push({ text: contextualText });
@@ -638,11 +672,13 @@ class GeminiService {
         }
       }
 
-      // Fallback model list if the primary model hits 429 rate limit
+      // Fallback model list if the primary model hits 429 rate limit or 503 high demand
       const modelsToTry = [
         this.modelName,
         'gemini-3.1-flash-lite',
         'gemini-flash-lite-latest',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash',
         'gemini-2.5-flash'
       ].filter((m, i, arr) => arr.indexOf(m) === i);
 
@@ -819,6 +855,13 @@ class GeminiService {
       if (isOwner) {
         return "Vanakkam Suresh! I had a temporary issue processing that request, but I have cleanly recovered. How can I assist you with your system or leads right now?";
       }
+
+      const hasTamilInInput = /[\u0B80-\u0BFF]/.test(userText || '');
+      const wantsTamilInInput = /\b(tamil|தமிழ்)\b/i.test(userText || '');
+      if (hasTamilInInput || wantsTamilInInput) {
+        return "வணக்கம்! உங்கள் செய்தி பெறப்பட்டது. சர்வரில் ஒரு சிறிய தாமதம் ஏற்பட்டுள்ளது. உங்கள் பிசினஸ் விபரங்களை மீண்டும் பகிர முடியுமா?";
+      }
+
       return "Vanakkam! I've noted down what you shared. Could you please tell me a little more about what specific business or automation requirements you have in mind?";
     }
   }
