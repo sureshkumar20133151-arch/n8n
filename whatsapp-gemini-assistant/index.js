@@ -378,10 +378,28 @@ const server = http.createServer((req, res) => {
           return res.end(JSON.stringify({ error: 'WhatsApp client is not currently connected' }));
         }
 
+function isDummyPhoneNumber(phone = '') {
+  const digits = String(phone).replace(/\D/g, '');
+  if (!digits || digits.length < 10) return true;
+  return /^(91)?(98765\d{5}|12345\d{5}|00000\d{5}|11111\d{5}|99999\d{5}|0{10}|1{10})/.test(digits) ||
+         digits.startsWith('91000000') ||
+         digits === '910000000000' ||
+         digits === '0000000000';
+}
+
         let cleanDigits = phone.replace(/\D/g, '');
         // If 10 digits (common for Indian mobile numbers), prepend '91'
         if (cleanDigits.length === 10) {
           cleanDigits = '91' + cleanDigits;
+        }
+
+        if (isDummyPhoneNumber(cleanDigits)) {
+          console.log(`🛡️ [Safety Guard] Intercepted outbound message to dummy/test phone: ${cleanDigits}. Message was not sent.`);
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': allowedOrigin
+          });
+          return res.end(JSON.stringify({ success: true, jid: `${cleanDigits}@s.whatsapp.net`, status: 'simulated_dummy_blocked' }));
         }
 
         const jid = `${cleanDigits}@s.whatsapp.net`;
@@ -445,6 +463,16 @@ const server = http.createServer((req, res) => {
 
         let cleanDigits = phone.replace(/\D/g, '');
         if (cleanDigits.length === 10) cleanDigits = '91' + cleanDigits;
+
+        if (isDummyPhoneNumber(cleanDigits)) {
+          console.log(`🛡️ [Safety Guard] Blocked resume-chat on dummy/test phone: ${cleanDigits}`);
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': allowedOrigin
+          });
+          return res.end(JSON.stringify({ success: true, jid: `${cleanDigits}@s.whatsapp.net`, status: 'simulated_dummy_blocked' }));
+        }
+
         const jid = `${cleanDigits}@s.whatsapp.net`;
 
         // Generate AI continuation reply based on the history

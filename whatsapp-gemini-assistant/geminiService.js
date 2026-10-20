@@ -128,8 +128,24 @@ const OWNER_TOOLS = [{
 
 const N8N_HOST = process.env.N8N_WEBHOOK_HOST || 'suresh-n8n-fhr6.onrender.com';
 
+function isDummyPhone(phone = '') {
+  const digits = String(phone).replace(/\D/g, '');
+  if (!digits || digits.length < 10) return true;
+  return /^(91)?(98765\d{5}|12345\d{5}|00000\d{5}|11111\d{5}|99999\d{5}|0{10}|1{10})/.test(digits) ||
+         digits.startsWith('91000000') ||
+         digits === '910000000000' ||
+         digits === '0000000000' ||
+         String(phone).toLowerCase().includes('test') ||
+         String(phone).toLowerCase().includes('simulation');
+}
+
 function dispatchProposalToN8n(proposalData) {
   try {
+    if (proposalData.isTestLead || isDummyPhone(proposalData.phone)) {
+      console.log(`🧪 [Test Safeguard] Skipped n8n proposal dispatch for dummy/test lead (${proposalData.phone})`);
+      return;
+    }
+
     const postData = JSON.stringify(proposalData);
     const options = {
       hostname: N8N_HOST,
@@ -160,6 +176,11 @@ function dispatchProposalToN8n(proposalData) {
 
 function dispatchDemoBookingToN8n(bookingData) {
   try {
+    if (bookingData.isTestLead || isDummyPhone(bookingData.phone)) {
+      console.log(`🧪 [Test Safeguard] Skipped n8n demo booking dispatch for dummy/test lead (${bookingData.phone})`);
+      return;
+    }
+
     const postData = JSON.stringify(bookingData);
     const options = {
       hostname: N8N_HOST,
@@ -190,6 +211,11 @@ function dispatchDemoBookingToN8n(bookingData) {
 
 function dispatchLeadToN8n(leadData) {
   try {
+    if (leadData.isTestLead || isDummyPhone(leadData.phone)) {
+      console.log(`🧪 [Test Safeguard] Skipped n8n CRM dispatch for dummy/test lead (${leadData.phone})`);
+      return;
+    }
+
     const postData = JSON.stringify(leadData);
     const options = {
       hostname: N8N_HOST,
