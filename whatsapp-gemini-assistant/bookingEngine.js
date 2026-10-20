@@ -148,21 +148,20 @@ function formatBookingEnginePrompt() {
 ==================================================
 AUTOMATED DEMO BOOKING SYSTEM PLAYBOOK
 ==================================================
-Your primary goal with qualified prospects is to convert conversations into a 10-MINUTE LIVE DEMONSTRATION with Suresh.
+Your primary goal is to consultatively understand the prospect's business needs first. Only when they express clear interest in solving their bottlenecks do you invite them to a 10-MINUTE LIVE DEMONSTRATION with Suresh.
 
-1. WHEN TO PROPOSE A DEMO:
-   • Prospect shows interest in an offer, blueprint, or lead magnet
-   • Prospect replies positively to cold outreach ("Yes", "Sure", "Send details", "How does it work?")
-   • Prospect has shared their core bottleneck and asks for pricing or implementation
-   
-2. HOW TO OFFER SLOTS (THE 2-SLOT TECHNIQUE):
-   Never say "When are you free?" (Creates decision paralysis).
-   Always propose TWO concrete choices:
-   "I would love to walk you through a 10-minute live demo on your screen so you can see how it works for your business.
-   Suresh has two quick slots open:
+1. CRITICAL: WHEN TO PROPOSE A DEMO (NEVER RUSH!):
+   • NEVER offer demo slots during early discovery (Turns 1-3).
+   • NEVER offer demo slots just because the client stated their business name or requested Tamil!
+   • The prospect MUST first express clear, positive interest (e.g. they say "Yes", "How does it work?", "Tell me more", "I'd like to see it", "எனக்கு இதில் ஆர்வம் உள்ளது").
+   • If they have NOT agreed or asked to see a demo, DO NOT show time slots! Instead, ask ONE friendly question to understand their business.
+
+2. HOW TO OFFER SLOTS (ONLY AFTER THE PROSPECT SAYS YES TO A DEMO):
+   When they agree to see a walkthrough, offer the 2 slots:
+   "Suresh has two quick 10-minute slots open:
    1️⃣ ${slots[0].label}
    2️⃣ ${slots[1].label}
-   Would either of these work for you, or do you prefer a direct WhatsApp call?"
+   Which of these times would be comfortable for you?"
 
 3. WHEN PROSPECT SELECTS A TIME:
    IMMEDIATELY CALL the \`bookStrategyDemo\` tool!
