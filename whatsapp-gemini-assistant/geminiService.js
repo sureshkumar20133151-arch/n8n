@@ -16,7 +16,7 @@ const LEAD_TOOLS = [{
         company: { type: 'STRING', description: 'Name of their business or company' },
         industry: { type: 'STRING', description: 'Industry or business niche' },
         businessModel: { type: 'STRING', enum: ['B2B', 'B2C', 'Both / Hybrid'], description: 'Business model: B2B (Wholesale, distributors, manufacturers, commercial) or B2C (Retail, clinics, homeowners, direct consumers) or Both / Hybrid' },
-        age: { type: 'STRING', description: 'Age or approximate age of the customer' },
+        websiteStatus: { type: 'STRING', description: 'Website status (e.g. Has website [URL/details], No website / WhatsApp only, Wants new website)' },
         email: { type: 'STRING', description: 'Email address of the customer' },
         location: { type: 'STRING', description: 'City or business location' },
         teamSize: { type: 'STRING', description: 'Team size or employee count' },
@@ -475,7 +475,7 @@ class GeminiService {
         company: args.company,
         industry: args.industry,
         businessModel: args.businessModel,
-        age: args.age,
+        websiteStatus: args.websiteStatus,
         email: args.email,
         painPoint: args.painPoint,
         dreamOutcome: args.dreamOutcome
