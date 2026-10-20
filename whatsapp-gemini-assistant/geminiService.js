@@ -609,6 +609,8 @@ class GeminiService {
         const trimmedLower = userText.trim().toLowerCase();
         const hasTamil = /[\u0B80-\u0BFF]/.test(userText);
         const asksForTamil = /\b(tamil|தமிழ்)\b/i.test(userText);
+        const asksForTanglish = /\b(tanglish)\b/i.test(userText);
+        const isTanglishText = /(irukku|iruku|panren|panrom|theriyum|therla|illa|kedaikkuma|venum|solla|solren|enakku|ungalluku|enga|kitta|pannalam|mudiyuma|mattum)/i.test(trimmedLower);
         const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
         const isDeclining = /(எனக்கு எதும் தெரிஞ்சுக்க வேண்டாம்|வேண்டாம்|not interested|dont want|don't want|nothing needed|stop|leave me|விருப்பமில்லை)/i.test(trimmedLower);
 
@@ -616,6 +618,8 @@ class GeminiService {
         if (isDeclining && !isOwner) {
           const declineReply = (hasTamil || asksForTamil)
             ? "கண்டிப்பாக, உங்கள் முடிவை மதிக்கிறேன்! உங்கள் நேரத்திற்கு மிக்க நன்றி. எதிர்காலத்தில் உங்கள் பிசினஸுக்கு Modern Website அல்லது WhatsApp Automation தேவைப்பட்டால், SoloDeveloper.pro-ல் Suresh-ஐ (+91 93615 99097) எப்போது வேண்டுமானாலும் தொடர்பு கொள்ளலாம். உங்கள் நாள் சிறக்கட்டும், வணக்கம்! 🙏"
+            : (asksForTanglish || isTanglishText)
+            ? "Kandippa, unga decision-ah respect panren! Unga valuable time-ku romba thanks. Future-la unga business-ku Modern Website or WhatsApp Automation thevaipatta, Suresh (+91 93615 99097 / SoloDeveloper.pro)-ah eppo vena contact pannalam. Have a great day! 🙏"
             : "Understood! Thank you so much for your time. If you ever need a modern website or WhatsApp automation in the future, feel free to reach out to Suresh (+91 93615 99097) at SoloDeveloper.pro. Have a wonderful day ahead! 🙏";
 
           history.push({ role: 'user', parts: [{ text: userText }] });
@@ -642,9 +646,17 @@ class GeminiService {
           }
         }
 
-        // STRICT SCRIPT & LANGUAGE DIRECTIVE
-        if (hasTamil || asksForTamil) {
-          contextualText = `[CRITICAL SCRIPT DIRECTIVE: The user communicated in Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish (no "Romba nalla vishayam", "puriyuthu", etc.). Keep technical & business terms like WhatsApp, Website, Orders, Booking, Demo, Staff, Stock, Price in clean English]: ${contextualText}`;
+        // INTERRUPTION & INQUIRY HANDLING DIRECTIVE
+        const isAskingQuestion = /\?|price|cost|rate|pricing|how much|epdi|evalo|evvalavu|enge|where|portfolio|sample|demo|website irukka/i.test(trimmedLower);
+        if (isAskingQuestion && !isOwner) {
+          contextualText = `[INTERRUPTION & INQUIRY DIRECTIVE: The user asked a direct question. Answer their question directly, transparently, and politely in 2-3 lines first (e.g. mention pricing from ₹8,999 to ₹24,999+). Then seamlessly continue the discovery flow by asking the next uncollected item from your state checklist. Do NOT ignore their question and do NOT restart the greeting]: ${contextualText}`;
+        }
+
+        // SCRIPT & LANGUAGE DIRECTIVE
+        if (asksForTanglish || (isTanglishText && !hasTamil && !asksForTamil)) {
+          contextualText = `[SCRIPT DIRECTIVE: The user communicated in or requested Tanglish. You MUST reply in natural, conversational, polite Tanglish (Latin script Tamil-English, e.g. "Vanakkam! Unga business-la daily WhatsApp inquiries handle panna staff-ku romba time edukkutha?"). Keep common tech & commerce terms in clean English]: ${contextualText}`;
+        } else if (hasTamil || asksForTamil) {
+          contextualText = `[CRITICAL SCRIPT DIRECTIVE: The user communicated in Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish. Keep technical & business terms like WhatsApp, Website, Orders, Booking, Demo, Staff, Stock, Price in clean English]: ${contextualText}`;
         }
 
         userParts.push({ text: contextualText });
@@ -818,7 +830,16 @@ class GeminiService {
         }
       }
 
-      const replyText = response.text || "Thank you! I have noted your requirements. How else can I assist your business today?";
+      let replyText = (response && response.text) ? response.text.trim() : "";
+      if (!replyText) {
+        if (hasTamil) {
+          replyText = "நன்றி! உங்கள் விபரங்களை குறித்துக் கொண்டேன். உங்களுக்கு மிகச் சரியான தீர்வை பரிந்துரைக்க, மேலும் ஒரு சிறிய விபரம்...";
+        } else if (asksForTanglish || isTanglishText) {
+          replyText = "Great! Unga details note pannikitten. Ungalukku perfect solution architecture ready panna, oru small question...";
+        } else {
+          replyText = "Great! I've noted down these details. Just one more question so I can prepare the right tailored recommendation...";
+        }
+      }
 
       // Append assistant's turn to history
       if (response.candidates && response.candidates[0] && response.candidates[0].content) {
@@ -858,8 +879,12 @@ class GeminiService {
 
       const hasTamilInInput = /[\u0B80-\u0BFF]/.test(userText || '');
       const wantsTamilInInput = /\b(tamil|தமிழ்)\b/i.test(userText || '');
+      const wantsTanglishInInput = /\b(tanglish)\b/i.test(userText || '');
       if (hasTamilInInput || wantsTamilInInput) {
         return "வணக்கம்! உங்கள் செய்தி பெறப்பட்டது. சர்வரில் ஒரு சிறிய தாமதம் ஏற்பட்டுள்ளது. உங்கள் பிசினஸ் விபரங்களை மீண்டும் பகிர முடியுமா?";
+      }
+      if (wantsTanglishInInput) {
+        return "Vanakkam! Unga message vandhuchu, server-la chinna delay. Unga business requirements-ah innoru vaati share panna mudiyuma?";
       }
 
       return "Vanakkam! I've noted down what you shared. Could you please tell me a little more about what specific business or automation requirements you have in mind?";
