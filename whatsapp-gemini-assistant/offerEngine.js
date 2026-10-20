@@ -138,11 +138,17 @@ function determineOfferMaturityLevel(lead = {}) {
   const rev = (lead.revenueRange || '').toLowerCase();
   const team = (lead.teamSize || '').toLowerCase();
 
-  if (rev.includes('1cr+') || team.includes('50+') || team.includes('multi')) {
+  const parseTeam = (t) => {
+    const m = t.match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  const teamNum = parseTeam(team);
+
+  if (rev.includes('1cr+') || teamNum >= 50 || team.includes('multi')) {
     return OFFER_MATURITY_LEVELS[4];
-  } else if (rev.includes('25l') || rev.includes('1cr') || team.includes('10') || team.includes('20')) {
+  } else if (/\b1cr\b/.test(rev) || /\b25l\b/.test(rev) || (teamNum >= 10 && teamNum < 50)) {
     return OFFER_MATURITY_LEVELS[3];
-  } else if (rev.includes('5l') || rev.includes('25l') || team.includes('5') || team.includes('team')) {
+  } else if (/\b5l\b/.test(rev) || (teamNum >= 3 && teamNum < 10) || team.includes('team')) {
     return OFFER_MATURITY_LEVELS[2];
   } else {
     return OFFER_MATURITY_LEVELS[1];
@@ -170,10 +176,10 @@ function calculatePipelineDeal(lead = {}) {
     intent = "Comparing Options";
   }
 
-  // Pipeline Stage
-  let stage = "1. NEW LEAD";
+  // Pipeline Stage (aligned with PIPELINE_STAGES constants)
+  let stage = PIPELINE_STAGES[0]; // "1. PROSPECT IDENTIFIED"
   if (score === 'hot' || intent === 'Ready To Buy' || intent === 'Urgent Problem') {
-    stage = "2. QUALIFIED";
+    stage = PIPELINE_STAGES[4]; // "5. QUALIFIED"
   }
 
   // Deal Value & Probability
@@ -237,7 +243,7 @@ function generateGrandSlamOffer(lead = {}) {
   const followups = generatePersonalizedFollowups({ ...lead, grandSlamOffer: `${company} — ${mod.offerTemplate}` });
 
   const coreOfferName = `${company} — ${mod.offerTemplate}`;
-  const uniqueMechanism = mod.mechanism || `24/7 Tamil & English WhatsApp AI Qualifier + CRM Pipeline + Next.js Authority System`;
+  const uniqueMechanism = mod.mechanism || `24/7 Bilingual (Tamil + English) WhatsApp AI Qualifier for ${mod.name} + Autonomous n8n Lead Capture + Next.js Authority System`;
 
   return {
     company,
@@ -314,8 +320,9 @@ function calculateSalesManagerMetrics(lead = {}) {
   const rev = (lead.revenueRange || '').toLowerCase();
   let revenueScore = 10;
   if (rev.includes('1cr+')) revenueScore = 15;
-  else if (rev.includes('25l') || rev.includes('1cr')) revenueScore = 13;
-  else if (rev.includes('5l') || rev.includes('25l')) revenueScore = 10;
+  else if (/\b1cr\b/.test(rev)) revenueScore = 14;
+  else if (/\b25l\b/.test(rev)) revenueScore = 12;
+  else if (/\b5l\b/.test(rev)) revenueScore = 10;
   else revenueScore = 6;
 
   const priorityScore = Math.min(100, painScore + intentScore + budgetScore + timelineScore + revenueScore);
@@ -535,6 +542,7 @@ module.exports = {
   calculatePipelineDeal,
   calculateSalesManagerMetrics,
   generatePersonalizedFollowups,
+  INDUSTRY_DEAL_BENCHMARKS,
   OBJECTION_BUSTING_BONUSES,
   RISK_REVERSAL_GUARANTEES,
   OFFER_MATURITY_LEVELS,

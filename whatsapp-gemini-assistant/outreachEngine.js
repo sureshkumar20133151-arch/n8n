@@ -103,11 +103,12 @@ function resolveIndustryKey(text = '') {
   if (t.includes('boutique') || t.includes('retail') || t.includes('saree') || t.includes('clothing') || t.includes('shop')) return 'retailBoutique';
   if (t.includes('educat') || t.includes('coach') || t.includes('academy') || t.includes('school') || t.includes('institute')) return 'educationCoaching';
   if (t.includes('manufactur') || t.includes('factory') || t.includes('industrial') || t.includes('b2b')) return 'manufacturingB2B';
-  if (t.includes('ca ') || t.includes('legal') || t.includes('consult') || t.includes('agency') || t.includes('service')) return 'professionalServices';
-  if (t.includes('ecom') || t.includes('d2c') || t.includes('brand') || t.includes('online store')) return 'ecommerceD2C';
+  if (/\bca\b/i.test(t) || t.includes('legal') || t.includes('consult') || /\bagency\b/i.test(t) || t.includes('professional')) return 'professionalServices';
+  if (t.includes('ecom') || t.includes('d2c') || t.includes('online store') || /\bapparel\s+brand\b/i.test(t)) return 'ecommerceD2C';
 
   // Fallback using detectIndustry helper
-  return detectIndustry(text);
+  const detected = detectIndustry(text);
+  return detected?.id || 'construction';
 }
 
 /**

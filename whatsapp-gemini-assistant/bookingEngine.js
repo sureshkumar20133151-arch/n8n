@@ -8,14 +8,18 @@
  */
 function getSuggestedDemoSlots() {
   const now = new Date();
-  // IST offset is UTC+5:30
-  const istOffsetMs = 5.5 * 60 * 60 * 1000;
-  const istNow = new Date(now.getTime() + istOffsetMs);
-  const currentHour = istNow.getUTCHours();
+  // Format current date & time in Asia/Kolkata timezone reliably
+  const istDateString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+  const istNow = new Date(istDateString);
+  const currentHour = istNow.getHours();
 
-  const todayDateStr = istNow.toISOString().split('T')[0];
-  const tomorrow = new Date(istNow.getTime() + 24 * 60 * 60 * 1000);
-  const tomorrowDateStr = tomorrow.toISOString().split('T')[0];
+  const pad = n => String(n).padStart(2, '0');
+  const toDateStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const todayDateStr = toDateStr(istNow);
+  const tomorrow = new Date(istNow);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowDateStr = toDateStr(tomorrow);
 
   if (currentHour < 15) {
     return [

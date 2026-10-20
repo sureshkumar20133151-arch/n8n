@@ -200,8 +200,7 @@ async function connectToWhatsApp() {
           console.log(`💬 Message: "${body || (isAudio ? '[Voice Note / Audio sent]' : '[Image sent]')}"`);
 
           const ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
-          const cleanSenderDigits = remoteJid.replace(/\D/g, '');
-          const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone || cleanSenderDigits.endsWith(ownerPhone));
+          const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone);
 
           // Handle quick reset command for clean state
           if (prompt.toLowerCase() === '!reset' || prompt.toLowerCase() === '/reset') {
@@ -252,22 +251,63 @@ async function connectToWhatsApp() {
 
 connectToWhatsApp();
 
+// Security helpers
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function authenticateRequest(req, res) {
+  const API_SECRET = process.env.API_SECRET;
+  if (!API_SECRET) return true; // Allows local dev if API_SECRET not set
+  const authHeader = req.headers['authorization'] || '';
+  if (authHeader !== `Bearer ${API_SECRET}`) {
+    res.writeHead(401, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*'
+    });
+    res.end(JSON.stringify({ error: 'Unauthorized: Invalid or missing API secret' }));
+    return false;
+  }
+  return true;
+}
+
+const MAX_BODY_SIZE = 100 * 1024; // 100 KB limit to prevent DoS
+
 // HTTP server for Render port-binding, UptimeRobot, and Web QR viewing
 const server = http.createServer((req, res) => {
+  const allowedOrigin = process.env.CORS_ORIGIN || '*';
+
   // CORS support for website chatbots
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     return res.end();
   }
 
   // REST API endpoint for Website Chatbots (Option B)
   if (req.url === '/api/chat' && req.method === 'POST') {
+    if (!authenticateRequest(req, res)) return;
+
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+        res.end(JSON.stringify({ error: 'Payload too large (max 100KB)' }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
       try {
         const payload = JSON.parse(body || '{}');
@@ -277,7 +317,7 @@ const server = http.createServer((req, res) => {
         if (!userMsg) {
           res.writeHead(400, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': allowedOrigin
           });
           return res.end(JSON.stringify({ error: 'Message is required' }));
         }
@@ -286,13 +326,13 @@ const server = http.createServer((req, res) => {
 
         res.writeHead(200, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': allowedOrigin
         });
         return res.end(JSON.stringify({ reply, sessionId }));
       } catch (apiErr) {
         res.writeHead(500, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': allowedOrigin
         });
         return res.end(JSON.stringify({ error: apiErr.message }));
       }
@@ -302,8 +342,20 @@ const server = http.createServer((req, res) => {
 
   // REST API endpoint for sending outbound WhatsApp messages (for n8n & webhooks)
   if (req.url === '/api/send-message' && req.method === 'POST') {
+    if (!authenticateRequest(req, res)) return;
+
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+        res.end(JSON.stringify({ error: 'Payload too large (max 100KB)' }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
       try {
         const payload = JSON.parse(body || '{}');
@@ -313,7 +365,7 @@ const server = http.createServer((req, res) => {
         if (!phone || !message) {
           res.writeHead(400, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': allowedOrigin
           });
           return res.end(JSON.stringify({ error: 'phone and message are required' }));
         }
@@ -321,7 +373,7 @@ const server = http.createServer((req, res) => {
         if (!isClientReady || !sock) {
           res.writeHead(503, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': allowedOrigin
           });
           return res.end(JSON.stringify({ error: 'WhatsApp client is not currently connected' }));
         }
@@ -338,14 +390,14 @@ const server = http.createServer((req, res) => {
 
         res.writeHead(200, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': allowedOrigin
         });
         return res.end(JSON.stringify({ success: true, jid, status: 'sent' }));
       } catch (err) {
         console.error('Error sending outbound WhatsApp message:', err);
         res.writeHead(500, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': allowedOrigin
         });
         return res.end(JSON.stringify({ error: err.message }));
       }
@@ -355,8 +407,20 @@ const server = http.createServer((req, res) => {
 
   // REST API endpoint to proactively resume an interrupted or pending chat from the AI side
   if (req.url === '/api/resume-chat' && req.method === 'POST') {
+    if (!authenticateRequest(req, res)) return;
+
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+        res.end(JSON.stringify({ error: 'Payload too large (max 100KB)' }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
       try {
         const payload = JSON.parse(body || '{}');
@@ -366,7 +430,7 @@ const server = http.createServer((req, res) => {
         if (!phone) {
           res.writeHead(400, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': allowedOrigin
           });
           return res.end(JSON.stringify({ error: 'phone is required' }));
         }
@@ -374,7 +438,7 @@ const server = http.createServer((req, res) => {
         if (!isClientReady || !sock) {
           res.writeHead(503, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': allowedOrigin
           });
           return res.end(JSON.stringify({ error: 'WhatsApp client is not currently connected' }));
         }
@@ -392,14 +456,14 @@ const server = http.createServer((req, res) => {
 
         res.writeHead(200, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': allowedOrigin
         });
         return res.end(JSON.stringify({ success: true, jid, reply, status: 'initiated' }));
       } catch (err) {
         console.error('Error in /api/resume-chat:', err);
         res.writeHead(500, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': allowedOrigin
         });
         return res.end(JSON.stringify({ error: err.message }));
       }
@@ -493,7 +557,7 @@ const server = http.createServer((req, res) => {
     <body>
       <div class="card">
         <h2 style="color:#25d366;margin-top:0;">WhatsApp Assistant Starting...</h2>
-        <div class="status-box">${currentStatus}</div>
+        <div class="status-box">${escapeHtml(currentStatus)}</div>
         <p style="color:#8696a0;font-size:13px;line-height:1.5;">Connecting to WhatsApp servers. QR code will appear here in seconds.</p>
       </div>
     </body>
@@ -511,7 +575,8 @@ server.listen(PORT, '0.0.0.0', () => {
     try {
       const client = keepAliveUrl.startsWith('https') ? https : http;
       client.get(`${keepAliveUrl}/healthz`, (res) => {
-        // Resets Render idle timer
+        // Resets Render idle timer and releases socket
+        res.resume();
       }).on('error', () => {
         // Ignore errors during spin-up
       });

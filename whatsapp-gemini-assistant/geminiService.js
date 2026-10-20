@@ -123,11 +123,13 @@ const OWNER_TOOLS = [{
   ]
 }];
 
+const N8N_HOST = process.env.N8N_WEBHOOK_HOST || 'suresh-n8n-fhr6.onrender.com';
+
 function dispatchProposalToN8n(proposalData) {
   try {
     const postData = JSON.stringify(proposalData);
     const options = {
-      hostname: 'suresh-n8n-fhr6.onrender.com',
+      hostname: N8N_HOST,
       port: 443,
       path: '/webhook/proposal-delivery',
       method: 'POST',
@@ -157,7 +159,7 @@ function dispatchDemoBookingToN8n(bookingData) {
   try {
     const postData = JSON.stringify(bookingData);
     const options = {
-      hostname: 'suresh-n8n-fhr6.onrender.com',
+      hostname: N8N_HOST,
       port: 443,
       path: '/webhook/demo-booking',
       method: 'POST',
@@ -187,7 +189,7 @@ function dispatchLeadToN8n(leadData) {
   try {
     const postData = JSON.stringify(leadData);
     const options = {
-      hostname: 'suresh-n8n-fhr6.onrender.com',
+      hostname: N8N_HOST,
       port: 443,
       path: '/webhook/whatsapp-direct-lead',
       method: 'POST',
@@ -286,23 +288,39 @@ class GeminiService {
   }
 
   getOrCreateHistory(chatId) {
-    if (!this.historyStore.has(chatId)) {
-      const filePath = this.getHistoryFilePath(chatId);
-      if (fs.existsSync(filePath)) {
-        try {
-          const raw = fs.readFileSync(filePath, 'utf-8');
-          const data = JSON.parse(raw);
-          if (Array.isArray(data)) {
-            console.log(`📂 [History Restored] Loaded ${data.length} turns for ${chatId}`);
-            this.historyStore.set(chatId, data);
-            return data;
-          }
-        } catch (e) {
-          console.warn(`[History Load Error] for ${chatId}:`, e.message);
-        }
-      }
-      this.historyStore.set(chatId, []);
+    // If already in memory, move to most recently used position
+    if (this.historyStore.has(chatId)) {
+      const history = this.historyStore.get(chatId);
+      this.historyStore.delete(chatId);
+      this.historyStore.set(chatId, history);
+      return history;
     }
+
+    // LRU eviction: if memory has > 200 conversations, evict oldest
+    const MAX_MEMORY_CHATS = 200;
+    if (this.historyStore.size >= MAX_MEMORY_CHATS) {
+      const oldestKey = this.historyStore.keys().next().value;
+      if (oldestKey) {
+        this.saveHistory(oldestKey);
+        this.historyStore.delete(oldestKey);
+      }
+    }
+
+    const filePath = this.getHistoryFilePath(chatId);
+    if (fs.existsSync(filePath)) {
+      try {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        const data = JSON.parse(raw);
+        if (Array.isArray(data)) {
+          console.log(`📂 [History Restored] Loaded ${data.length} turns for ${chatId}`);
+          this.historyStore.set(chatId, data);
+          return data;
+        }
+      } catch (e) {
+        console.warn(`[History Load Error] for ${chatId}:`, e.message);
+      }
+    }
+    this.historyStore.set(chatId, []);
     return this.historyStore.get(chatId);
   }
 
@@ -311,7 +329,20 @@ class GeminiService {
       const history = this.historyStore.get(chatId);
       if (history) {
         const filePath = this.getHistoryFilePath(chatId);
-        fs.writeFileSync(filePath, JSON.stringify(history, null, 2), 'utf-8');
+        // Strip large inlineData (base64 images/audio) before persisting to disk to prevent massive JSON files
+        const cleanedHistory = history.map(entry => {
+          if (!entry || !Array.isArray(entry.parts)) return entry;
+          return {
+            ...entry,
+            parts: entry.parts.map(p => {
+              if (p && p.inlineData) {
+                return { text: '[Media attached by user]' };
+              }
+              return p;
+            })
+          };
+        });
+        fs.writeFileSync(filePath, JSON.stringify(cleanedHistory, null, 2), 'utf-8');
       }
     } catch (e) {
       console.warn(`[History Save Error] for ${chatId}:`, e.message);
@@ -428,6 +459,97 @@ class GeminiService {
   }
 
   /**
+   * Execute a single function call triggered by Gemini AI
+   */
+  async executeToolCall(fnCall, chatId, cleanId) {
+    const fnName = fnCall.name;
+    const args = fnCall.args || {};
+
+    if (fnName === 'saveLeadDetails') {
+      console.log(`🎯 [AI Sales Intelligence Generated]:`, args);
+      this.saveContactProfile(cleanId, {
+        name: args.name,
+        company: args.company,
+        industry: args.industry,
+        painPoint: args.painPoint,
+        dreamOutcome: args.dreamOutcome
+      });
+
+      const calculatedMetrics = calculateSalesManagerMetrics(args);
+      const leadPayload = {
+        ...args,
+        priorityRank: args.priorityRank || calculatedMetrics.priorityRank,
+        aiRecommendedAction: args.aiRecommendedAction || calculatedMetrics.aiRecommendedAction,
+        dealRisk: args.dealRisk || calculatedMetrics.dealRisk,
+        closingProbabilityReason: args.closingProbabilityReason || calculatedMetrics.closingProbabilityReason,
+        nextBestMessage: args.nextBestMessage || calculatedMetrics.nextBestMessage,
+        phone: chatId.replace(/[^0-9]/g, '')
+      };
+      dispatchLeadToN8n(leadPayload);
+      return { status: 'logged_successfully', message: "Sales intelligence recorded in Suresh's CRM" };
+    }
+
+    if (fnName === 'bookStrategyDemo') {
+      console.log(`📅 [Strategy Demo Booked]:`, args);
+      const meetLink = process.env.GOOGLE_MEET_LINK || 'https://meet.google.com/jdf-qrvw-tkm';
+      const bookingPayload = {
+        ...args,
+        phone: chatId.replace(/[^0-9]/g, ''),
+        meetingLink: meetLink
+      };
+      dispatchDemoBookingToN8n(bookingPayload);
+      return {
+        status: 'confirmed',
+        meetingLink: meetLink,
+        message: 'Demo slot reserved successfully on Google Calendar. Confirmation sent.'
+      };
+    }
+
+    if (fnName === 'generateAndSendProposal') {
+      console.log(`📑 [Proposal Generated]:`, args);
+      const proposalPayload = {
+        ...args,
+        phone: chatId.replace(/[^0-9]/g, '')
+      };
+      dispatchProposalToN8n(proposalPayload);
+      return {
+        status: 'proposal_dispatched',
+        message: 'The custom Grand Slam proposal, 3-tier pricing options, and architecture blueprint were delivered via WhatsApp and Email. Stage updated to 7. PROPOSAL SENT.'
+      };
+    }
+
+    if (fnName === 'saveBossDirective') {
+      console.log(`👑 [Boss Directive Saved via Tool]:`, args);
+      const directive = args.directive || '';
+      if (directive) {
+        adminRules.addDirective(directive);
+      }
+      return {
+        status: 'saved',
+        message: `Directive saved successfully to live admin_rules.json. All customer conversations now strictly follow: "${directive}". Current active rules count: ${(adminRules.rules.customDirectives || []).length}`
+      };
+    }
+
+    if (fnName === 'listBossDirectives') {
+      const rulesText = adminRules.getDirectivesText();
+      return {
+        status: 'listed',
+        activeRules: rulesText
+      };
+    }
+
+    if (fnName === 'clearBossDirectives') {
+      adminRules.clearDirectives();
+      return {
+        status: 'cleared',
+        message: 'All custom directives have been cleared. AI is now operating on default base rules.'
+      };
+    }
+
+    return { status: 'unknown_tool', message: `Tool ${fnName} not recognized` };
+  }
+
+  /**
    * Process a text or multimodal message with Gemini
    * @param {string} chatId - WhatsApp contact or group ID
    * @param {string} userText - User's message or prompt
@@ -445,13 +567,8 @@ class GeminiService {
     }
 
     const cleanDigits = (chatId || '').replace(/\D/g, '');
-    const isOwnerByPhone = cleanDigits === this.ownerPhone || cleanDigits.endsWith(this.ownerPhone);
-    const isOwnerByText = typeof userText === 'string' && (
-      /\b(i'?m|i am)\s+(your\s+)?suresh\b/i.test(userText) ||
-      /\bthis is suresh\b/i.test(userText) ||
-      /\bi'm your boss\b/i.test(userText)
-    );
-    const isOwner = Boolean(options.isOwner || isOwnerByPhone || isOwnerByText);
+    const isOwnerByPhone = cleanDigits === this.ownerPhone;
+    const isOwner = Boolean(options.isOwner || isOwnerByPhone);
 
     const cleanId = (chatId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
 
@@ -597,213 +714,55 @@ class GeminiService {
         throw lastErr || new Error("Failed to get response from all Gemini models");
       }
 
-      // Check if model triggered tools
-      if (response.functionCalls && response.functionCalls.length > 0) {
-        const fnCall = response.functionCalls[0];
-        console.log(`⚡ [Gemini Tool Invocation]: ${fnCall.name}`);
+      // Process tool calls in a loop (supports multiple tools in one turn + recursive follow-ups)
+      let toolRounds = 0;
+      const MAX_TOOL_ROUNDS = 5;
 
-        if (fnCall.name === 'saveLeadDetails') {
-          console.log(`🎯 [AI Sales Intelligence Generated]:`, fnCall.args);
+      while (response.functionCalls && response.functionCalls.length > 0 && toolRounds < MAX_TOOL_ROUNDS) {
+        toolRounds++;
+        const currentCalls = response.functionCalls;
+        console.log(`⚡ [Gemini Tool Round ${toolRounds}]: Processing ${currentCalls.length} tool call(s)`);
 
-          // Update persistent contact memory
-          this.saveContactProfile(cleanId, {
-            name: fnCall.args.name,
-            company: fnCall.args.company,
-            industry: fnCall.args.industry,
-            painPoint: fnCall.args.painPoint,
-            dreamOutcome: fnCall.args.dreamOutcome
-          });
-          
-          const calculatedMetrics = calculateSalesManagerMetrics(fnCall.args);
-          const leadPayload = {
-            ...fnCall.args,
-            priorityRank: fnCall.args.priorityRank || calculatedMetrics.priorityRank,
-            aiRecommendedAction: fnCall.args.aiRecommendedAction || calculatedMetrics.aiRecommendedAction,
-            dealRisk: fnCall.args.dealRisk || calculatedMetrics.dealRisk,
-            closingProbabilityReason: fnCall.args.closingProbabilityReason || calculatedMetrics.closingProbabilityReason,
-            nextBestMessage: fnCall.args.nextBestMessage || calculatedMetrics.nextBestMessage,
-            phone: chatId.replace(/[^0-9]/g, '')
-          };
-          dispatchLeadToN8n(leadPayload);
+        // Execute all tool calls in this turn
+        const toolResults = [];
+        for (const fnCall of currentCalls) {
+          console.log(`  ↪ Executing tool: ${fnCall.name}`);
+          const result = await this.executeToolCall(fnCall, chatId, cleanId);
+          toolResults.push({ fnCall, result });
+        }
 
-          // Guarantee thoughtSignature exists on model parts
-          const rawParts = response.candidates[0].content.parts || [];
-          const modelParts = rawParts.map(p => {
-            if (p.functionCall) {
-              return {
-                ...p,
-                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
-              };
-            }
-            return p;
-          });
-
-          history.push({
-            role: 'model',
-            parts: modelParts
-          });
-
-          history.push({
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fnCall.name,
-                response: { status: 'logged_successfully', message: 'Sales intelligence recorded in Suresh\'s CRM' }
-              }
-            }]
-          });
-
-          // Generate final conversational text response
-          const followup = await this.ai.models.generateContent({
-            model: chosenModel,
-            contents: this.sanitizeHistory(history),
-            config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.3,
-              tools: activeTools
-            }
-          });
-
-          response = followup;
-
-        } else if (fnCall.name === 'bookStrategyDemo') {
-          console.log(`📅 [Strategy Demo Booked]:`, fnCall.args);
-          
-          const bookingPayload = {
-            ...fnCall.args,
-            phone: chatId.replace(/[^0-9]/g, ''),
-            meetingLink: 'https://meet.google.com/jdf-qrvw-tkm'
-          };
-          dispatchDemoBookingToN8n(bookingPayload);
-
-          const rawParts = response.candidates[0].content.parts || [];
-          const modelPartsDemo = rawParts.map(p => {
-            if (p.functionCall) {
-              return {
-                ...p,
-                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
-              };
-            }
-            return p;
-          });
-
-          history.push({
-            role: 'model',
-            parts: modelPartsDemo
-          });
-
-          history.push({
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fnCall.name,
-                response: {
-                  status: 'confirmed',
-                  meetingLink: 'https://meet.google.com/jdf-qrvw-tkm',
-                  message: 'Demo slot reserved successfully on Google Calendar. Confirmation sent.'
-                }
-              }
-            }]
-          });
-
-          const followup = await this.ai.models.generateContent({
-            model: chosenModel,
-            contents: this.sanitizeHistory(history),
-            config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.3,
-              tools: activeTools
-            }
-          });
-
-          response = followup;
-
-        } else if (fnCall.name === 'generateAndSendProposal') {
-          console.log(`📑 [Proposal Generated]:`, fnCall.args);
-          
-          const proposalPayload = {
-            ...fnCall.args,
-            phone: chatId.replace(/[^0-9]/g, '')
-          };
-          dispatchProposalToN8n(proposalPayload);
-
-          const rawParts = response.candidates[0].content.parts || [];
-          const modelPartsProposal = rawParts.map(p => {
-            if (p.functionCall) {
-              return {
-                ...p,
-                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
-              };
-            }
-            return p;
-          });
-
-          history.push({
-            role: 'model',
-            parts: modelPartsProposal
-          });
-
-          history.push({
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fnCall.name,
-                response: {
-                  status: 'proposal_dispatched',
-                  message: 'The custom Grand Slam proposal, 3-tier pricing options, and architecture blueprint were delivered via WhatsApp and Email. Stage updated to 7. PROPOSAL SENT.'
-                }
-              }
-            }]
-          });
-
-          const followup = await this.ai.models.generateContent({
-            model: chosenModel,
-            contents: this.sanitizeHistory(history),
-            config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.3,
-              tools: activeTools
-            }
-          });
-
-          response = followup;
-
-        } else if (fnCall.name === 'saveBossDirective') {
-          console.log(`👑 [Boss Directive Saved via Tool]:`, fnCall.args);
-          const directive = fnCall.args.directive || '';
-          if (directive) {
-            adminRules.addDirective(directive);
+        // Guarantee thoughtSignature on model parts
+        const rawParts = response.candidates?.[0]?.content?.parts || [];
+        const modelParts = rawParts.map(p => {
+          if (p.functionCall) {
+            return {
+              ...p,
+              thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+            };
           }
-          
-          const rawParts = response.candidates[0].content.parts || [];
-          const modelPartsDirective = rawParts.map(p => {
-            if (p.functionCall) {
-              return {
-                ...p,
-                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
-              };
-            }
-            return p;
-          });
+          return p;
+        });
 
-          history.push({
-            role: 'model',
-            parts: modelPartsDirective
-          });
+        history.push({
+          role: 'model',
+          parts: modelParts
+        });
 
-          history.push({
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fnCall.name,
-                response: {
-                  status: 'saved',
-                  message: `Directive saved successfully to live admin_rules.json. All customer conversations now strictly follow: "${directive}". Current active rules count: ${(adminRules.rules.customDirectives || []).length}`
-                }
-              }
-            }]
-          });
+        // Push function responses for all executed tools
+        const functionResponseParts = toolResults.map(({ fnCall, result }) => ({
+          functionResponse: {
+            name: fnCall.name,
+            response: result
+          }
+        }));
 
+        history.push({
+          role: 'user',
+          parts: functionResponseParts
+        });
+
+        // Generate follow-up conversational text response or next tool call
+        try {
           const followup = await this.ai.models.generateContent({
             model: chosenModel,
             contents: this.sanitizeHistory(history),
@@ -813,94 +772,11 @@ class GeminiService {
               tools: activeTools
             }
           });
-
           response = followup;
-
-        } else if (fnCall.name === 'listBossDirectives') {
-          const rulesText = adminRules.getDirectivesText();
-          const rawParts = response.candidates[0].content.parts || [];
-          const modelPartsList = rawParts.map(p => {
-            if (p.functionCall) {
-              return {
-                ...p,
-                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
-              };
-            }
-            return p;
-          });
-
-          history.push({
-            role: 'model',
-            parts: modelPartsList
-          });
-
-          history.push({
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fnCall.name,
-                response: {
-                  status: 'listed',
-                  activeRules: rulesText
-                }
-              }
-            }]
-          });
-
-          const followup = await this.ai.models.generateContent({
-            model: chosenModel,
-            contents: this.sanitizeHistory(history),
-            config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.3,
-              tools: activeTools
-            }
-          });
-
-          response = followup;
-
-        } else if (fnCall.name === 'clearBossDirectives') {
-          adminRules.clearDirectives();
-          const rawParts = response.candidates[0].content.parts || [];
-          const modelPartsClear = rawParts.map(p => {
-            if (p.functionCall) {
-              return {
-                ...p,
-                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
-              };
-            }
-            return p;
-          });
-
-          history.push({
-            role: 'model',
-            parts: modelPartsClear
-          });
-
-          history.push({
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fnCall.name,
-                response: {
-                  status: 'cleared',
-                  message: 'All custom directives have been cleared. AI is now operating on default base rules.'
-                }
-              }
-            }]
-          });
-
-          const followup = await this.ai.models.generateContent({
-            model: chosenModel,
-            contents: this.sanitizeHistory(history),
-            config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.3,
-              tools: activeTools
-            }
-          });
-
-          response = followup;
+        } catch (followupErr) {
+          console.warn(`[Tool Follow-up Error on ${chosenModel}]:`, followupErr.message);
+          // If follow-up fails, break tool loop to avoid crashing
+          break;
         }
       }
 

@@ -26,7 +26,8 @@ function generateProposalDossier(leadData = {}) {
   const dreamOutcome = (leadData.dreamOutcome || 'Automate 24/7 lead capture and scale revenue predictably').toString().trim();
 
   // Industry benchmark & ROI anchor
-  const detectedKey = detectIndustry(industry + ' ' + company);
+  const detected = detectIndustry(industry + ' ' + company);
+  const detectedKey = detected?.id || null;
   const benchmark = INDUSTRY_DEAL_BENCHMARKS[detectedKey] || INDUSTRY_DEAL_BENCHMARKS.construction;
   const avgDeal = benchmark.avgDeal;
   const unit = benchmark.unit;
