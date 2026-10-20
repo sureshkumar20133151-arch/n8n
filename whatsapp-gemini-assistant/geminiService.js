@@ -635,8 +635,8 @@ class GeminiService {
         const trimmedLower = userText.trim().toLowerCase();
         const hasTamil = /[\u0B80-\u0BFF]/.test(userText);
         const asksForTamil = /\b(tamil|தமிழ்)\b/i.test(userText);
-        const asksForTanglish = /\b(tanglish)\b/i.test(userText);
-        const isTanglishText = /(irukku|iruku|panren|panrom|theriyum|therla|illa|kedaikkuma|venum|solla|solren|enakku|ungalluku|enga|kitta|pannalam|mudiyuma|mattum)/i.test(trimmedLower);
+        const asksForTanglish = false;
+        const isTanglishText = false;
         const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
         const isDeclining = /(எனக்கு எதும் தெரிஞ்சுக்க வேண்டாம்|வேண்டாம்|not interested|dont want|don't want|nothing needed|stop|leave me|விருப்பமில்லை)/i.test(trimmedLower);
 
@@ -658,7 +658,7 @@ class GeminiService {
         if (isOwner) {
           contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
         } else if (isAskingIdentity) {
-          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as "SR", the AI WhatsApp Assistant for Suresh Kumar, Founder of SoloDeveloper.pro (+91 93615 99097). Explain clearly that we help businesses understand daily bottlenecks and implement custom AI systems. Ask for their good name or what business they run]: ${contextualText}`;
+          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI WhatsApp Assistant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
         } else {
           // Check known profile for returning client
           const profile = this.getContactProfile(cleanId);
@@ -679,10 +679,10 @@ class GeminiService {
         }
 
         // SCRIPT & LANGUAGE DIRECTIVE
-        if (asksForTanglish || (isTanglishText && !hasTamil && !asksForTamil)) {
-          contextualText = `[SCRIPT DIRECTIVE: The user communicated in or requested Tanglish. You MUST reply in natural, conversational, polite Tanglish (Latin script Tamil-English, e.g. "Vanakkam! Unga business-la daily WhatsApp inquiries handle panna staff-ku romba time edukkutha?"). Keep common tech & commerce terms in clean English]: ${contextualText}`;
-        } else if (hasTamil || asksForTamil) {
-          contextualText = `[CRITICAL SCRIPT DIRECTIVE: The user communicated in Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish. Keep technical & business terms like WhatsApp, Website, Orders, Booking, Demo, Staff, Stock, Price in clean English]: ${contextualText}`;
+        if (hasTamil || asksForTamil || /\b(tanglish|tamil|தமிழ்)\b/i.test(userText)) {
+          contextualText = `[CRITICAL SCRIPT & LANGUAGE DIRECTIVE: The user communicated in or requested Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish (no English spelling of Tamil words like 'Saaptiya', 'vanakkam', etc.). All commerce and tech words (Business, Order, Website, WhatsApp, Staff, Stock, Price, Products, Demo, Appointment, Delay, Revenue) MUST ALWAYS be kept in English script. Ask EXACTLY ONE question]: ${contextualText}`;
+        } else {
+          contextualText = `[CRITICAL SCRIPT & LANGUAGE DIRECTIVE: Reply in clear, modern, professional English with LLM intelligence and consultative warmth. Ask EXACTLY ONE question]: ${contextualText}`;
         }
 
         userParts.push({ text: contextualText });
