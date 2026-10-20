@@ -628,25 +628,23 @@ class GeminiService {
         if (isOwner) {
           contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
         } else if (isAskingIdentity) {
-          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI Business Consultant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
+          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI WhatsApp Assistant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
         } else {
           // Check known profile for returning client
           const profile = this.getContactProfile(cleanId);
           if (profile && profile.name && history.length === 0) {
             const isBareGreeting = /^(hi|hello|hey|vanakkam|வணக்கம்|hola)[\s!.]*$/i.test(trimmedLower);
             if (isBareGreeting) {
-              contextualText = `[Context Note: Contact previously connected as ${profile.name}. Since they sent a fresh greeting, follow Stage 0: greet warmly, introduce SoloDeveloper.pro & Suresh Kumar, and ask which language/mother tongue they prefer to continue in]: ${contextualText}`;
+              contextualText = `[Context Note: Contact previously connected as ${profile.name}. Since they sent a fresh greeting, greet them warmly, re-introduce SoloDeveloper.pro and Suresh Kumar politely without being overly presumptuous or assuming they remember past chats, and ask how you can help them today]: ${contextualText}`;
             } else {
               contextualText = `[Context Note: Returning contact ${profile.name} (${profile.company || ''})]: ${contextualText}`;
             }
           }
         }
 
-        // LANGUAGE DIRECTIVE: TAMIL + ENGLISH (TANGLISH)
-        if (hasTamil) {
-          contextualText = `[LANGUAGE DIRECTIVE: The user wrote in Tamil script. Reply in natural, conversational Tamil script heavily blended with English words (Tamil + English). NEVER use heavy archaic bookish Tamil words like வணிக உரிமையாளர்கள் or நேர விரயம்; use common words like Business owners, manual work, time delay, revenue, growth, questions, solution]: ${contextualText}`;
-        } else if (asksForTamil || /\b(tanglish|tamil \+ english|tamil and english)\b/i.test(userText)) {
-          contextualText = `[LANGUAGE DIRECTIVE: The user requested Tamil / Tamil + English. Reply in natural, modern, conversational Tanglish (Latin-script Tamil + English like "Nandri! Namma Tamil + English-laye continue pannalam"). Keep business, operational, and tech terms in clean English]: ${contextualText}`;
+        // STRICT SCRIPT & LANGUAGE DIRECTIVE
+        if (hasTamil || asksForTamil) {
+          contextualText = `[CRITICAL SCRIPT DIRECTIVE: The user communicated in Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish (no "Romba nalla vishayam", "puriyuthu", etc.). Keep technical & business terms like WhatsApp, Website, Orders, Booking, Demo, Staff, Stock, Price in clean English]: ${contextualText}`;
         }
 
         userParts.push({ text: contextualText });
