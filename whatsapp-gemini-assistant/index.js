@@ -15,8 +15,10 @@ const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const GeminiService = require('./geminiService');
+const adminRules = require('./adminRulesManager');
 
 const gemini = new GeminiService();
+
 
 const triggerPrefix = (process.env.TRIGGER_PREFIX || '!ai').toLowerCase();
 const autoReplyDM = (process.env.AUTO_REPLY_DM || 'true').toLowerCase() === 'true';
@@ -211,6 +213,17 @@ async function connectToWhatsApp() {
             console.log(`🔄 [Reset] History cleared for ${remoteJid}\n`);
             continue;
           }
+
+          // Handle Boss / Admin Commands from Suresh (e.g. !rule, !rules, !delrule, !setslots, !setprice, !help)
+          if (isOwner && prompt.startsWith('!')) {
+            const adminReply = adminRules.handleAdminCommand(prompt);
+            if (adminReply) {
+              await sock.sendMessage(remoteJid, { text: adminReply }, { quoted: msg });
+              console.log(`👑 [Admin Command Handled for Suresh]: "${prompt}"\n`);
+              continue;
+            }
+          }
+
 
           // Send typing indicator
           await sock.sendPresenceUpdate('composing', remoteJid);

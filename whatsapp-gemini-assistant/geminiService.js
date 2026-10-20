@@ -181,6 +181,8 @@ function dispatchLeadToN8n(leadData) {
   }
 }
 
+const adminRules = require('./adminRulesManager');
+
 const HISTORY_DIR = path.resolve('./.baileys_auth/chat_histories');
 if (!fs.existsSync(HISTORY_DIR)) {
   fs.mkdirSync(HISTORY_DIR, { recursive: true });
@@ -192,7 +194,6 @@ class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
-    this.systemInstruction = buildSystemPrompt();
     this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '12', 10);
     this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
@@ -207,6 +208,12 @@ class GeminiService {
     } else {
       this.ai = null;
     }
+  }
+
+  getSystemInstruction() {
+    const base = buildSystemPrompt();
+    const liveRules = adminRules.formatPromptExtension();
+    return liveRules ? `${base}\n\n${liveRules}` : base;
   }
 
   loadContactProfiles() {
@@ -422,6 +429,7 @@ class GeminiService {
 
     try {
       const history = this.getOrCreateHistory(chatId);
+      const systemInstruction = this.getSystemInstruction();
 
       // Build user parts
       const userParts = [];
@@ -497,7 +505,7 @@ class GeminiService {
             model: m,
             contents: contentsToSend,
             config: {
-              systemInstruction: this.systemInstruction,
+              systemInstruction: systemInstruction,
               temperature: 0.3,
               // Only expose lead tools if not chatting with owner
               tools: isOwner ? [] : LEAD_TOOLS
@@ -533,7 +541,7 @@ class GeminiService {
                 model: 'gemini-2.5-flash',
                 contents: fallbackContents,
                 config: {
-                  systemInstruction: this.systemInstruction,
+                  systemInstruction: systemInstruction,
                   temperature: 0.3
                 }
               });
@@ -616,7 +624,7 @@ class GeminiService {
             model: chosenModel,
             contents: this.sanitizeHistory(history),
             config: {
-              systemInstruction: this.systemInstruction,
+              systemInstruction: systemInstruction,
               temperature: 0.3,
               tools: LEAD_TOOLS
             }
@@ -668,7 +676,7 @@ class GeminiService {
             model: chosenModel,
             contents: this.sanitizeHistory(history),
             config: {
-              systemInstruction: this.systemInstruction,
+              systemInstruction: systemInstruction,
               temperature: 0.3,
               tools: LEAD_TOOLS
             }
@@ -718,7 +726,7 @@ class GeminiService {
             model: chosenModel,
             contents: this.sanitizeHistory(history),
             config: {
-              systemInstruction: this.systemInstruction,
+              systemInstruction: systemInstruction,
               temperature: 0.3,
               tools: LEAD_TOOLS
             }

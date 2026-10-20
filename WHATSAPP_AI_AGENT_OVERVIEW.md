@@ -207,11 +207,29 @@ The AI executes a **5-Stage Conversational Progression**:
 
 ---
 
+## 👑 WhatsApp Live Admin Control Engine (Suresh Kumar)
+
+Suresh can update the AI agent's behavior, active rules, pricing, and demo slots on the fly directly by sending WhatsApp messages from his verified number (`+91 93615 99097`):
+
+| WhatsApp Command | What It Does | Example |
+| :--- | :--- | :--- |
+| `!rule <instruction>` | Adds a live prompt directive to all customer chats immediately | `!rule Always offer a free ROI audit to retail stores` |
+| `!rules` | Displays all currently active dynamic live rules | `!rules` |
+| `!delrule <#>` | Removes a specific live rule by index number | `!delrule 1` |
+| `!clearrules` | Clears all custom live rules back to default | `!clearrules` |
+| `!setslots <Slot 1>, <Slot 2>` | Updates the active 2-slot demo booking times | `!setslots Today 5:00 PM, Tomorrow 11:30 AM` |
+| `!setprice <service> <price>` | Overrides starting service price dynamically | `!setprice ecommerce ₹24,999` |
+| `!reset` | Cleans conversation memory for the current chat | `!reset` |
+| `!help` or `!adminhelp` | Returns the boss command cheat-sheet on WhatsApp | `!help` |
+
+---
+
 ## 📦 Key File Inventory
 
 ```
 whatsapp-gemini-assistant/
 ├── index.js                     # Express server + Baileys WhatsApp client + REST APIs
+├── adminRulesManager.js         # Live WhatsApp Admin Control & dynamic prompt manager
 ├── geminiService.js             # Gemini AI integration, tool definitions & disk history
 ├── knowledgeBase.js             # Master system prompt, company profile & stage rules
 ├── industryKnowledgeBase.js     # 10 vertical industry intelligence modules
@@ -221,6 +239,8 @@ whatsapp-gemini-assistant/
 ├── proposalEngine.js            # 3-tier pricing, HTML consulting deck & sprint plans
 ├── package.json                 # Dependencies (@whiskeysockets/baileys, @google/genai)
 └── .baileys_auth/               # Authentication credentials & persistent chat histories
+    ├── admin_rules.json         # Dynamic live rules configured via WhatsApp
+    ├── contact_profiles.json    # Permanent customer profile database
     └── chat_histories/          # Per-contact conversation JSON files
 ```
 
@@ -231,3 +251,4 @@ whatsapp-gemini-assistant/
 * **Module:** Automated Closing, Contract & Deposit Payment Link Engine.
 * **Target CRM Transition:** Advances deals from `7. PROPOSAL SENT` ➔ `8. NEGOTIATION` ➔ `9. WON (CLOSED)`.
 * **Deliverables:** Integrated Razorpay / UPI payment links, contract signoff confirmations, and onboarding questionnaire dispatch.
+
