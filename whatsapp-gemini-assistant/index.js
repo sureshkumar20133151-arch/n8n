@@ -31,6 +31,50 @@ let isClientReady = false;
 let currentStatus = 'Starting WhatsApp Baileys Engine...';
 let sock = null;
 
+// ============================================================
+// LOOP PREVENTION, DEDUPLICATION & CONCURRENCY CONTROLS
+// ============================================================
+const sentByBotIds = new Set();
+const processedMessageIds = new Set();
+const activeChatLocks = new Set();
+const recentBotReplies = new Map(); // remoteJid -> { text, timestamp }
+
+function recordBotSentId(msgId) {
+  if (!msgId) return;
+  sentByBotIds.add(msgId);
+  if (sentByBotIds.size > 2000) {
+    const first = sentByBotIds.values().next().value;
+    sentByBotIds.delete(first);
+  }
+}
+
+function recordProcessedMessageId(msgId) {
+  if (!msgId) return;
+  processedMessageIds.add(msgId);
+  if (processedMessageIds.size > 2000) {
+    const first = processedMessageIds.values().next().value;
+    processedMessageIds.delete(first);
+  }
+}
+
+async function sendBotMessage(socket, targetJid, content, options = {}) {
+  const sent = await socket.sendMessage(targetJid, content, options);
+  if (sent?.key?.id) {
+    recordBotSentId(sent.key.id);
+  }
+  if (content && content.text) {
+    recentBotReplies.set(targetJid, {
+      text: content.text.trim(),
+      timestamp: Date.now()
+    });
+    if (recentBotReplies.size > 500) {
+      const oldestKey = recentBotReplies.keys().next().value;
+      recentBotReplies.delete(oldestKey);
+    }
+  }
+  return sent;
+}
+
 console.log('='.repeat(55));
 console.log(`🤖 Starting ${botName} with Ultra-Lightweight Baileys Engine...`);
 console.log(`📡 Model: ${process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite'}`);
@@ -118,24 +162,37 @@ async function connectToWhatsApp() {
     });
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
-      // Handle both notify (new incoming messages) and append (synced/pending messages)
-      if (type !== 'notify' && type !== 'append') return;
+      // ONLY process real-time incoming user notifications
+      // Ignore 'append' (internal cache sync and outgoing sent messages emitted by Baileys)
+      if (type !== 'notify') return;
 
       for (const msg of messages) {
         try {
           if (!msg.message) continue;
           if (msg.key.remoteJid === 'status@broadcast') continue;
 
+          const msgId = msg.key.id;
           const remoteJid = msg.key.remoteJid;
           const isGroup = remoteJid.endsWith('@g.us');
-          const isFromMe = msg.key.fromMe;
+          const isFromMe = Boolean(msg.key.fromMe);
 
-          // If from me, only allow if sent to own chat (Message Yourself / Notes to self for testing)
+          // 1. Guard against re-processing messages sent by our bot
+          if (msgId && sentByBotIds.has(msgId)) {
+            continue;
+          }
+
+          // 2. Guard against duplicate events
+          if (msgId && processedMessageIds.has(msgId)) {
+            continue;
+          }
+          recordProcessedMessageId(msgId);
+
+          // 3. If from me, ONLY allow if sent to own chat (Message Yourself / Notes to self for testing)
           if (isFromMe) {
             const myJid = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
             const isSelfChat = myJid && remoteJid === myJid;
             if (!isSelfChat) {
-              continue;
+              continue; // Message sent from Suresh's phone to an external chat -> NEVER auto-reply
             }
           }
 
@@ -147,6 +204,15 @@ async function connectToWhatsApp() {
             '';
 
           const body = textMessage.trim();
+
+          // 4. In self-chat, ensure we never respond to our own bot reply text echoes
+          if (isFromMe && body) {
+            const recent = recentBotReplies.get(remoteJid);
+            if (recent && recent.text === body && (Date.now() - recent.timestamp) < 60000) {
+              console.log(`🛡️ [Self-Loop Guard] Discarded bot reply echo in self-chat (${remoteJid}).`);
+              continue;
+            }
+          }
 
           // Handle Image / Media / Voice Note
           let mediaPayload = null;
@@ -199,6 +265,7 @@ async function connectToWhatsApp() {
           console.log(`📩 [Incoming] From: ${senderName} (${remoteJid})`);
           console.log(`💬 Message: "${body || (isAudio ? '[Voice Note / Audio sent]' : '[Image sent]')}"`);
 
+          const cleanSenderDigits = remoteJid ? remoteJid.replace(/\D/g, '') : '';
           const ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
           const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone);
 
@@ -208,7 +275,7 @@ async function connectToWhatsApp() {
             const resetReply = isOwner
               ? "✅ Conversation history has been cleanly reset, Suresh! How can I assist you today?"
               : "✅ Conversation restarted. How can I assist you today?";
-            await sock.sendMessage(remoteJid, { text: resetReply }, { quoted: msg });
+            await sendBotMessage(sock, remoteJid, { text: resetReply }, { quoted: msg });
             console.log(`🔄 [Reset] History cleared for ${remoteJid}\n`);
             continue;
           }
@@ -217,24 +284,34 @@ async function connectToWhatsApp() {
           if (isOwner && (prompt.startsWith('!') || prompt.startsWith('/'))) {
             const adminReply = adminRules.handleAdminCommand(prompt);
             if (adminReply) {
-              await sock.sendMessage(remoteJid, { text: adminReply }, { quoted: msg });
+              await sendBotMessage(sock, remoteJid, { text: adminReply }, { quoted: msg });
               console.log(`👑 [Admin Command Handled for Suresh]: "${prompt}"\n`);
               continue;
             }
           }
 
+          // 5. Concurrency lock per remoteJid to prevent overlapping runs / race loops
+          if (activeChatLocks.has(remoteJid)) {
+            console.log(`⏳ [Debounce] Already processing a message for ${remoteJid}, skipping duplicate/overlap.`);
+            continue;
+          }
 
-          // Send typing indicator
-          await sock.sendPresenceUpdate('composing', remoteJid);
+          activeChatLocks.add(remoteJid);
+          try {
+            // Send typing indicator
+            await sock.sendPresenceUpdate('composing', remoteJid);
 
-          // Generate response with Gemini AI
-          const reply = await gemini.generateResponse(remoteJid, prompt, mediaPayload, { isOwner, senderName });
+            // Generate response with Gemini AI
+            const reply = await gemini.generateResponse(remoteJid, prompt, mediaPayload, { isOwner, senderName });
 
-          await sock.sendPresenceUpdate('paused', remoteJid);
+            await sock.sendPresenceUpdate('paused', remoteJid);
 
-          // Send message
-          await sock.sendMessage(remoteJid, { text: reply }, { quoted: msg });
-          console.log(`✅ [Gemini] Reply sent to ${senderName}!\n`);
+            // Send message safely using sendBotMessage
+            await sendBotMessage(sock, remoteJid, { text: reply }, { quoted: msg });
+            console.log(`✅ [Gemini] Reply sent to ${senderName}!\n`);
+          } finally {
+            activeChatLocks.delete(remoteJid);
+          }
 
         } catch (msgErr) {
           console.error('Error handling message:', msgErr);
@@ -252,6 +329,15 @@ async function connectToWhatsApp() {
 connectToWhatsApp();
 
 // Security helpers
+function isDummyPhoneNumber(phone = '') {
+  const digits = String(phone).replace(/\D/g, '');
+  if (!digits || digits.length < 10) return true;
+  return /^(91)?(98765\d{5}|12345\d{5}|00000\d{5}|11111\d{5}|99999\d{5}|0{10}|1{10})/.test(digits) ||
+         digits.startsWith('91000000') ||
+         digits === '910000000000' ||
+         digits === '0000000000';
+}
+
 function escapeHtml(str) {
   return String(str || '')
     .replace(/&/g, '&amp;')
@@ -378,15 +464,6 @@ const server = http.createServer((req, res) => {
           return res.end(JSON.stringify({ error: 'WhatsApp client is not currently connected' }));
         }
 
-function isDummyPhoneNumber(phone = '') {
-  const digits = String(phone).replace(/\D/g, '');
-  if (!digits || digits.length < 10) return true;
-  return /^(91)?(98765\d{5}|12345\d{5}|00000\d{5}|11111\d{5}|99999\d{5}|0{10}|1{10})/.test(digits) ||
-         digits.startsWith('91000000') ||
-         digits === '910000000000' ||
-         digits === '0000000000';
-}
-
         let cleanDigits = phone.replace(/\D/g, '');
         // If 10 digits (common for Indian mobile numbers), prepend '91'
         if (cleanDigits.length === 10) {
@@ -403,7 +480,7 @@ function isDummyPhoneNumber(phone = '') {
         }
 
         const jid = `${cleanDigits}@s.whatsapp.net`;
-        await sock.sendMessage(jid, { text: message });
+        await sendBotMessage(sock, jid, { text: message });
         console.log(`📤 [Outbound] WhatsApp message sent to ${jid}`);
 
         res.writeHead(200, {
@@ -479,7 +556,7 @@ function isDummyPhoneNumber(phone = '') {
         const reply = await gemini.generateResponse(jid, customPrompt);
 
         // Send proactive message from AI to client
-        await sock.sendMessage(jid, { text: reply });
+        await sendBotMessage(sock, jid, { text: reply });
         console.log(`🚀 [Proactive Resume] AI initiated conversation continuation to ${jid}`);
 
         res.writeHead(200, {
