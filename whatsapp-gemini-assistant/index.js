@@ -89,6 +89,25 @@ if (!fs.existsSync(authDir)) {
   fs.mkdirSync(authDir, { recursive: true });
 }
 
+function clearAuthSession() {
+  try {
+    if (sock) {
+      try {
+        sock.ev.removeAllListeners();
+        sock.ws?.close();
+      } catch (e) {}
+      sock = null;
+    }
+    if (fs.existsSync(authDir)) {
+      fs.rmSync(authDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(authDir, { recursive: true });
+    console.log('🗑️ [Auth Reset] Cleared .baileys_auth directory successfully.');
+  } catch (err) {
+    console.error('Error clearing auth directory:', err.message);
+  }
+}
+
 async function connectToWhatsApp() {
   try {
     currentStatus = 'Initializing WebSocket connection...';
@@ -138,19 +157,30 @@ async function connectToWhatsApp() {
 
       if (connection === 'close') {
         isClientReady = false;
+        latestQrDataUrl = null;
         const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
         const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
         currentStatus = `Connection closed (Code: ${statusCode}). Reconnecting: ${shouldReconnect}`;
-        console.log(`⚠️ Connection closed (Code: ${statusCode}), reconnecting: ${shouldReconnect}`);
+        console.log(`⚠️ Connection closed (Code: ${statusCode}), isLoggedOut: ${isLoggedOut}, reconnecting: ${shouldReconnect}`);
 
         if (statusCode === DisconnectReason.restartRequired) {
+          currentStatus = 'Restarting WhatsApp handshake (Code 515)...';
           console.log('🔄 Restart required by WhatsApp handshake (Code 515). Reconnecting in 1s...');
           setTimeout(connectToWhatsApp, 1000);
+        } else if (isLoggedOut) {
+          console.log('⚠️ Logged out from WhatsApp. Auto-clearing session and generating fresh QR code...');
+          currentStatus = 'Session logged out. Clearing old credentials and generating new QR code...';
+          clearAuthSession();
+          setTimeout(connectToWhatsApp, 1500);
         } else if (shouldReconnect) {
+          currentStatus = `Reconnecting to WhatsApp (Code: ${statusCode || 'unknown'})...`;
           setTimeout(connectToWhatsApp, 3000);
         } else {
-          console.log('Logged out from WhatsApp. Clear .baileys_auth and rescan.');
-          currentStatus = 'Logged out. Please restart and rescan QR.';
+          console.log('⚠️ Disconnected. Resetting session to generate fresh QR...');
+          currentStatus = 'Disconnected. Resetting and generating new QR code...';
+          clearAuthSession();
+          setTimeout(connectToWhatsApp, 2000);
         }
       } else if (connection === 'open') {
         isClientReady = true;
@@ -587,6 +617,23 @@ const server = http.createServer((req, res) => {
     }));
   }
 
+  // Endpoint to manually clear authentication credentials and restart QR generation
+  if (req.url === '/restart' || req.url === '/api/restart') {
+    console.log('🔄 [Manual Restart Requested] Resetting WhatsApp credentials and generating new QR...');
+    currentStatus = 'Resetting session and generating fresh QR code...';
+    latestQrDataUrl = null;
+    isClientReady = false;
+    clearAuthSession();
+    setTimeout(connectToWhatsApp, 1000);
+
+    if (req.method === 'POST' || (req.headers.accept && req.headers.accept.includes('text/html'))) {
+      res.writeHead(302, { 'Location': '/' });
+      return res.end();
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ success: true, message: 'Auth session reset. Generating fresh QR code...' }));
+  }
+
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
 
   if (isClientReady) {
@@ -609,6 +656,11 @@ const server = http.createServer((req, res) => {
           <div class="badge">● ONLINE & 24/7 ACTIVE</div>
           <h1>WhatsApp Gemini Assistant</h1>
           <p>Powered by ultra-fast Baileys Engine (40MB RAM). Active and replying to incoming messages in real-time.</p>
+          <form method="POST" action="/restart" style="margin-top: 24px;">
+            <button type="submit" style="background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 8px 18px; border-radius: 18px; cursor: pointer; font-size: 12px;">
+              ⚠️ Unlink & Generate New QR Code
+            </button>
+          </form>
         </div>
       </body>
       </html>
@@ -640,6 +692,11 @@ const server = http.createServer((req, res) => {
             <img src="${latestQrDataUrl}" alt="WhatsApp QR Code" />
           </div>
           <p class="note">Page automatically refreshes every 18s</p>
+          <form method="POST" action="/restart" style="margin-top: 14px;">
+            <button type="submit" style="background: transparent; color: #8696a0; border: 1px solid #374248; padding: 8px 16px; border-radius: 18px; cursor: pointer; font-size: 12px;">
+              🔄 Refresh / Get New QR Code
+            </button>
+          </form>
         </div>
       </body>
       </html>
@@ -664,6 +721,11 @@ const server = http.createServer((req, res) => {
         <h2 style="color:#25d366;margin-top:0;">WhatsApp Assistant Starting...</h2>
         <div class="status-box">${escapeHtml(currentStatus)}</div>
         <p style="color:#8696a0;font-size:13px;line-height:1.5;">Connecting to WhatsApp servers. QR code will appear here in seconds.</p>
+        <form method="POST" action="/restart" style="margin-top: 22px;">
+          <button type="submit" style="background: #25d366; color: #111b21; border: none; padding: 12px 24px; border-radius: 24px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 12px rgba(37,211,102,0.3);">
+            🔄 Reset & Generate Fresh QR Code
+          </button>
+        </form>
       </div>
     </body>
     </html>
