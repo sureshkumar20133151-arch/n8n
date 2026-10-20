@@ -15,6 +15,7 @@ const LEAD_TOOLS = [{
         name: { type: 'STRING', description: 'Name of the contact person' },
         company: { type: 'STRING', description: 'Name of their business or company' },
         industry: { type: 'STRING', description: 'Industry or business niche' },
+        businessModel: { type: 'STRING', enum: ['B2B', 'B2C', 'Both / Hybrid'], description: 'Business model: B2B (Wholesale, distributors, manufacturers, commercial) or B2C (Retail, clinics, homeowners, direct consumers) or Both / Hybrid' },
         location: { type: 'STRING', description: 'City or business location' },
         teamSize: { type: 'STRING', description: 'Team size or employee count' },
         revenueRange: { type: 'STRING', description: 'Business Revenue Range (Below ₹5L, ₹5L-₹25L, ₹25L-₹1Cr, ₹1Cr+)' },
@@ -471,6 +472,7 @@ class GeminiService {
         name: args.name,
         company: args.company,
         industry: args.industry,
+        businessModel: args.businessModel,
         painPoint: args.painPoint,
         dreamOutcome: args.dreamOutcome
       });
