@@ -642,9 +642,11 @@ class GeminiService {
           }
         }
 
-        // STRICT SCRIPT & LANGUAGE DIRECTIVE
-        if (hasTamil || asksForTamil) {
-          contextualText = `[CRITICAL SCRIPT DIRECTIVE: The user communicated in Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish (no "Romba nalla vishayam", "puriyuthu", etc.). Keep technical & business terms like WhatsApp, Website, Orders, Booking, Demo, Staff, Stock, Price in clean English]: ${contextualText}`;
+        // LANGUAGE DIRECTIVE: TAMIL + ENGLISH (TANGLISH)
+        if (hasTamil) {
+          contextualText = `[LANGUAGE DIRECTIVE: The user wrote in Tamil script. Reply in natural, conversational Tamil script heavily blended with English words (Tamil + English). NEVER use heavy archaic bookish Tamil words like வணிக உரிமையாளர்கள் or நேர விரயம்; use common words like Business owners, manual work, time delay, revenue, growth, questions, solution]: ${contextualText}`;
+        } else if (asksForTamil || /\b(tanglish|tamil \+ english|tamil and english)\b/i.test(userText)) {
+          contextualText = `[LANGUAGE DIRECTIVE: The user requested Tamil / Tamil + English. Reply in natural, modern, conversational Tanglish (Latin-script Tamil + English like "Nandri! Namma Tamil + English-laye continue pannalam"). Keep business, operational, and tech terms in clean English]: ${contextualText}`;
         }
 
         userParts.push({ text: contextualText });
