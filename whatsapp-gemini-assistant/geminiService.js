@@ -90,6 +90,39 @@ const LEAD_TOOLS = [{
   }]
 }];
 
+const OWNER_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: 'saveBossDirective',
+      description: 'Call this tool whenever Suresh Kumar (the owner/boss) gives a new command, instruction, rule, behavioral advice, question to ask customers, or knowledge update in natural language (e.g. "update this on knowledge base", "from now on ask customers X", "remember this rule", "add this rule", "promote scroll animations", etc.). This tool saves the rule permanently to disk so that all customer conversations immediately use it.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          directive: { type: 'STRING', description: 'The exact rule, instruction, or knowledge update stated by Suresh' },
+          category: { type: 'STRING', enum: ['RULE', 'KNOWLEDGE', 'PRICING', 'SLOTS', 'PROMPT'], description: 'Category of the directive' }
+        },
+        required: ['directive']
+      }
+    },
+    {
+      name: 'listBossDirectives',
+      description: 'Call this tool when Suresh asks what rules or instructions are currently active in the knowledge base.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {}
+      }
+    },
+    {
+      name: 'clearBossDirectives',
+      description: 'Call this tool when Suresh tells you to clear, delete, or reset all custom rules back to defaults.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {}
+      }
+    }
+  ]
+}];
+
 function dispatchProposalToN8n(proposalData) {
   try {
     const postData = JSON.stringify(proposalData);
@@ -497,6 +530,7 @@ class GeminiService {
       let response = null;
       let lastErr = null;
       let chosenModel = this.modelName;
+      const activeTools = isOwner ? OWNER_TOOLS : LEAD_TOOLS;
 
       for (const m of modelsToTry) {
         try {
@@ -507,8 +541,8 @@ class GeminiService {
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.3,
-              // Only expose lead tools if not chatting with owner
-              tools: isOwner ? [] : LEAD_TOOLS
+              // Expose OWNER_TOOLS for Suresh, LEAD_TOOLS for customers
+              tools: activeTools
             }
           });
           if (response) {
@@ -626,7 +660,7 @@ class GeminiService {
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.3,
-              tools: LEAD_TOOLS
+              tools: activeTools
             }
           });
 
@@ -678,7 +712,7 @@ class GeminiService {
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.3,
-              tools: LEAD_TOOLS
+              tools: activeTools
             }
           });
 
@@ -728,7 +762,141 @@ class GeminiService {
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.3,
-              tools: LEAD_TOOLS
+              tools: activeTools
+            }
+          });
+
+          response = followup;
+
+        } else if (fnCall.name === 'saveBossDirective') {
+          console.log(`👑 [Boss Directive Saved via Tool]:`, fnCall.args);
+          const directive = fnCall.args.directive || '';
+          if (directive) {
+            adminRules.addDirective(directive);
+          }
+          
+          const rawParts = response.candidates[0].content.parts || [];
+          const modelPartsDirective = rawParts.map(p => {
+            if (p.functionCall) {
+              return {
+                ...p,
+                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+              };
+            }
+            return p;
+          });
+
+          history.push({
+            role: 'model',
+            parts: modelPartsDirective
+          });
+
+          history.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: fnCall.name,
+                response: {
+                  status: 'saved',
+                  message: `Directive saved successfully to live admin_rules.json. All customer conversations now strictly follow: "${directive}". Current active rules count: ${(adminRules.rules.customDirectives || []).length}`
+                }
+              }
+            }]
+          });
+
+          const followup = await this.ai.models.generateContent({
+            model: chosenModel,
+            contents: this.sanitizeHistory(history),
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.3,
+              tools: activeTools
+            }
+          });
+
+          response = followup;
+
+        } else if (fnCall.name === 'listBossDirectives') {
+          const rulesText = adminRules.getDirectivesText();
+          const rawParts = response.candidates[0].content.parts || [];
+          const modelPartsList = rawParts.map(p => {
+            if (p.functionCall) {
+              return {
+                ...p,
+                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+              };
+            }
+            return p;
+          });
+
+          history.push({
+            role: 'model',
+            parts: modelPartsList
+          });
+
+          history.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: fnCall.name,
+                response: {
+                  status: 'listed',
+                  activeRules: rulesText
+                }
+              }
+            }]
+          });
+
+          const followup = await this.ai.models.generateContent({
+            model: chosenModel,
+            contents: this.sanitizeHistory(history),
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.3,
+              tools: activeTools
+            }
+          });
+
+          response = followup;
+
+        } else if (fnCall.name === 'clearBossDirectives') {
+          adminRules.clearDirectives();
+          const rawParts = response.candidates[0].content.parts || [];
+          const modelPartsClear = rawParts.map(p => {
+            if (p.functionCall) {
+              return {
+                ...p,
+                thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+              };
+            }
+            return p;
+          });
+
+          history.push({
+            role: 'model',
+            parts: modelPartsClear
+          });
+
+          history.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: fnCall.name,
+                response: {
+                  status: 'cleared',
+                  message: 'All custom directives have been cleared. AI is now operating on default base rules.'
+                }
+              }
+            }]
+          });
+
+          const followup = await this.ai.models.generateContent({
+            model: chosenModel,
+            contents: this.sanitizeHistory(history),
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.3,
+              tools: activeTools
             }
           });
 

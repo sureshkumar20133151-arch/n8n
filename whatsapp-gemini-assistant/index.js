@@ -214,8 +214,8 @@ async function connectToWhatsApp() {
             continue;
           }
 
-          // Handle Boss / Admin Commands from Suresh (e.g. !rule, !rules, !delrule, !setslots, !setprice, !help)
-          if (isOwner && prompt.startsWith('!')) {
+          // Handle Boss / Admin Commands from Suresh (e.g. !rule, /rule, !rules, /rules, !delrule, !setslots, !setprice, !help)
+          if (isOwner && (prompt.startsWith('!') || prompt.startsWith('/'))) {
             const adminReply = adminRules.handleAdminCommand(prompt);
             if (adminReply) {
               await sock.sendMessage(remoteJid, { text: adminReply }, { quoted: msg });

@@ -93,13 +93,19 @@ class AdminRulesManager {
     return parts.join('\n');
   }
 
+  getDirectivesText() {
+    const directives = this.rules.customDirectives || [];
+    if (directives.length === 0) return "No active custom rules configured.";
+    return directives.map((d, i) => `${i + 1}. ${d.text}`).join('\n');
+  }
+
   handleAdminCommand(text) {
     const raw = (text || '').trim();
     const parts = raw.split(' ');
     const cmd = parts[0].toLowerCase();
     const args = raw.slice(cmd.length).trim();
 
-    if (cmd === '!rule' || cmd === '!addrule') {
+    if (cmd === '!rule' || cmd === '!addrule' || cmd === '!add' || cmd === '!update' || cmd === '/rule' || cmd === '/add' || cmd === '/update') {
       if (!args) {
         return "⚠️ *Usage:* `!rule <your instruction here>`\n*Example:* `!rule Always offer a 10% discount for clinics this week`";
       }
@@ -107,10 +113,10 @@ class AdminRulesManager {
       return `✅ *Boss, new live rule added!*\n\n📝 *Rule:* "${args}"\n\nAll customer chats will now immediately obey this instruction.`;
     }
 
-    if (cmd === '!rules' || cmd === '!listrules') {
+    if (cmd === '!rules' || cmd === '!listrules' || cmd === '!list' || cmd === '/rules' || cmd === '/list') {
       const directives = this.rules.customDirectives || [];
       if (directives.length === 0) {
-        return "📋 *No active custom rules configured.*\nSend `!rule <instruction>` to add one!";
+        return "📋 *No active custom rules configured.*\nSend `!rule <instruction>` or simply tell me to add one!";
       }
       let reply = "📋 *Active Live Rules (Configured by Suresh):*\n\n";
       directives.forEach((d, i) => {
@@ -120,7 +126,7 @@ class AdminRulesManager {
       return reply;
     }
 
-    if (cmd === '!delrule') {
+    if (cmd === '!delrule' || cmd === '!del' || cmd === '/delrule' || cmd === '/del') {
       const idx = parseInt(args, 10);
       if (isNaN(idx) || !this.removeDirective(idx)) {
         return "⚠️ *Usage:* `!delrule <rule number>`\nCheck numbers with `!rules` first.";
@@ -128,12 +134,12 @@ class AdminRulesManager {
       return `✅ *Rule #${idx} removed successfully!*`;
     }
 
-    if (cmd === '!clearrules') {
+    if (cmd === '!clearrules' || cmd === '!clear' || cmd === '/clearrules' || cmd === '/clear') {
       this.clearDirectives();
       return "✅ *All live custom rules have been cleared.* Assistant is back to default knowledge base.";
     }
 
-    if (cmd === '!setslots') {
+    if (cmd === '!setslots' || cmd === '/setslots') {
       const slots = args.split(',').map(s => s.trim()).filter(Boolean);
       if (slots.length < 2) {
         return "⚠️ *Usage:* `!setslots <Slot 1>, <Slot 2>`\n*Example:* `!setslots Today 5:00 PM, Tomorrow 11:30 AM`";
