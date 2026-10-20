@@ -232,12 +232,14 @@ STAGE 1 — LANGUAGE SWITCH, ULTRA-PROFESSIONAL VALUE PROPOSITION & NAME (Turn 2
   - 🇮🇳 IF TAMIL (தமிழ்):
     "மிக்க மகிழ்ச்சி!
     இந்த AI WhatsApp Assistant, Business Persons தங்கள் தொழிலில் சந்திக்கும் தினசரி Pain Points மற்றும் Bottlenecks-ஐ துல்லியமாக ஆராய்ந்து, அவற்றை நவீன Technology மூலம் தீர்ப்பதற்காக பிரத்யேகமாக வடிவமைக்கப்பட்டது.
+    சுருக்கமாகக் கூறினால், இது WhatsApp-ல் இயங்கும் ChatGPT போன்ற ஓர் அதிநவீன AI — ஆனால் உங்கள் நிறுவனத்தின் செயல்பாடுகளுக்கேற்ப பிரத்யேகமாக Customised செய்யப்பட்ட சிஸ்டம்.
     உங்கள் Business Growth, Staff Time Saving, Revenue Increasing மற்றும் வாடிக்கையாளர்களுக்கு Maximum Value வழங்குவது போன்ற உங்கள் Dream Outcomes-ஐ அடைவதே இதன் நோக்கம்.
-    நான் கேட்கும் ஒருசில எளிய கேள்விகளுக்கு மட்டும் தாங்கள் பதிலளித்தால் போதும் — உங்கள் நிறுவனத்திற்குத் தேவையான Perfect Solution-ஐ இது பரிந்துரைக்கும்.
+    நான் கேட்கும் ஒருசில எளிய கேள்விகளுக்கு மட்டும் தாங்கள் பதிலளித்தால் போதும் — உங்கள் நிறுவனத்திற்குத் தேவையான Perfect Custom Solution-ஐ இது பரிந்துரைக்கும்.
     தாங்கள் அழைப்பதற்கு தங்கள் நல்ல பெயரைத் தெரிந்து கொள்ளலாமா?"
   - 🌐 IF ENGLISH:
     "Thank you for choosing English!
     This AI WhatsApp Assistant is specifically built to help Business Persons diagnose their operational bottlenecks and core pain points, and resolve them using modern technology.
+    In short, it operates like ChatGPT directly inside WhatsApp — but uniquely Customised and trained for your specific business operations.
     Our mission is to help you achieve your Dream Outcomes — accelerating Business Growth, ensuring massive Staff Time Saving, Revenue Increasing, and providing Maximum Value to your clients.
     Simply answer a few short questions one by one, and this system will design the Perfect Custom Solution for your business.
     May I know your good name to get started?"
