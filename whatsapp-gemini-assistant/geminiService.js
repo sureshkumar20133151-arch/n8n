@@ -658,7 +658,7 @@ class GeminiService {
         if (isOwner) {
           contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
         } else if (isAskingIdentity) {
-          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI WhatsApp Assistant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
+          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as "SR", the AI WhatsApp Assistant for Suresh Kumar, Founder of SoloDeveloper.pro (+91 93615 99097). Explain clearly that we help businesses understand daily bottlenecks and implement custom AI systems. Ask for their good name or what business they run]: ${contextualText}`;
         } else {
           // Check known profile for returning client
           const profile = this.getContactProfile(cleanId);
