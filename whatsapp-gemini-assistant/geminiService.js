@@ -628,14 +628,14 @@ class GeminiService {
         if (isOwner) {
           contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
         } else if (isAskingIdentity) {
-          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI Business Consultant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Professionally explain that Suresh built this AI system specifically to help business owners analyze operational bottlenecks, eliminate daily manual friction, save staff time, and achieve dream outcomes like business growth and revenue expansion. Explain that by answering a few quick questions about their business, they will receive a tailored solution blueprint. Ask for their good name]: ${contextualText}`;
+          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI Business Consultant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
         } else {
           // Check known profile for returning client
           const profile = this.getContactProfile(cleanId);
           if (profile && profile.name && history.length === 0) {
             const isBareGreeting = /^(hi|hello|hey|vanakkam|வணக்கம்|hola)[\s!.]*$/i.test(trimmedLower);
             if (isBareGreeting) {
-              contextualText = `[Context Note: Contact previously connected as ${profile.name}. Since they sent a fresh greeting, greet them warmly, re-introduce SoloDeveloper.pro and Suresh Kumar politely without being overly presumptuous or assuming they remember past chats, and ask how you can help them today]: ${contextualText}`;
+              contextualText = `[Context Note: Contact previously connected as ${profile.name}. Since they sent a fresh greeting, follow Stage 0: greet warmly, introduce SoloDeveloper.pro & Suresh Kumar, and ask which language/mother tongue they prefer to continue in]: ${contextualText}`;
             } else {
               contextualText = `[Context Note: Returning contact ${profile.name} (${profile.company || ''})]: ${contextualText}`;
             }
