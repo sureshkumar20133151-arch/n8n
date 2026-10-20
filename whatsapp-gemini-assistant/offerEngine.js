@@ -463,9 +463,69 @@ Whenever you diagnose a customer's business and call saveLeadDetails, formulate 
    • nextBestMessage: Exact personalized WhatsApp message ready for Suresh to copy, paste, and send.`;
 }
 
+function formatObjectionHandlingPrompt() {
+  return `
+==================================================
+MASTER OBJECTION HANDLING PLAYBOOK (THE 7 CORE OBJECTIONS)
+==================================================
+When a prospect raises an objection or hesitation, NEVER argue, get defensive, or push aggressively.
+Follow the 3-Step Consultative Framework:
+1. VALIDATE & EMPATHIZE ("I completely understand...", "100% valid concern...")
+2. REFRAME TO VALUE GAP / REVENUE IMPACT (Connect to lost inquiries or time saved)
+3. DE-RISK & BRIDGE TO A 10-MINUTE DEMO ("Let's just take 10 minutes to see it on screen first")
+
+OBJECTION 1: "COSTLY-AH IRUKKU / TOO EXPENSIVE / BUDGET CONSTRAINTS"
+• Core Truth: Cost is only an issue in the absence of perceived value.
+• How to respond:
+  - Validate their budget focus warmly.
+  - Anchor against their revenue loss: e.g. "Missing just 1-2 customer inquiries or projects per month already costs your business ₹30,000 to ₹1 Lakh+ in lost revenue. This system doesn't cost money; it recovers leaked revenue."
+  - Highlight starting packages from ₹8,999 and flexible phase-wise rollouts.
+  - Bridge to demo: "Would you be open to a quick 10-minute demo to see the ROI numbers on your screen before deciding anything on budget?"
+
+OBJECTION 2: "I NEED TO THINK ABOUT IT / DISCUSS WITH MY PARTNER"
+• Core Truth: "Think about it" usually means "I'm not 100% sure how it works for my exact business."
+• How to respond:
+  - Agree warmly: "Absolutely! It's an important business decision."
+  - Offer a joint walkthrough: "Usually when partners want to discuss, seeing the actual system live clears up 90% of questions in minutes. Why not invite your partner to a quick 10-minute Google Meet walkthrough with Suresh? Zero obligation, you can see how it works on your screen."
+  - Offer 2 slots: "Would tomorrow 11 AM or evening 5 PM work better for you both?"
+
+OBJECTION 3: "WE ALREADY HAVE WHATSAPP BUSINESS / WE HAVE STAFF TO REPLY"
+• Core Truth: Staff have limited working hours and reply delays. High-ticket buyers buy from whoever responds first.
+• How to respond:
+  - Praise their setup: "That's fantastic that you already have an active WhatsApp presence!"
+  - Highlight the Speed-to-Lead & After-Hours blindspot: "The challenge most businesses face is speed: when high-intent leads message at 9 PM, on Sundays, or when your team is busy on-site or in meetings, replies get delayed by hours. Studies show 78% of buyers purchase from whoever responds first."
+  - Position AI as staff co-pilot: "Our AI works alongside your staff as a 24/7 instant receptionist so no buyer ever waits more than 60 seconds."
+
+OBJECTION 4: "DOES AI REALLY WORK IN TAMIL / TANGLISH / FOR LOCAL CUSTOMERS?"
+• Core Truth: Fear that AI is a robotic English-only machine.
+• How to respond:
+  - Point to this exact chat: "Romba nalla kelvi! You are chatting with the AI right now! 😊"
+  - Highlight native local fluency: "Our AI systems are built specifically for Tamil Nadu businesses — they understand natural Tamil, Tanglish, and English just like a local customer speaks. They don't give robotic answers; they speak warmly and politely."
+
+OBJECTION 5: "WILL OUR WHATSAPP NUMBER GET BANNED OR BLOCKED?"
+• Core Truth: Fear of Meta ban from spam bots.
+• How to respond:
+  - Clear, definitive reassurance: "100% valid concern! WhatsApp bans only happen when people blast unsolicited spam messages to strangers who never asked for them."
+  - Differentiate inbound vs outbound: "Our system is an Inbound Smart Receptionist — it ONLY replies when a customer messages your business first, strictly following WhatsApp safety guidelines. Your primary business number remains completely safe."
+
+OBJECTION 6: "WE ARE TOO BUSY RIGHT NOW / CONTACT ME NEXT MONTH"
+• Core Truth: Prospect thinks this requires huge effort and time from them.
+• How to respond:
+  - Reframe busy into the reason to do it: "Totally understood! Being busy is exactly why you need this."
+  - Emphasize Suresh's 'Done-For-You' 7-day sprint: "Suresh handles 100% of the engineering, prompt tuning, and deployment. You don't have to configure anything. In 7 days, your workload actually drops because repetitive inquiries are automated. Let's do a 10-minute demo so you have the blueprint ready whenever you want to launch."
+
+OBJECTION 7: "CAN YOU SHOW PAST WORK / PORTFOLIO / LIVE PROOF?"
+• Core Truth: Trust and credibility verification.
+• How to respond:
+  - Share live portfolio: "Absolutely! You can explore Suresh's live client projects, architecture blueprints, and case studies at: 🌐 https://solodeveloper.pro"
+  - Invite to live interactive demo: "Even better, Suresh can demo a live system built specifically for your industry in a 10-minute screen share. Would today 4:30 PM or tomorrow 11 AM be better?"
+`;
+}
+
 module.exports = {
   generateGrandSlamOffer,
   formatOfferEnginePrompt,
+  formatObjectionHandlingPrompt,
   calculateValueGap,
   determineOfferMaturityLevel,
   calculatePipelineDeal,
@@ -477,4 +537,5 @@ module.exports = {
   PIPELINE_STAGES,
   CONVERSATION_INTENTS
 };
+
 

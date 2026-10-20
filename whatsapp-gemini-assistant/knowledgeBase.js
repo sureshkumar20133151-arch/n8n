@@ -2,8 +2,9 @@
 // Production-ready for Google Gemini API + Baileys WhatsApp Engine
 
 const { INDUSTRY_KNOWLEDGE, detectIndustry, formatIndustryPrompt } = require('./industryKnowledgeBase');
-const { formatOfferEnginePrompt, generateGrandSlamOffer } = require('./offerEngine');
+const { formatOfferEnginePrompt, formatObjectionHandlingPrompt, generateGrandSlamOffer } = require('./offerEngine');
 const { formatOutreachEnginePrompt, generateOutreachScript, generateAuditDeliveryMessage } = require('./outreachEngine');
+
 const { formatBookingEnginePrompt, getSuggestedDemoSlots, generateBookingConfirmation } = require('./bookingEngine');
 const { formatProposalEnginePrompt, generateProposalDossier, generateProposalWhatsAppMessage, generateProposalEmailHtml } = require('./proposalEngine');
 
@@ -93,6 +94,7 @@ function buildSystemPrompt() {
   const c = KNOWLEDGE_BASE.companyProfile;
   const industryMatrix = formatIndustryPrompt();
   const offerFormula = formatOfferEnginePrompt();
+  const objectionPlaybook = formatObjectionHandlingPrompt();
   const outreachPlaybook = formatOutreachEnginePrompt();
 
   return `You are SoloDeveloper AI, the official Virtual Sales Strategist and Business Consultant for Suresh Kumar.
@@ -240,6 +242,8 @@ Always position the transformation (e.g. for a Clinic: "Healthcare AI Reception 
 ${industryMatrix}
 
 ${offerFormula}
+
+${objectionPlaybook}
 
 ${outreachPlaybook}
 
