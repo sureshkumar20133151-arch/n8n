@@ -63,30 +63,34 @@ const RISK_REVERSAL_GUARANTEES = [
 
 const OFFER_MATURITY_LEVELS = {
   1: {
-    level: "Level 1: Digital Foundation",
-    idealFor: "Freelancers, solo professionals, early-stage businesses (< ₹5L/year)",
-    deliverables: "High-Speed Mobile-First Website + SEO Foundation + Direct WhatsApp Chat Button + Google Maps Setup",
+    level: "Level 1: Growth Stack — Modern Digital Foundation",
+    category: "Growth-Focused",
+    idealFor: "Freelancers, solo professionals, early-stage businesses (< ₹5L/year) needing brand elevation and first clients",
+    deliverables: "High-Speed Modern Website with Scroll Animations & Micro-interactions + SEO Foundation + Direct WhatsApp Chat CTA + Google Maps Setup",
     pricing: "₹8,999 – ₹9,999 fixed",
     estimatedDealValue: 9999
   },
   2: {
-    level: "Level 2: Lead Generation Funnel",
-    idealFor: "Growing local businesses & service providers (₹5L – ₹25L/year)",
-    deliverables: "High-Converting Landing Page + Lead Capture Form + Meta/Google Ads Funnel + Instant Lead Notification to WhatsApp & Sheet",
+    level: "Level 2: Growth Stack — High-Converting Ads & Funnel",
+    category: "Growth-Focused",
+    idealFor: "Growing local businesses & service providers (₹5L – ₹25L/year) seeking predictable inbound leads",
+    deliverables: "Modern Conversion Landing Page (Interactive UI + Micro-interactions) + Lead Capture Funnel + Meta/Google Ads Architecture + Instant WhatsApp & Sheet Lead Notifications",
     pricing: "₹14,999 – ₹24,999 fixed",
     estimatedDealValue: 19999
   },
   3: {
-    level: "Level 3: Autonomous AI Agent System",
-    idealFor: "Scaling companies with high inquiry volume (₹25L – ₹1Cr/year)",
-    deliverables: "Full Business Website + 24/7 Autonomous WhatsApp AI Agent (Tamil & English NLP) + Pre-Qualification + Instant Calendar Site/Consultation Booking + n8n Multi-Stage CRM",
+    level: "Level 3: Automation Stack — Autonomous AI Agent & CRM",
+    category: "Automation-Focused",
+    idealFor: "Scaling companies with high inquiry volume (₹25L – ₹1Cr/year) struggling with manual tracking, Excel/notebook logs, and slow replies",
+    deliverables: "24/7 Autonomous WhatsApp AI Receptionist (Tamil & English NLP) + Zero-Interrogation Qualification + Instant Calendar Booking + n8n Multi-Stage CRM Pipeline (eliminates Excel/notebooks)",
     pricing: "Custom Quote tailored to lead volume",
     estimatedDealValue: 29999
   },
   4: {
-    level: "Level 4: Complete Business Operating System",
-    idealFor: "Established enterprises & multi-branch firms (₹1Cr+/year)",
-    deliverables: "Multi-Agent AI Ecosystem + ERP/Inventory Integration + Automated Multi-Stage Customer Followup + Custom Admin Analytics Dashboard",
+    level: "Level 4: Full-Stack Digital Ecosystem — Growth & Automation Partner",
+    category: "All-in-One (Growth + Automation)",
+    idealFor: "Established enterprises & ambitious businesses (₹25L – ₹1Cr+/year) that need both world-class branding AND automated operations",
+    deliverables: "Modern Website with Scroll Animations & Micro-interactions + 24/7 WhatsApp AI Sales Agent + Multi-Stage n8n CRM Pipeline + ERP/Inventory Webhooks + Staff Training",
     pricing: "Custom Quote Enterprise",
     estimatedDealValue: 49999
   }
@@ -412,12 +416,12 @@ Whenever you diagnose a customer's business and call saveLeadDetails, formulate 
    Format: [Client Business Name] + [Industry Solution Name]
    Example: "Apex Interiors — Premium Luxury Client Acquisition & WhatsApp AI System"
 
-2. [OFFER MATURITY LEVEL]:
-   Match the client to the right maturity level:
-   • Level 1: Digital Foundation (Solo/Early-stage, < ₹5L/yr) -> High-Speed Website + SEO + WhatsApp CTA (₹8,999 – ₹9,999)
-   • Level 2: Lead Generation Funnel (Scaling, ₹5L–₹25L/yr) -> Landing Page + Lead Capture + Ads Funnel (₹14,999 – ₹24,999)
-   • Level 3: Autonomous AI Agent System (Growing, ₹25L–₹1Cr/yr) -> 24/7 WhatsApp AI Agent (Tamil + English) + Qualification + Calendar Booking (₹29,999)
-   • Level 4: Complete Business Operating System (Established, ₹1Cr+/yr) -> Multi-Agent Ecosystem + CRM + ERP/Inventory Integration (₹49,999+)
+2. [OFFER MATURITY LEVEL & 3-WAY CATEGORY]:
+   Match the client to their exact category and maturity level:
+   • Level 1: Growth Stack — Modern Digital Foundation (Growth-Focused, < ₹5L/yr) -> High-Speed Modern Website with Scroll Animations & Micro-interactions + SEO + WhatsApp CTA (₹8,999 – ₹9,999)
+   • Level 2: Growth Stack — High-Converting Funnel (Growth-Focused, ₹5L–₹25L/yr) -> Modern Landing Page + Ads Funnel + WhatsApp Lead Capture (₹14,999 – ₹24,999)
+   • Level 3: Automation Stack — Autonomous AI & CRM (Automation-Focused, ₹25L–₹1Cr/yr) -> 24/7 WhatsApp AI Agent (Tamil + English) + Qualification + n8n CRM (replaces manual Excel/notebooks) (₹29,999)
+   • Level 4: Full-Stack Digital Ecosystem (All-in-One: Growth + Automation, ₹25L–₹1Cr+/yr) -> Modern Website (Scroll Animations, Micro-interactions) + 24/7 AI Sales Agent + Multi-Stage CRM + ERP/Inventory (₹49,999+)
 
 3. [CRM PIPELINE DEAL METRICS]:
    Classify:
