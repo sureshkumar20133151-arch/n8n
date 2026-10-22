@@ -1,0 +1,93 @@
+{
+  "name": "WhatsApp Outbound Broadcast (Open-WA API)",
+  "nodes": [
+    {
+      "id": "node-webhook-outbound",
+      "name": "Send WhatsApp Campaign Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-whatsapp-campaign",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-format-outbound",
+      "name": "Format Recipient & Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "o1",
+              "name": "phone",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "o2",
+              "name": "message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-send-outbound",
+      "name": "Send Outbound WhatsApp (Open-WA)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"={{ $json.phone }}\",\n  \"message\": \"={{ $json.message }}\"\n}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Send WhatsApp Campaign Webhook": {
+      "main": [
+        [
+          {
+            "node": "Format Recipient & Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Recipient & Message": {
+      "main": [
+        [
+          {
+            "node": "Send Outbound WhatsApp (Open-WA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true
+}

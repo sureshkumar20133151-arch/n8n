@@ -167,51 +167,48 @@ N8N_ENCRYPTION_KEY=[REDACTED_HEX_KEY]
 
 ## 5. n8n Automation Engine & Workflow Matrix
 
-### Workflow 1: Direct WhatsApp Lead Logger & CRM Nurture
-* **File:** `A4dpOmJiZC7jwjaE_current.json`
+### 🚀 Unified Master Workflow: WhatsApp Sales & Lead Conversion Engine
+* **Consolidated File:** [`MASTER_SALES_ENGINE_WORKFLOW.json`](file:///c:/Users/Suresh/Documents/Antigravity/5.%20N8n/MASTER_SALES_ENGINE_WORKFLOW.json)
+* **Architecture:** Combines Lead Logger, Demo Booking, and Proposal Delivery into a single cohesive canvas featuring 3 visual parallel tracks and color-coded Sticky Notes.
+* **Archived Workflows:** Old standalone outbound broadcast (`2_whatsapp_outbound_broadcast_workflow.json`) and freelance generator (`5_freelance_client_lead_generator.json`) have been removed from the active set and archived into `archive_workflows/`.
+
+---
+
+#### Track 1: Direct WhatsApp Lead Logger & CRM Nurture
 * **Webhook Path:** `/webhook/whatsapp-direct-lead`
 * **Trigger:** Invoked automatically by Gemini via `saveLeadDetails` tool when a user provides business context.
-
-#### Workflow Node Pipeline:
-1. **1. Webhook (WhatsApp Direct Lead):** Ingests JSON payload with 15 lead fields.
-2. **2. Format & Sanitize Lead:** Sanitizes phone numbers, formats timestamps, derives missing metrics, and populates default fallbacks.
-3. **3. Append to Sheet 2 (36 CRM Intelligence Fields):** Logs the lead directly into Google Sheets (`solo dev lead gen` spreadsheet):
-   * *Contact Details:* Date, Name, Clean Phone, Company, Industry, Location, Email.
-   * *Business Profiling:* Business Model (B2B/B2C), Current Website, Team Size, Revenue Range, Monthly Enquiries.
-   * *Sales Intelligence:* Daily Bottleneck / Pain Point, Dream Outcome, Priority Rank (Hot/Warm/Cold), Grand Slam Offer Recommendation.
-   * *Strategic Analysis:* Deal Risk, Closing Probability Reason, Next Best Action.
-4. **4. Send Mini Sales Intelligence Report (Gmail):** Dispatches an executive HTML briefing to `sureshkumar20133151@gmail.com`.
-5. **5. Route by Lead Priority (Switch):** Routes leads based on calculated score:
-   * **Hot Leads (Immediate):** Node 6 sends an instant WhatsApp VIP acknowledgment.
-   * **Nurture Drip:** Automatically scheduled via Wait nodes:
-     * *Day 1:* Value Hook (WhatsApp).
-     * *Day 3:* Strategy Architecture Breakdown (WhatsApp).
-     * *Day 7:* Priority Strategy Call Invitation (WhatsApp).
+* **Nodes:** 12 nodes (`1. [Lead] Webhook` through `12. [Lead] Send Day 7 Priority Invite`)
+* **Pipeline:**
+  1. Ingests JSON payload with lead fields.
+  2. Sanitizes contact and derives scoring metrics.
+  3. Appends 36 intelligence fields directly to Google Sheets (`Sheet2`).
+  4. Dispatches VIP executive email briefing to Suresh via Gmail.
+  5. Evaluates lead priority: Instant VIP WhatsApp acknowledgment for Hot leads, plus Day 1, Day 3, and Day 7 automated nurture sequence.
 
 ---
 
-### Workflow 2: Strategy Demo Booking & Calendar Dispatcher
-* **File:** `demo_booking_workflow.json`
+#### Track 2: Strategy Demo Booking & Calendar Dispatcher
 * **Webhook Path:** `/webhook/demo-booking`
 * **Trigger:** Invoked by Gemini via `bookStrategyDemo` tool when prospect agrees to a walkthrough.
-* **Actions:**
-  * Generates dedicated Google Meet video conference link (`https://meet.google.com/...`).
-  * Appends calendar event to Google Calendar with lead name and company.
-  * Dispatches instant WhatsApp calendar confirmation to the prospect with joining details.
-  * Alerts Suresh with prospect preparation notes.
+* **Nodes:** 10 nodes (`1. [Demo] Webhook` through `10. [Demo] Mark Outreach Status as Demo Booked`)
+* **Pipeline:**
+  1. Formats booking intelligence and updates CRM `Sheet2`.
+  2. Generates Google Meet link and books Google Calendar slot.
+  3. Sends instant WhatsApp booking confirmation with Google Meet link directly to the prospect.
+  4. Dispatches WhatsApp & Gmail alert to Suresh with lead profile notes.
+  5. Syncs booking status in Outreach sheet.
 
 ---
 
-### Workflow 3: 3-Tier Grand Slam Proposal Delivery
-* **File:** `proposal_delivery_workflow.json`
+#### Track 3: 3-Tier Grand Slam Proposal Delivery
 * **Webhook Path:** `/webhook/proposal-delivery`
 * **Trigger:** Invoked by Gemini via `generateAndSendProposal` tool.
-* **Actions:**
-  * Formats custom 3-tier investment structure:
-    * *Tier 1 (Starter Modernization):* Core Website / Basic WhatsApp Bot.
-    * *Tier 2 (Growth Automation - Recommended):* Custom Next.js Platform + 24/7 AI Lead Qualifier + CRM Sync.
-    * *Tier 3 (Enterprise Transformation):* Full Autonomous AI Sales Ecosystem with Voice Receptionist & Custom Integrations.
-  * Dispatches structured PDF/HTML proposal link directly via WhatsApp and Email.
+* **Nodes:** 10 nodes (`1. [Proposal] Webhook` through `10. [Proposal] Mark Outreach Status as Proposal Sent`)
+* **Pipeline:**
+  1. Formats custom 3-tier investment structure (Starter Modernization, Growth Automation, Enterprise Transformation).
+  2. Updates CRM `Sheet2` and sets Outreach Prospect status to `Proposal Sent`.
+  3. Dispatches interactive PDF/HTML proposal link directly via WhatsApp to the prospect.
+  4. Sends proposal dispatch notification to Suresh via WhatsApp and Gmail.
 
 ---
 
