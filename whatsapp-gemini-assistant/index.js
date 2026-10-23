@@ -85,6 +85,52 @@ console.log(`💬 Group chats enabled: ${enableGroups} (Prefix: "${triggerPrefix
 console.log(`💾 Memory Footprint: ~40 MB RAM (100% Free on Render)`);
 console.log('='.repeat(55));
 
+function detectModeSwitchIntent(rawText) {
+  if (!rawText) return null;
+  const cleaned = rawText.toLowerCase().trim();
+
+  // 1. Direct commands: !mode, /mode, mode
+  if (cleaned === '!mode' || cleaned === '/mode' || cleaned === 'mode') {
+    return { isQuery: true };
+  }
+  if (cleaned.startsWith('!mode ') || cleaned.startsWith('/mode ')) {
+    const target = cleaned.replace(/^(!|\/)mode\s+/, '').trim();
+    return { target };
+  }
+
+  // 2. Natural language: "switch to restaurant", "change to wholesale", "switch to dev", etc.
+  const switchMatch = cleaned.match(/^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*([a-zA-Z0-9_-]+)/i);
+  if (switchMatch && switchMatch[1]) {
+    const candidate = switchMatch[1].toLowerCase().trim();
+    if (['wholesale', 'oil', 'annamaliyar', 'restaurant', 'food', 'biryani', 'taj', 'dev', 'developer', 'sales', 'suresh'].includes(candidate)) {
+      return { target: candidate };
+    }
+  }
+
+  // 3. Compact phrases: "restaurant mode", "wholesale mode", "dev mode"
+  const modeSuffixMatch = cleaned.match(/^([a-zA-Z0-9_-]+)\s+mode$/i);
+  if (modeSuffixMatch && modeSuffixMatch[1]) {
+    const candidate = modeSuffixMatch[1].toLowerCase().trim();
+    if (['wholesale', 'oil', 'annamaliyar', 'restaurant', 'food', 'biryani', 'taj', 'dev', 'developer', 'sales', 'suresh'].includes(candidate)) {
+      return { target: candidate };
+    }
+  }
+
+  // 4. Natural language queries
+  if (
+    cleaned === 'which mode' ||
+    cleaned === 'what mode' ||
+    cleaned === 'current mode' ||
+    cleaned === 'check mode' ||
+    cleaned === 'show mode' ||
+    cleaned === 'active mode'
+  ) {
+    return { isQuery: true };
+  }
+
+  return null;
+}
+
 // Ensure auth directory exists
 const authDir = path.resolve('./.baileys_auth');
 if (!fs.existsSync(authDir)) {
@@ -312,21 +358,19 @@ async function connectToWhatsApp() {
             continue;
           }
 
-          // Instant Multi-Persona Switcher Commands (!mode wholesale, !mode restaurant, !mode dev, !mode)
-          const lowerPrompt = prompt.toLowerCase().trim();
-          if (lowerPrompt === '!mode' || lowerPrompt === '/mode' || lowerPrompt.startsWith('!mode ') || lowerPrompt.startsWith('/mode ')) {
-            const parts = prompt.trim().split(/\s+/);
-            if (parts.length === 1) {
+          // Multi-Persona Switcher: Supports !mode wholesale, /mode dev, "switch to restaurant", "restaurant mode", etc.
+          const modeIntent = detectModeSwitchIntent(prompt);
+          if (modeIntent) {
+            if (modeIntent.isQuery) {
               const currentModeInfo = personaManager.formatCurrentModeReply();
               await sendBotMessage(sock, remoteJid, { text: currentModeInfo }, { quoted: msg });
               console.log(`🎛️ [Mode Status Queried] Current: ${personaManager.getActiveMode()} by ${remoteJid}\n`);
               continue;
-            } else {
-              const targetMode = parts[1];
-              const switchRes = personaManager.setMode(targetMode, `WhatsApp (${remoteJid})`);
+            } else if (modeIntent.target) {
+              const switchRes = personaManager.setMode(modeIntent.target, `WhatsApp (${remoteJid})`);
               if (switchRes.success) {
                 await sendBotMessage(sock, remoteJid, { text: switchRes.switchMessage }, { quoted: msg });
-                console.log(`⚡ [Mode Switched in 0.1s] Now active: ${switchRes.currentMode} by ${remoteJid}\n`);
+                console.log(`⚡ [Mode Switched in 0.1s] Now active: ${switchRes.currentMode} by ${remoteJid} (via: "${prompt}")\n`);
               } else {
                 await sendBotMessage(sock, remoteJid, { text: `⚠️ ${switchRes.error}` }, { quoted: msg });
               }
