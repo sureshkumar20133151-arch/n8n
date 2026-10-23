@@ -1,0 +1,73 @@
+{
+  "919361599097@s.whatsapp.net": {
+    "chatId": "919361599097@s.whatsapp.net",
+    "status": "CONFIRMED",
+    "items": [
+      {
+        "code": "B01",
+        "name": "Taj Special Chicken Biryani",
+        "price": 190,
+        "quantity": 1,
+        "lineTotal": 190
+      },
+      {
+        "code": "B03",
+        "name": "Taj Special Mutton Biryani",
+        "price": 290,
+        "quantity": 1,
+        "lineTotal": 290
+      },
+      {
+        "code": "C01",
+        "name": "Chicken 65 – Regular",
+        "price": 150,
+        "quantity": 1,
+        "lineTotal": 150
+      }
+    ],
+    "subtotal": 630,
+    "eligibleOffer": "1 Omelette FREE",
+    "freeGift": {
+      "code": "GIFT_OMELETTE",
+      "name": "Omelette FREE",
+      "price": 0,
+      "quantity": 1
+    },
+    "total": 630,
+    "customerName": "Suresh",
+    "pickupTime": "10–12 Mins",
+    "paymentMethod": "Cash on Pickup",
+    "token": "#TAJ-992",
+    "updatedAt": "2026-10-23T23:53:09.494Z",
+    "confirmedAt": "2026-10-23T23:53:09.496Z"
+  },
+  "test_cart_user_01": {
+    "chatId": "test_cart_user_01",
+    "status": "BUILDING",
+    "items": [
+      {
+        "code": "B01",
+        "name": "Taj Special Chicken Biryani",
+        "price": 190,
+        "quantity": 1,
+        "lineTotal": 190
+      },
+      {
+        "code": "B03",
+        "name": "Taj Special Mutton Biryani",
+        "price": 290,
+        "quantity": 1,
+        "lineTotal": 290
+      }
+    ],
+    "subtotal": 480,
+    "eligibleOffer": null,
+    "freeGift": null,
+    "total": 480,
+    "customerName": "",
+    "pickupTime": "",
+    "paymentMethod": "",
+    "token": null,
+    "updatedAt": "2026-10-23T23:53:49.472Z"
+  }
+}

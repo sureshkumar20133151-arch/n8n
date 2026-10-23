@@ -296,13 +296,13 @@ class GeminiService {
     }
   }
 
-  getSystemInstruction() {
+  getSystemInstruction(chatId = '') {
     const mode = personaManager.getActiveMode();
     if (mode === 'wholesale') {
       return buildWholesaleSystemPrompt();
     }
     if (mode === 'restaurant') {
-      return buildRestaurantSystemPrompt();
+      return buildRestaurantSystemPrompt(chatId);
     }
     const base = buildSystemPrompt();
     const liveRules = adminRules.formatPromptExtension();
@@ -686,7 +686,7 @@ class GeminiService {
 
     try {
       const history = this.getOrCreateHistory(chatId);
-      const systemInstruction = this.getSystemInstruction();
+      const systemInstruction = this.getSystemInstruction(chatId);
 
       // Build user parts
       const userParts = [];
