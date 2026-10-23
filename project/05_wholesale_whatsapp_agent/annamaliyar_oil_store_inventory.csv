@@ -1,7 +1,7 @@
-Product_ID,Category,Brand,Product_Name,Pack_Size,Units_Per_Box,Unit_Wholesale_Price,Box_Wholesale_Price,Retail_MRP,Stock_Boxes,Stock_Status,MOQ_Boxes,Last_Updated
-OIL-GW-1000,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,1 Litre Pouch,12,₹142,₹1704,₹165,150,In Stock,2 Boxes,2026-10-23 08:30 AM
-OIL-GW-500,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,500ml (1/2 Litre) Pouch,24,₹74,₹1776,₹88,85,In Stock,2 Boxes,2026-10-23 08:30 AM
-OIL-GW-200,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,200ml Pouch,48,₹32,₹1536,₹39,60,In Stock,1 Box,2026-10-23 08:30 AM
-OIL-GW-100,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,100ml Pouch,96,₹17,₹1632,₹22,45,In Stock,1 Box,2026-10-23 08:30 AM
-OIL-GW-5000,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,5 Litre Can,4,₹740,₹2960,₹850,30,In Stock,2 Cans,2026-10-23 08:30 AM
-OIL-GW-15000,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,15 Litre Bulk Tin,1,₹2250,₹2250,₹2550,18,In Stock,2 Tins,2026-10-23 08:30 AM
+Product_ID,Category,Brand,Product_Name,Pack_Size,Units_Per_Box,Unit_Wholesale_Rate,Box_Wholesale_Rate,Unit_MRP,Box_MRP,Retailer_Profit_Per_Box,Stock_Boxes,Stock_Status,MOQ_Boxes,Last_Updated
+OIL-GW-1000,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,1 Litre Pouch,12,₹142,₹1704,₹165,₹1980,₹276 (14%),150,In Stock,2 Boxes,2026-10-23 08:30 AM
+OIL-GW-500,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,500ml (1/2 Litre) Pouch,24,₹74,₹1776,₹88,₹2112,₹336 (16%),85,In Stock,2 Boxes,2026-10-23 08:30 AM
+OIL-GW-200,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,200ml Pouch,48,₹32,₹1536,₹39,₹1872,₹336 (18%),60,In Stock,1 Box,2026-10-23 08:30 AM
+OIL-GW-100,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,100ml Pouch,96,₹17,₹1632,₹22,₹2112,₹480 (23%),45,In Stock,1 Box,2026-10-23 08:30 AM
+OIL-GW-5000,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,5 Litre Can,4,₹740,₹2960,₹850,₹3400,₹440 (13%),30,In Stock,2 Cans,2026-10-23 08:30 AM
+OIL-GW-15000,Edible Oil,Gold Winner,Gold Winner Refined Sunflower Oil,15 Litre Bulk Tin,1,₹2250,₹2250,₹2550,₹2550,₹300 (12%),18,In Stock,2 Tins,2026-10-23 08:30 AM
