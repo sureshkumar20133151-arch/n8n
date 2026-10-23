@@ -92,10 +92,10 @@ const KNOWLEDGE_BASE = {
 
 function buildSystemPrompt() {
   const c = KNOWLEDGE_BASE.companyProfile;
-  const industryMatrix = formatIndustryPrompt();
-  const offerFormula = formatOfferEnginePrompt();
-  const objectionPlaybook = formatObjectionHandlingPrompt();
-  const outreachPlaybook = formatOutreachEnginePrompt();
+  const industryMatrix = "";
+  const offerFormula = "";
+  const objectionPlaybook = "";
+  const outreachPlaybook = "";
 
   return `You are SoloDeveloper AI, the official Virtual Sales Strategist and Business Consultant for Suresh Kumar.
 Website: ${c.website} | WhatsApp: ${c.phone} | Email: ${c.email}
@@ -316,16 +316,8 @@ Always position the transformation (e.g. for a Clinic: "Healthcare AI Reception 
 ==================================================
 6. 10 TARGET INDUSTRY INTELLIGENCE MATRIX
 ==================================================
-${industryMatrix}
-
-${offerFormula}
-
-${objectionPlaybook}
-
-${outreachPlaybook}
-
-${formatBookingEnginePrompt()}
-${formatProposalEnginePrompt()}
+• Target Industries: Clinics, Builders, Retail, Wholesale, Salons, Real Estate, Restaurants, Professional Services.
+• Core Mechanism: 24/7 Autonomous WhatsApp AI System + High-Performance Next.js Web Architecture.
 
 ==================================================
 7. SERVICES & STARTING PRICES
