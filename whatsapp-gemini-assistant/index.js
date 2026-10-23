@@ -60,21 +60,31 @@ function recordProcessedMessageId(msgId) {
 }
 
 async function sendBotMessage(socket, targetJid, content, options = {}) {
-  const sent = await socket.sendMessage(targetJid, content, options);
-  if (sent?.key?.id) {
-    recordBotSentId(sent.key.id);
-  }
-  if (content && content.text) {
-    recentBotReplies.set(targetJid, {
-      text: content.text.trim(),
-      timestamp: Date.now()
-    });
-    if (recentBotReplies.size > 500) {
-      const oldestKey = recentBotReplies.keys().next().value;
-      recentBotReplies.delete(oldestKey);
+  try {
+    const sent = await socket.sendMessage(targetJid, content, options);
+    if (sent?.key?.id) {
+      recordBotSentId(sent.key.id);
     }
+    if (content && content.text) {
+      recentBotReplies.set(targetJid, {
+        text: content.text.trim(),
+        timestamp: Date.now()
+      });
+      if (recentBotReplies.size > 500) {
+        const oldestKey = recentBotReplies.keys().next().value;
+        recentBotReplies.delete(oldestKey);
+      }
+    }
+    return sent;
+  } catch (err) {
+    if (options && options.quoted) {
+      console.warn(`[sendBotMessage] Quoted send failed to ${targetJid}, retrying plain:`, err.message);
+      const plainSent = await socket.sendMessage(targetJid, content);
+      if (plainSent?.key?.id) recordBotSentId(plainSent.key.id);
+      return plainSent;
+    }
+    throw err;
   }
-  return sent;
 }
 
 console.log('='.repeat(55));
@@ -98,34 +108,33 @@ function detectModeSwitchIntent(rawText) {
     return { target };
   }
 
-  // 2. Natural language: "switch to restaurant", "change to wholesale", "switch to dev", etc.
-  const switchMatch = cleaned.match(/^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*([a-zA-Z0-9_-]+)/i);
-  if (switchMatch && switchMatch[1]) {
-    const candidate = switchMatch[1].toLowerCase().trim();
-    if (['wholesale', 'oil', 'annamaliyar', 'restaurant', 'food', 'biryani', 'taj', 'dev', 'developer', 'sales', 'suresh'].includes(candidate)) {
-      return { target: candidate };
-    }
-  }
-
-  // 3. Compact phrases: "restaurant mode", "wholesale mode", "dev mode"
-  const modeSuffixMatch = cleaned.match(/^([a-zA-Z0-9_-]+)\s+mode$/i);
-  if (modeSuffixMatch && modeSuffixMatch[1]) {
-    const candidate = modeSuffixMatch[1].toLowerCase().trim();
-    if (['wholesale', 'oil', 'annamaliyar', 'restaurant', 'food', 'biryani', 'taj', 'dev', 'developer', 'sales', 'suresh'].includes(candidate)) {
-      return { target: candidate };
-    }
-  }
-
-  // 4. Natural language queries
-  if (
-    cleaned === 'which mode' ||
-    cleaned === 'what mode' ||
-    cleaned === 'current mode' ||
-    cleaned === 'check mode' ||
-    cleaned === 'show mode' ||
-    cleaned === 'active mode'
-  ) {
+  // 2. Query phrases: "which mode", "what mode", "current mode", etc.
+  if (/^(which|what|check|show|current|active)\s+mode/i.test(cleaned)) {
     return { isQuery: true };
+  }
+
+  // 3. Wholesale / Oil Store triggers (handles "switch to oil store", "oil store", "wholesale mode", etc.)
+  if (
+    /\b(oil store|oil shop|wholesale|annamaliyar|oil mode|wholesale mode)\b/i.test(cleaned) ||
+    /^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*(?:oil|wholesale|annamaliyar|shop|store)/i.test(cleaned)
+  ) {
+    return { target: 'wholesale' };
+  }
+
+  // 4. Restaurant / Taj Hotel triggers (handles "switch to restaurant", "biryani mode", "taj hotel", etc.)
+  if (
+    /\b(restaurant|biryani|taj hotel|taj|food mode|restaurant mode|biryani mode)\b/i.test(cleaned) ||
+    /^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*(?:restaurant|biryani|taj|hotel|food)/i.test(cleaned)
+  ) {
+    return { target: 'restaurant' };
+  }
+
+  // 5. Dev / SoloDeveloper triggers
+  if (
+    /\b(dev|developer|solodeveloper|sales os|dev mode|developer mode)\b/i.test(cleaned) ||
+    /^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*(?:dev|developer|sales|suresh)/i.test(cleaned)
+  ) {
+    return { target: 'dev' };
   }
 
   return null;
@@ -361,14 +370,20 @@ async function connectToWhatsApp() {
           const ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
           const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone);
 
+          // Routable destination JID: route self-chat or @lid to owner phone @s.whatsapp.net
+          const replyJid = (isFromMe || remoteJid.endsWith('@lid'))
+            ? `${ownerPhone}@s.whatsapp.net`
+            : remoteJid;
+          const quoteOption = isFromMe ? {} : { quoted: msg };
+
           // Handle quick reset command for clean state
           if (prompt.toLowerCase() === '!reset' || prompt.toLowerCase() === '/reset') {
-            gemini.resetHistory(remoteJid);
+            gemini.resetHistory(replyJid);
             const resetReply = isOwner
               ? "✅ Conversation history has been cleanly reset, Suresh! How can I assist you today?"
               : "✅ Conversation restarted. How can I assist you today?";
-            await sendBotMessage(sock, remoteJid, { text: resetReply }, { quoted: msg });
-            console.log(`🔄 [Reset] History cleared for ${remoteJid}\n`);
+            await sendBotMessage(sock, replyJid, { text: resetReply }, quoteOption);
+            console.log(`🔄 [Reset] History cleared for ${replyJid}\n`);
             continue;
           }
 
@@ -377,16 +392,16 @@ async function connectToWhatsApp() {
           if (modeIntent) {
             if (modeIntent.isQuery) {
               const currentModeInfo = personaManager.formatCurrentModeReply();
-              await sendBotMessage(sock, remoteJid, { text: currentModeInfo }, { quoted: msg });
-              console.log(`🎛️ [Mode Status Queried] Current: ${personaManager.getActiveMode()} by ${remoteJid}\n`);
+              await sendBotMessage(sock, replyJid, { text: currentModeInfo }, quoteOption);
+              console.log(`🎛️ [Mode Status Queried] Current: ${personaManager.getActiveMode()} by ${replyJid}\n`);
               continue;
             } else if (modeIntent.target) {
-              const switchRes = personaManager.setMode(modeIntent.target, `WhatsApp (${remoteJid})`);
+              const switchRes = personaManager.setMode(modeIntent.target, `WhatsApp (${replyJid})`);
               if (switchRes.success) {
-                await sendBotMessage(sock, remoteJid, { text: switchRes.switchMessage }, { quoted: msg });
-                console.log(`⚡ [Mode Switched in 0.1s] Now active: ${switchRes.currentMode} by ${remoteJid} (via: "${prompt}")\n`);
+                await sendBotMessage(sock, replyJid, { text: switchRes.switchMessage }, quoteOption);
+                console.log(`⚡ [Mode Switched in 0.1s] Now active: ${switchRes.currentMode} by ${replyJid} (via: "${prompt}")\n`);
               } else {
-                await sendBotMessage(sock, remoteJid, { text: `⚠️ ${switchRes.error}` }, { quoted: msg });
+                await sendBotMessage(sock, replyJid, { text: `⚠️ ${switchRes.error}` }, quoteOption);
               }
               continue;
             }
@@ -396,7 +411,7 @@ async function connectToWhatsApp() {
           if (isOwner && (prompt.startsWith('!') || prompt.startsWith('/'))) {
             const adminReply = adminRules.handleAdminCommand(prompt);
             if (adminReply) {
-              await sendBotMessage(sock, remoteJid, { text: adminReply }, { quoted: msg });
+              await sendBotMessage(sock, replyJid, { text: adminReply }, quoteOption);
               console.log(`👑 [Admin Command Handled for Suresh]: "${prompt}"\n`);
               continue;
             }
@@ -411,16 +426,16 @@ async function connectToWhatsApp() {
           activeChatLocks.add(remoteJid);
           try {
             // Send typing indicator (non-blocking)
-            sock.sendPresenceUpdate('composing', remoteJid).catch(() => {});
+            sock.sendPresenceUpdate('composing', replyJid).catch(() => {});
 
             // Generate response with Gemini AI
-            const reply = await gemini.generateResponse(remoteJid, prompt, mediaPayload, { isOwner, senderName });
+            const reply = await gemini.generateResponse(replyJid, prompt, mediaPayload, { isOwner, senderName });
 
-            sock.sendPresenceUpdate('paused', remoteJid).catch(() => {});
+            sock.sendPresenceUpdate('paused', replyJid).catch(() => {});
 
             // Send message safely using sendBotMessage
-            await sendBotMessage(sock, remoteJid, { text: reply }, { quoted: msg });
-            console.log(`✅ [Gemini] Reply sent to ${senderName}!\n`);
+            await sendBotMessage(sock, replyJid, { text: reply }, quoteOption);
+            console.log(`✅ [Gemini] Reply sent to ${senderName} (${replyJid})!\n`);
           } finally {
             activeChatLocks.delete(remoteJid);
           }
