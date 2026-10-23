@@ -1,0 +1,274 @@
+{
+  "name": "Website Contact Form - Email, WhatsApp Greeting & Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9cd991ba-dcbe-45e4-8ece-bcf3eee57a48",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "node-webhook-contact-form",
+      "name": "1. Webhook (Contact Form Submission)"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "fullName",
+              "value": "={{ $json.body?.fullName || $json.fullName || 'Valued Visitor' }}"
+            },
+            {
+              "name": "firstName",
+              "value": "={{ ($json.body?.fullName || $json.fullName || 'Valued Client').trim().split(' ')[0] }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ ($json.body?.email || $json.email || '').trim() }}"
+            },
+            {
+              "name": "whatsapp",
+              "value": "={{ ($json.body?.whatsapp || $json.whatsapp || '').toString().replace(/[^0-9]/g, '') }}"
+            },
+            {
+              "name": "service",
+              "value": "={{ $json.body?.service || $json.service || 'General Project Consultation' }}"
+            },
+            {
+              "name": "budget",
+              "value": "={{ $json.body?.budget || $json.budget || 'Flexible / Discussion' }}"
+            },
+            {
+              "name": "timeline",
+              "value": "={{ $json.body?.timeline || $json.timeline || 'Flexible' }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.body?.message || $json.message || 'No additional message provided.' }}"
+            },
+            {
+              "name": "submittedAt",
+              "value": "={{ $json.body?.submittedAt || $json.submittedAt || $now.format('yyyy-MM-dd HH:mm:ss') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        260,
+        200
+      ],
+      "id": "node-format-lead",
+      "name": "2. Format & Sanitize Lead"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $('2. Format & Sanitize Lead').item.json.submittedAt }}",
+            "Name": "={{ $('2. Format & Sanitize Lead').item.json.fullName }}",
+            "Email": "={{ $('2. Format & Sanitize Lead').item.json.email }}",
+            "WhatsApp": "={{ $('2. Format & Sanitize Lead').item.json.whatsapp }}",
+            "Service": "={{ $('2. Format & Sanitize Lead').item.json.service }}",
+            "Budget": "={{ $('2. Format & Sanitize Lead').item.json.budget }}",
+            "Timeline": "={{ $('2. Format & Sanitize Lead').item.json.timeline }}",
+            "Greetings": "={{ true }}",
+            "Message": "={{ $('2. Format & Sanitize Lead').item.json.message }}"
+          },
+          "schema": [
+            { "id": "Date", "displayName": "Date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Name", "displayName": "Name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Email", "displayName": "Email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "WhatsApp", "displayName": "WhatsApp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Service", "displayName": "Service", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Budget", "displayName": "Budget", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Timeline", "displayName": "Timeline", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Greetings", "displayName": "Greetings", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true },
+            { "id": "Message", "displayName": "Message", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        560,
+        0
+      ],
+      "id": "node-google-sheet-record",
+      "name": "3. Note in Google Sheet (Leads)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RMmY56nFkrWF4wQC",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('2. Format & Sanitize Lead').item.json.email }}",
+        "subject": "Thank you for contacting Suresh Kumar | Solo Developer",
+        "emailType": "html",
+        "message": "=<div style=\"max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;\">\n  <div style=\"background: linear-gradient(135deg, #18181b 0%, #09090b 100%); padding: 32px 24px; text-align: center; color: #ffffff;\">\n    <h1 style=\"margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;\">Suresh Kumar</h1>\n    <p style=\"margin: 6px 0 0; font-size: 14px; color: #a1a1aa;\">Solo Developer &bull; AI Automations & Web Architecture</p>\n  </div>\n\n  <div style=\"padding: 32px 24px; color: #334155; line-height: 1.6;\">\n    <h2 style=\"margin: 0 0 16px; font-size: 20px; color: #0f172a;\">Hi {{ $('2. Format & Sanitize Lead').item.json.firstName }},</h2>\n    <p style=\"margin: 0 0 16px;\">Thank you for getting in touch through <a href=\"https://solodeveloper.pro\" style=\"color: #2563eb; text-decoration: none; font-weight: 600;\">solodeveloper.pro</a>!</p>\n    <p style=\"margin: 0 0 20px;\">I have successfully received your inquiry for <strong>{{ $('2. Format & Sanitize Lead').item.json.service }}</strong>. Here is a summary of what you submitted:</p>\n\n    <div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 24px;\">\n      <table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n        <tr><td style=\"padding: 6px 0; color: #64748b; width: 100px;\"><strong>Service:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $('2. Format & Sanitize Lead').item.json.service }}</td></tr>\n        <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Budget:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $('2. Format & Sanitize Lead').item.json.budget }}</td></tr>\n        <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Timeline:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $('2. Format & Sanitize Lead').item.json.timeline }}</td></tr>\n        <tr><td style=\"padding: 6px 0; color: #64748b; vertical-align: top;\"><strong>Message:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $('2. Format & Sanitize Lead').item.json.message }}</td></tr>\n      </table>\n    </div>\n\n    <h3 style=\"margin: 0 0 8px; font-size: 16px; color: #0f172a;\">What happens next?</h3>\n    <p style=\"margin: 0 0 24px;\">I am personally reviewing your requirements and will get back to you with a proposed approach and turnaround plan within <strong>24 hours</strong>.</p>\n\n    <div style=\"text-align: center; margin: 28px 0;\">\n      <a href=\"https://wa.me/919361599097?text=Hi%20Suresh,%20I%20just%20submitted%20a%20project%20inquiry%20on%20your%20website\" style=\"display: inline-block; background-color: #25d366; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;\">\n        Chat directly on WhatsApp &rarr;\n      </a>\n    </div>\n\n    <p style=\"margin: 24px 0 0; font-size: 14px; color: #64748b;\">\n      Best regards,<br>\n      <strong style=\"color: #0f172a;\">Suresh Kumar</strong><br>\n      Solo Developer | Madurai, Tamil Nadu<br>\n      <a href=\"https://solodeveloper.pro\" style=\"color: #2563eb;\">solodeveloper.pro</a> | +91 93615 99097\n    </p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        180
+      ],
+      "id": "node-email-greeting",
+      "name": "4. Send Greeting Email (Gmail)",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cwBPj5LyhtzfYo07",
+          "name": "Gmail account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('2. Format & Sanitize Lead').item.json.whatsapp }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        560,
+        360
+      ],
+      "id": "node-check-phone",
+      "name": "5. Has WhatsApp Number?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  phone: $('2. Format & Sanitize Lead').item.json.whatsapp,\n  message: `Hi ${$('2. Format & Sanitize Lead').item.json.firstName}! 👋\\n\\nThank you for reaching out via *https://solodeveloper.pro/*\\n\\n🚀 *Inquiry Received:* ${$('2. Format & Sanitize Lead').item.json.service}\\n💰 *Budget:* ${$('2. Format & Sanitize Lead').item.json.budget}\\n⏱️ *Timeline:* ${$('2. Format & Sanitize Lead').item.json.timeline}\\n💬 *Message:* \\\"${($('2. Format & Sanitize Lead').item.json.message || '').replace(/\\r?\\n/g, ' ')}\\\"\\n\\nI am reviewing your details and will get back to you shortly within 24 hours. Feel free to reply directly to this chat if you have any questions or links to share!\\n\\nBest regards,\\n*Suresh Kumar*\\nSolo Developer | Madurai`\n}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        340
+      ],
+      "id": "node-send-whatsapp-greeting",
+      "name": "6. Send WhatsApp Greeting (Client)",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "sendTo": "sureshkumar20133151@gmail.com",
+        "subject": "={{ '🚀 New Website Lead: ' + $('2. Format & Sanitize Lead').item.json.fullName + ' (' + $('2. Format & Sanitize Lead').item.json.service + ')' }}",
+        "emailType": "text",
+        "message": "={{ 'You received a new lead on solodeveloper.pro!\\n\\nName: ' + $('2. Format & Sanitize Lead').item.json.fullName + '\\nEmail: ' + $('2. Format & Sanitize Lead').item.json.email + '\\nWhatsApp: ' + $('2. Format & Sanitize Lead').item.json.whatsapp + '\\nService: ' + $('2. Format & Sanitize Lead').item.json.service + '\\nBudget: ' + $('2. Format & Sanitize Lead').item.json.budget + '\\nTimeline: ' + $('2. Format & Sanitize Lead').item.json.timeline + '\\n\\nMessage:\\n' + $('2. Format & Sanitize Lead').item.json.message + '\\n\\nSubmitted At: ' + $('2. Format & Sanitize Lead').item.json.submittedAt }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        820,
+        500
+      ],
+      "id": "node-admin-alert-gmail",
+      "name": "7. Send Admin Lead Alert (Gmail)",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cwBPj5LyhtzfYo07",
+          "name": "Gmail account"
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "1. Webhook (Contact Form Submission)": {
+      "main": [
+        [
+          {
+            "node": "2. Format & Sanitize Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Format & Sanitize Lead": {
+      "main": [
+        [
+          {
+            "node": "3. Note in Google Sheet (Leads)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "4. Send Greeting Email (Gmail)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "5. Has WhatsApp Number?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "7. Send Admin Lead Alert (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Has WhatsApp Number?": {
+      "main": [
+        [
+          {
+            "node": "6. Send WhatsApp Greeting (Client)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true
+}

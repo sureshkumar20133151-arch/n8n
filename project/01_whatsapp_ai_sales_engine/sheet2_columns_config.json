@@ -1,0 +1,417 @@
+{
+  "mappingMode": "defineBelow",
+  "value": {
+    "Date": "={{ $json.Date }}",
+    "Name": "={{ $json.Name }}",
+    "Phone": "={{ $json.Phone }}",
+    "Company": "={{ $json.Company }}",
+    "Industry": "={{ $json.Industry }}",
+    "Location": "={{ $json.Location }}",
+    "Team Size": "={{ $json['Team Size'] }}",
+    "Revenue Range": "={{ $json['Revenue Range'] }}",
+    "Authority Level": "={{ $json['Authority Level'] }}",
+    "Monthly Enquiries": "={{ $json['Monthly Enquiries'] }}",
+    "Current Source": "={{ $json['Current Source'] }}",
+    "Current Process": "={{ $json['Current Process'] }}",
+    "Buying Trigger": "={{ $json['Buying Trigger'] }}",
+    "Problem Category": "={{ $json['Problem Category'] }}",
+    "Pain Point": "={{ $json['Pain Point'] }}",
+    "Pain Severity": "={{ $json['Pain Severity'] }}",
+    "Dream Outcome": "={{ $json['Dream Outcome'] }}",
+    "Lost Opportunity": "={{ $json['Lost Opportunity'] }}",
+    "Current Tools": "={{ $json['Current Tools'] }}",
+    "Transformation Statement": "={{ $json['Transformation Statement'] }}",
+    "Grand Slam Offer": "={{ $json['Grand Slam Offer'] }}",
+    "AI Confidence": "={{ $json['AI Confidence'] }}",
+    "Urgency": "={{ $json.Urgency }}",
+    "Timeline": "={{ $json.Timeline }}",
+    "Budget Status": "={{ $json['Budget Status'] }}",
+    "Lead Score": "={{ $json['Lead Score'] }}",
+    "Suresh Closing Script": "={{ $json['Suresh Closing Script'] }}",
+    "Follow-up Strategy": "={{ $json['Follow-up Strategy'] }}",
+    "Pipeline Stage": "={{ $json['Pipeline Stage'] }}",
+    "Conversation Intent": "={{ $json['Conversation Intent'] }}",
+    "Estimated Deal Value": "={{ $json['Estimated Deal Value'] }}",
+    "Win Probability": "={{ $json['Win Probability'] }}",
+    "Revenue Forecast": "={{ $json['Revenue Forecast'] }}",
+    "Next Followup Date": "={{ $json['Next Followup Date'] }}",
+    "Loss Reason": "={{ $json['Loss Reason'] }}",
+    "Last Contacted Date": "={{ $json['Last Contacted Date'] }}",
+    "Priority Rank": "={{ $json['Priority Rank'] }}",
+    "AI Recommended Action": "={{ $json['AI Recommended Action'] }}",
+    "Deal Risk": "={{ $json['Deal Risk'] }}",
+    "Closing Probability Reason": "={{ $json['Closing Probability Reason'] }}",
+    "Next Best Message": "={{ $json['Next Best Message'] }}"
+  },
+  "schema": [
+    {
+      "id": "Date",
+      "displayName": "Date",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Name",
+      "displayName": "Name",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Phone",
+      "displayName": "Phone",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Company",
+      "displayName": "Company",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Industry",
+      "displayName": "Industry",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Location",
+      "displayName": "Location",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Team Size",
+      "displayName": "Team Size",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Revenue Range",
+      "displayName": "Revenue Range",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Authority Level",
+      "displayName": "Authority Level",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Monthly Enquiries",
+      "displayName": "Monthly Enquiries",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Current Source",
+      "displayName": "Current Source",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Current Process",
+      "displayName": "Current Process",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Buying Trigger",
+      "displayName": "Buying Trigger",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Problem Category",
+      "displayName": "Problem Category",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Pain Point",
+      "displayName": "Pain Point",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Pain Severity",
+      "displayName": "Pain Severity",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Dream Outcome",
+      "displayName": "Dream Outcome",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Lost Opportunity",
+      "displayName": "Lost Opportunity",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Current Tools",
+      "displayName": "Current Tools",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Transformation Statement",
+      "displayName": "Transformation Statement",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Grand Slam Offer",
+      "displayName": "Grand Slam Offer",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "AI Confidence",
+      "displayName": "AI Confidence",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Urgency",
+      "displayName": "Urgency",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Timeline",
+      "displayName": "Timeline",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Budget Status",
+      "displayName": "Budget Status",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Lead Score",
+      "displayName": "Lead Score",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Suresh Closing Script",
+      "displayName": "Suresh Closing Script",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Follow-up Strategy",
+      "displayName": "Follow-up Strategy",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Pipeline Stage",
+      "displayName": "Pipeline Stage",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Conversation Intent",
+      "displayName": "Conversation Intent",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Estimated Deal Value",
+      "displayName": "Estimated Deal Value",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Win Probability",
+      "displayName": "Win Probability",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Revenue Forecast",
+      "displayName": "Revenue Forecast",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Next Followup Date",
+      "displayName": "Next Followup Date",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Loss Reason",
+      "displayName": "Loss Reason",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Last Contacted Date",
+      "displayName": "Last Contacted Date",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Priority Rank",
+      "displayName": "Priority Rank",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "AI Recommended Action",
+      "displayName": "AI Recommended Action",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Deal Risk",
+      "displayName": "Deal Risk",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Closing Probability Reason",
+      "displayName": "Closing Probability Reason",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    },
+    {
+      "id": "Next Best Message",
+      "displayName": "Next Best Message",
+      "required": false,
+      "defaultMatch": false,
+      "display": true,
+      "type": "string",
+      "canBeUsedToMatch": true
+    }
+  ]
+}

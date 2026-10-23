@@ -1,0 +1,206 @@
+{
+  "id": "leCNPXdEzVtNUt1s",
+  "name": "WhatsApp Gemini AI Assistant (n8n Workflow)",
+  "description": null,
+  "active": false,
+  "activeVersionId": null,
+  "createdAt": "2026-10-15T02:43:32.320Z",
+  "updatedAt": "2026-10-15T02:43:32.320Z",
+  "isArchived": false,
+  "versionId": "783d0c9c-963b-45c2-ac29-90abdf5e33ee",
+  "versionCounter": 1,
+  "sourceWorkflowId": null,
+  "triggerCount": 0,
+  "nodes": [
+    {
+      "id": "node-whatsapp-webhook",
+      "name": "WhatsApp Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-gemini-inbound",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "292dafe6-6d8d-4e8d-b938-5aa62ebc825a"
+    },
+    {
+      "id": "node-extract-message",
+      "name": "Extract Message & Sender",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "param-phone",
+              "name": "senderPhone",
+              "value": "={{ $json.body.from || $json.body.phone || $json.body.sender || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "param-name",
+              "name": "senderName",
+              "value": "={{ $json.body.senderName || $json.body.pushName || 'Friend' }}",
+              "type": "string"
+            },
+            {
+              "id": "param-text",
+              "name": "userMessage",
+              "value": "={{ $json.body.text || $json.body.body || $json.body.message || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-gemini-ai",
+      "name": "Google Gemini Assistant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"role\": \"user\",\n      \"parts\": [\n        {\n          \"text\": \"{{ $json.userMessage }}\"\n        }\n      ]\n    }\n  ],\n  \"systemInstruction\": {\n    \"parts\": [\n      {\n        \"text\": \"You are a helpful, smart, and friendly personal AI assistant replying on WhatsApp. Format responses nicely using WhatsApp markdown (*bold*, _italic_, bullet points). Keep replies engaging and direct.\"\n      }\n    ]\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-format-reply",
+      "name": "Format Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "reply-phone",
+              "name": "recipientPhone",
+              "value": "={{ $('Extract Message & Sender').item.json.senderPhone }}",
+              "type": "string"
+            },
+            {
+              "id": "reply-text",
+              "name": "replyText",
+              "value": "={{ $json.candidates[0].content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-send-whatsapp",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"={{ $json.recipientPhone }}\",\n  \"message\": \"={{ $json.replyText }}\"\n}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Inbound Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Message & Sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message & Sender": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Assistant": {
+      "main": [
+        [
+          {
+            "node": "Format Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodeGroups": [],
+  "settings": {},
+  "staticData": null,
+  "pinData": null,
+  "meta": null,
+  "tags": [],
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "leCNPXdEzVtNUt1s",
+      "projectId": "MeSj0Py0w9dF2YKh",
+      "project": {
+        "id": "MeSj0Py0w9dF2YKh",
+        "name": "Suresh sureshkumar20133151@gmail.com <sureshkumar20133151@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-14T19:07:43.229Z",
+        "updatedAt": "2026-10-14T19:15:03.532Z"
+      },
+      "createdAt": "2026-10-15T02:43:32.320Z",
+      "updatedAt": "2026-10-15T02:43:32.320Z"
+    }
+  ],
+  "activeVersion": null
+}

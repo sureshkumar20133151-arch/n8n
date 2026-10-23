@@ -1,0 +1,1921 @@
+{
+  "id": "A4dpOmJiZC7jwjaE",
+  "name": "Direct WhatsApp AI Agent - Lead Logger & Hot Lead Alert",
+  "description": null,
+  "active": true,
+  "activeVersionId": "24ef9bb7-d77b-4f97-8d1a-b392582f97e5",
+  "createdAt": "2026-10-18T17:13:59.965Z",
+  "updatedAt": "2026-10-18T18:47:16.436Z",
+  "isArchived": false,
+  "versionId": "24ef9bb7-d77b-4f97-8d1a-b392582f97e5",
+  "versionCounter": 6,
+  "sourceWorkflowId": null,
+  "triggerCount": 1,
+  "nodes": [
+    {
+      "id": "node-webhook-direct-lead",
+      "name": "1. Webhook (WhatsApp Direct Lead)",
+      "webhookId": "whatsapp-direct-lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-direct-lead",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-format-whatsapp-lead",
+      "name": "2. Format & Sanitize Lead",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "Date",
+              "value": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+              "type": "string"
+            },
+            {
+              "name": "Name",
+              "value": "={{ $json.body?.name || 'WhatsApp Lead' }}",
+              "type": "string"
+            },
+            {
+              "name": "Phone",
+              "value": "={{ ($json.body?.phone || '').toString().replace(/[^0-9]/g, '') }}",
+              "type": "string"
+            },
+            {
+              "name": "Company",
+              "value": "={{ $json.body?.company || 'Business' }}",
+              "type": "string"
+            },
+            {
+              "name": "Industry",
+              "value": "={{ $json.body?.industry || 'General' }}",
+              "type": "string"
+            },
+            {
+              "name": "Location",
+              "value": "={{ $json.body?.location || 'Not Specified' }}",
+              "type": "string"
+            },
+            {
+              "name": "Team Size",
+              "value": "={{ $json.body?.teamSize || 'Not Specified' }}",
+              "type": "string"
+            },
+            {
+              "name": "Revenue Range",
+              "value": "={{ $json.body?.revenueRange || 'Not Disclosed' }}",
+              "type": "string"
+            },
+            {
+              "name": "Authority Level",
+              "value": "={{ $json.body?.authorityLevel || 'Decision Maker' }}",
+              "type": "string"
+            },
+            {
+              "name": "Monthly Enquiries",
+              "value": "={{ $json.body?.monthlyEnquiries || 'Not Specified' }}",
+              "type": "string"
+            },
+            {
+              "name": "Current Source",
+              "value": "={{ $json.body?.currentSource || 'Not Specified' }}",
+              "type": "string"
+            },
+            {
+              "name": "Current Process",
+              "value": "={{ $json.body?.currentProcess || 'Not Documented' }}",
+              "type": "string"
+            },
+            {
+              "name": "Buying Trigger",
+              "value": "={{ $json.body?.buyingTrigger || 'Exploring Growth' }}",
+              "type": "string"
+            },
+            {
+              "name": "Problem Category",
+              "value": "={{ $json.body?.problemCategory || 'Lead Generation' }}",
+              "type": "string"
+            },
+            {
+              "name": "Pain Point",
+              "value": "={{ $json.body?.painPoint || 'Seeking business growth' }}",
+              "type": "string"
+            },
+            {
+              "name": "Pain Severity",
+              "value": "={{ $json.body?.painSeverity || 'High' }}",
+              "type": "string"
+            },
+            {
+              "name": "Dream Outcome",
+              "value": "={{ $json.body?.dreamOutcome || 'Scale inquiries and revenue' }}",
+              "type": "string"
+            },
+            {
+              "name": "Lost Opportunity",
+              "value": "={{ $json.body?.lostOpportunity || 'Significant' }}",
+              "type": "string"
+            },
+            {
+              "name": "Current Tools",
+              "value": "={{ $json.body?.currentTools || 'Excel / WhatsApp' }}",
+              "type": "string"
+            },
+            {
+              "name": "Transformation Statement",
+              "value": "={{ $json.body?.transformationStatement || ('Automate and scale ' + ($json.body?.company || 'business')) }}",
+              "type": "string"
+            },
+            {
+              "name": "Grand Slam Offer",
+              "value": "={{ $json.body?.grandSlamOffer || 'Custom Autonomous AI Business Agent System' }}",
+              "type": "string"
+            },
+            {
+              "name": "AI Confidence",
+              "value": "={{ $json.body?.aiConfidence || '90% High Fit' }}",
+              "type": "string"
+            },
+            {
+              "name": "Urgency",
+              "value": "={{ $json.body?.urgency || 'High' }}",
+              "type": "string"
+            },
+            {
+              "name": "Timeline",
+              "value": "={{ $json.body?.timeline || 'Immediate' }}",
+              "type": "string"
+            },
+            {
+              "name": "Budget Status",
+              "value": "={{ $json.body?.budgetStatus || 'Allocated' }}",
+              "type": "string"
+            },
+            {
+              "name": "Lead Score",
+              "value": "={{ $json.body?.leadScore || 'Hot' }}",
+              "type": "string"
+            },
+            {
+              "name": "Suresh Closing Script",
+              "value": "={{ $json.body?.sureshClosingScript || 'Introduce AI transformation and book discovery demo.' }}",
+              "type": "string"
+            },
+            {
+              "name": "Follow-up Strategy",
+              "value": "={{ $json.body?.followupStrategy || 'Direct WhatsApp personalized message.' }}",
+              "type": "string"
+            },
+            {
+              "name": "Pipeline Stage",
+              "value": "={{ $json.body?.pipelineStage || ($json.body?.leadScore === 'Hot' ? '2. QUALIFIED' : '1. NEW LEAD') }}",
+              "type": "string"
+            },
+            {
+              "name": "Conversation Intent",
+              "value": "={{ $json.body?.conversationIntent || ($json.body?.urgency === 'Critical' ? 'Ready To Buy' : 'Urgent Problem') }}",
+              "type": "string"
+            },
+            {
+              "name": "Estimated Deal Value",
+              "value": "={{ $json.body?.estimatedDealValue || '\u20b929,999' }}",
+              "type": "string"
+            },
+            {
+              "name": "Win Probability",
+              "value": "={{ $json.body?.winProbability || ($json.body?.leadScore === 'Hot' ? '80%' : '50%') }}",
+              "type": "string"
+            },
+            {
+              "name": "Revenue Forecast",
+              "value": "={{ $json.body?.revenueForecast || '\u20b924,000' }}",
+              "type": "string"
+            },
+            {
+              "name": "Next Followup Date",
+              "value": "={{ $now.plus({ days: ($json.body?.leadScore === 'Hot' ? 1 : 3) }).format('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "name": "Loss Reason",
+              "value": "={{ $json.body?.lossReason || '-' }}",
+              "type": "string"
+            },
+            {
+              "name": "Last Contacted Date",
+              "value": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-append-to-sheet",
+      "name": "3. Append to Sheet 2 (36 CRM Intelligence Fields)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "continueOnFail": true,
+      "position": [
+        560,
+        -140
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet2",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.Date }}",
+            "Name": "={{ $json.Name }}",
+            "Phone": "={{ $json.Phone }}",
+            "Company": "={{ $json.Company }}",
+            "Industry": "={{ $json.Industry }}",
+            "Location": "={{ $json.Location }}",
+            "Team Size": "={{ $json['Team Size'] }}",
+            "Revenue Range": "={{ $json['Revenue Range'] }}",
+            "Authority Level": "={{ $json['Authority Level'] }}",
+            "Monthly Enquiries": "={{ $json['Monthly Enquiries'] }}",
+            "Current Source": "={{ $json['Current Source'] }}",
+            "Current Process": "={{ $json['Current Process'] }}",
+            "Buying Trigger": "={{ $json['Buying Trigger'] }}",
+            "Problem Category": "={{ $json['Problem Category'] }}",
+            "Pain Point": "={{ $json['Pain Point'] }}",
+            "Pain Severity": "={{ $json['Pain Severity'] }}",
+            "Dream Outcome": "={{ $json['Dream Outcome'] }}",
+            "Lost Opportunity": "={{ $json['Lost Opportunity'] }}",
+            "Current Tools": "={{ $json['Current Tools'] }}",
+            "Transformation Statement": "={{ $json['Transformation Statement'] }}",
+            "Grand Slam Offer": "={{ $json['Grand Slam Offer'] }}",
+            "AI Confidence": "={{ $json['AI Confidence'] }}",
+            "Urgency": "={{ $json.Urgency }}",
+            "Timeline": "={{ $json.Timeline }}",
+            "Budget Status": "={{ $json['Budget Status'] }}",
+            "Lead Score": "={{ $json['Lead Score'] }}",
+            "Suresh Closing Script": "={{ $json['Suresh Closing Script'] }}",
+            "Follow-up Strategy": "={{ $json['Follow-up Strategy'] }}",
+            "Pipeline Stage": "={{ $json['Pipeline Stage'] }}",
+            "Conversation Intent": "={{ $json['Conversation Intent'] }}",
+            "Estimated Deal Value": "={{ $json['Estimated Deal Value'] }}",
+            "Win Probability": "={{ $json['Win Probability'] }}",
+            "Revenue Forecast": "={{ $json['Revenue Forecast'] }}",
+            "Next Followup Date": "={{ $json['Next Followup Date'] }}",
+            "Loss Reason": "={{ $json['Loss Reason'] }}",
+            "Last Contacted Date": "={{ $json['Last Contacted Date'] }}"
+          },
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Team Size",
+              "displayName": "Team Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Revenue Range",
+              "displayName": "Revenue Range",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Authority Level",
+              "displayName": "Authority Level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Monthly Enquiries",
+              "displayName": "Monthly Enquiries",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Source",
+              "displayName": "Current Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Process",
+              "displayName": "Current Process",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Buying Trigger",
+              "displayName": "Buying Trigger",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Problem Category",
+              "displayName": "Problem Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pain Point",
+              "displayName": "Pain Point",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pain Severity",
+              "displayName": "Pain Severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Dream Outcome",
+              "displayName": "Dream Outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lost Opportunity",
+              "displayName": "Lost Opportunity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Tools",
+              "displayName": "Current Tools",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transformation Statement",
+              "displayName": "Transformation Statement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Grand Slam Offer",
+              "displayName": "Grand Slam Offer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Confidence",
+              "displayName": "AI Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget Status",
+              "displayName": "Budget Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suresh Closing Script",
+              "displayName": "Suresh Closing Script",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow-up Strategy",
+              "displayName": "Follow-up Strategy",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pipeline Stage",
+              "displayName": "Pipeline Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Conversation Intent",
+              "displayName": "Conversation Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Win Probability",
+              "displayName": "Win Probability",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Revenue Forecast",
+              "displayName": "Revenue Forecast",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Followup Date",
+              "displayName": "Next Followup Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Loss Reason",
+              "displayName": "Loss Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RMmY56nFkrWF4wQC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "node-email-admin-alert",
+      "name": "4. Send Mini Sales Intelligence Report (Gmail)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "continueOnFail": true,
+      "position": [
+        560,
+        60
+      ],
+      "parameters": {
+        "sendTo": "sureshkumar20133151@gmail.com",
+        "subject": "={{ '\ud83d\udd25 [' + $json['Pipeline Stage'] + '] ' + $json.Company + ' (' + $json['Estimated Deal Value'] + ') - ' + $json.Name }}",
+        "emailType": "html",
+        "message": "=<div style=\"max-width: 680px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;\">\n  <!-- Header Banner -->\n  <div style=\"background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); padding: 28px 24px; text-align: center; color: #ffffff;\">\n    <span style=\"background: rgba(255,255,255,0.18); font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 12px; border-radius: 20px; font-weight: 700;\">AI CRM Pipeline Intelligence Dossier</span>\n    <h1 style=\"margin: 12px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;\">\ud83c\udfaf {{ $json.Company }}</h1>\n    <p style=\"margin: 6px 0 0; font-size: 14px; color: #c7d2fe;\">{{ $json.Industry }} &bull; {{ $json.Location }}</p>\n  </div>\n\n  <div style=\"padding: 24px; color: #334155; line-height: 1.6;\">\n    <!-- CRM Deal Metrics Box -->\n    <div style=\"background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;\">\n      <div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;\">\n        <span style=\"background: #1d4ed8; color: #ffffff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;\">STAGE: {{ $json['Pipeline Stage'] }}</span>\n        <span style=\"background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px;\">Intent: {{ $json['Conversation Intent'] }}</span>\n        <span style=\"background: #fef08a; color: #854d0e; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;\">Next Followup: {{ $json['Next Followup Date'] }}</span>\n      </div>\n      <p style=\"margin: 4px 0 0; font-size: 14px; color: #1e3a8a;\"><strong>Deal Value:</strong> {{ $json['Estimated Deal Value'] }} &bull; <strong>Win Probability:</strong> {{ $json['Win Probability'] }} &bull; <strong>Weighted Forecast:</strong> <span style=\"color: #15803d; font-weight: 700;\">{{ $json['Revenue Forecast'] }}</span></p>\n    </div>\n\n    <!-- Quick Stats Pill Bar -->\n    <div style=\"display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap;\">\n      <span style=\"background: #dcfce7; color: #166534; padding: 5px 12px; border-radius: 6px; font-weight: 700; font-size: 13px;\">Score: {{ $json['Lead Score'] }}</span>\n      <span style=\"background: #fee2e2; color: #991b1b; padding: 5px 12px; border-radius: 6px; font-weight: 700; font-size: 13px;\">Urgency: {{ $json.Urgency }}</span>\n      <span style=\"background: #e0e7ff; color: #3730a3; padding: 5px 12px; border-radius: 6px; font-weight: 600; font-size: 13px;\">Role: {{ $json['Authority Level'] }}</span>\n      <span style=\"background: #f1f5f9; color: #475569; padding: 5px 12px; border-radius: 6px; font-size: 13px;\">Rev: {{ $json['Revenue Range'] }}</span>\n    </div>\n\n    <!-- Section 1: Business Diagnosis -->\n    <div style=\"background-color: #f8fafc; border-left: 4px solid #6366f1; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;\">\n      <h3 style=\"margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #4338ca; letter-spacing: 0.5px;\">\ud83e\ude7a Business Diagnosis</h3>\n      <p style=\"margin: 0 0 6px; font-size: 14px; color: #0f172a;\"><strong>Category:</strong> {{ $json['Problem Category'] }} (Severity: {{ $json['Pain Severity'] }})</p>\n      <p style=\"margin: 0 0 6px; font-size: 14px; color: #0f172a;\"><strong>Core Bottleneck:</strong> {{ $json['Pain Point'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #475569;\"><strong>Existing Process:</strong> {{ $json['Current Process'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #b45309;\"><strong>Buying Trigger:</strong> {{ $json['Buying Trigger'] }}</p>\n      <p style=\"margin: 0; font-size: 13px; color: #dc2626; font-weight: 600;\"><strong>Lost Opportunity Cost:</strong> {{ $json['Lost Opportunity'] }}</p>\n    </div>\n\n    <!-- Section 2: Grand Slam Offer Formulation -->\n    <div style=\"background-color: #ecfdf5; border-left: 4px solid #10b981; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;\">\n      <h3 style=\"margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #065f46; letter-spacing: 0.5px;\">\ud83d\udc8e Personalized Grand Slam Offer</h3>\n      <p style=\"margin: 0 0 6px; font-size: 15px; color: #064e3b; font-weight: 700;\">{{ $json['Grand Slam Offer'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #047857;\"><strong>Transformation:</strong> {{ $json['Transformation Statement'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #0f766e;\"><strong>Dream Outcome:</strong> {{ $json['Dream Outcome'] }}</p>\n      <p style=\"margin: 0; font-size: 12px; color: #64748b;\"><strong>AI Diagnosis Confidence:</strong> {{ $json['AI Confidence'] }}</p>\n    </div>\n\n    <!-- Section 3: Suresh Closing Cheat-Sheet -->\n    <div style=\"background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;\">\n      <h3 style=\"margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #b45309; letter-spacing: 0.5px;\">\ud83c\udfaf Suresh Closing Call Script & Strategy</h3>\n      <p style=\"margin: 0 0 8px; font-size: 13px; color: #92400e; white-space: pre-line;\"><strong>Call Hook & Pitch:</strong>\n{{ $json['Suresh Closing Script'] }}</p>\n      <p style=\"margin: 0; font-size: 13px; color: #78350f;\"><strong>Follow-up Strategy:</strong> {{ $json['Follow-up Strategy'] }}</p>\n    </div>\n\n    <!-- Section 4: Contact & Operations -->\n    <table style=\"width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;\">\n      <tr><td style=\"padding: 6px 0; color: #64748b; width: 140px;\">Contact Person:</td><td style=\"padding: 6px 0; color: #0f172a;\"><strong>{{ $json.Name }}</strong> ({{ $json['Authority Level'] }})</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">WhatsApp Phone:</td><td style=\"padding: 6px 0; color: #0f172a;\"><a href=\"https://wa.me/{{ $json.Phone }}\" style=\"color: #2563eb; font-weight: 600;\">+{{ $json.Phone }}</a></td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">Team & Inquiries:</td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $json['Team Size'] }} | {{ $json['Monthly Enquiries'] }}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">Current Tools:</td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $json['Current Tools'] }} (Source: {{ $json['Current Source'] }})</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">Timeline & Budget:</td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $json.Timeline }} | Budget: {{ $json['Budget Status'] }}</td></tr>\n    </table>\n\n    <!-- Action Button -->\n    <div style=\"text-align: center; margin: 24px 0 10px;\">\n      <a href=\"https://wa.me/{{ $json.Phone }}\" style=\"display: inline-block; background-color: #25d366; color: #ffffff; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.25);\">\n        Open Direct WhatsApp Chat to Close &rarr;\n      </a>\n    </div>\n  </div>\n</div>",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cwBPj5LyhtzfYo07",
+          "name": "Gmail account"
+        }
+      },
+      "webhookId": "0394a255-cbb1-4c41-9382-9587f1126ac2"
+    },
+    {
+      "id": "node-switch-lead-score",
+      "name": "5. Route by Lead Priority",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        560,
+        260
+      ],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json['Lead Score'] }}",
+                    "rightValue": "Hot",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json['Lead Score'] }}",
+                    "rightValue": "Warm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-send-hot-acknowledgement",
+      "name": "6. Send Immediate WhatsApp VIP Acknowledgment (Hot)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "position": [
+        840,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"\u0bb5\u0ba3\u0b95\u0bcd\u0b95\u0bae\u0bcd {{ $('2. Format & Sanitize Lead').item.json.Name }}! Suresh Kumar (Founder, SoloDeveloper) has received your requirement for {{ $('2. Format & Sanitize Lead').item.json.Company }}.\\n\\nHe is personally reviewing your {{ $('2. Format & Sanitize Lead').item.json['Grand Slam Offer'] }} and will connect with you shortly for a 10-minute strategy call.\\n\\nIf you have any urgent questions about eliminating '{{ $('2. Format & Sanitize Lead').item.json['Pain Point'] }}', feel free to reply right here!\"\n}"
+      }
+    },
+    {
+      "id": "node-wait-24h",
+      "name": "7. Wait 24 Hours (Day 1 Nurture)",
+      "webhookId": "wait-24h-nurture",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        360
+      ],
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "node-send-day1-value",
+      "name": "8. Send Day 1 Value Hook (WhatsApp)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "position": [
+        1080,
+        360
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. Format & Sanitize Lead').item.json.Name }}! Suresh here from SoloDeveloper.\\n\\nYesterday you mentioned that {{ $('2. Format & Sanitize Lead').item.json.Company }} is facing '{{ $('2. Format & Sanitize Lead').item.json['Pain Point'] }}'.\\n\\nI put together a quick case study on how other {{ $('2. Format & Sanitize Lead').item.json.Industry }} businesses solve this to achieve '{{ $('2. Format & Sanitize Lead').item.json['Dream Outcome'] }}' without extra staff. Would you like to review the 3-minute video breakdown?\"\n}"
+      }
+    },
+    {
+      "id": "node-wait-48h",
+      "name": "9. Wait 48 Hours (Day 3 Followup)",
+      "webhookId": "wait-48h-followup",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        360
+      ],
+      "parameters": {
+        "amount": 48,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "node-send-day3-strategy",
+      "name": "10. Send Day 3 Strategy Breakdown (WhatsApp)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "position": [
+        1560,
+        360
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. Format & Sanitize Lead').item.json.Name }}, hope your week is going great!\\n\\nMost {{ $('2. Format & Sanitize Lead').item.json.Industry }} leaders we consult lose high-ticket clients simply because inquiries take more than 5 minutes to respond to.\\n\\nWith your custom {{ $('2. Format & Sanitize Lead').item.json['Grand Slam Offer'] }}, incoming inquiries are pre-qualified in 60 seconds 24/7. Do you have 10 minutes this week for a live walkthrough?\"\n}"
+      }
+    },
+    {
+      "id": "node-wait-96h",
+      "name": "11. Wait 96 Hours (Day 7 Followup)",
+      "webhookId": "wait-96h-followup",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        360
+      ],
+      "parameters": {
+        "amount": 96,
+        "unit": "hours"
+      }
+    },
+    {
+      "id": "node-send-day7-invite",
+      "name": "12. Send Day 7 Priority Invite (WhatsApp)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "position": [
+        2040,
+        360
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. Format & Sanitize Lead').item.json.Name }}, Suresh here. We are finalizing our implementation dates for this fortnight (we onboard only 2 custom client systems at a time to maintain 100% engineering quality).\\n\\nIf you'd still like to deploy your {{ $('2. Format & Sanitize Lead').item.json['Grand Slam Offer'] }} for {{ $('2. Format & Sanitize Lead').item.json.Company }} before your next busy cycle, let's connect and get your pilot live this week!\\n\\nDirect WhatsApp: https://wa.me/919361599097\"\n}"
+      }
+    }
+  ],
+  "connections": {
+    "1. Webhook (WhatsApp Direct Lead)": {
+      "main": [
+        [
+          {
+            "node": "2. Format & Sanitize Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Format & Sanitize Lead": {
+      "main": [
+        [
+          {
+            "node": "3. Append to Sheet 2 (36 CRM Intelligence Fields)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "4. Send Mini Sales Intelligence Report (Gmail)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "5. Route by Lead Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Route by Lead Priority": {
+      "main": [
+        [
+          {
+            "node": "6. Send Immediate WhatsApp VIP Acknowledgment (Hot)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7. Wait 24 Hours (Day 1 Nurture)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Wait 24 Hours (Day 1 Nurture)": {
+      "main": [
+        [
+          {
+            "node": "8. Send Day 1 Value Hook (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8. Send Day 1 Value Hook (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "9. Wait 48 Hours (Day 3 Followup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9. Wait 48 Hours (Day 3 Followup)": {
+      "main": [
+        [
+          {
+            "node": "10. Send Day 3 Strategy Breakdown (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10. Send Day 3 Strategy Breakdown (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "11. Wait 96 Hours (Day 7 Followup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11. Wait 96 Hours (Day 7 Followup)": {
+      "main": [
+        [
+          {
+            "node": "12. Send Day 7 Priority Invite (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodeGroups": [],
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "meta": null,
+  "tags": [],
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "A4dpOmJiZC7jwjaE",
+      "projectId": "MeSj0Py0w9dF2YKh",
+      "project": {
+        "id": "MeSj0Py0w9dF2YKh",
+        "name": "Suresh sureshkumar20133151@gmail.com <sureshkumar20133151@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-14T19:07:43.229Z",
+        "updatedAt": "2026-10-14T19:15:03.532Z"
+      },
+      "createdAt": "2026-10-18T17:13:59.965Z",
+      "updatedAt": "2026-10-18T17:13:59.965Z"
+    }
+  ],
+  "activeVersion": {
+    "versionId": "24ef9bb7-d77b-4f97-8d1a-b392582f97e5",
+    "workflowId": "A4dpOmJiZC7jwjaE",
+    "nodes": [
+      {
+        "id": "node-webhook-direct-lead",
+        "name": "1. Webhook (WhatsApp Direct Lead)",
+        "webhookId": "whatsapp-direct-lead",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "whatsapp-direct-lead",
+          "options": {}
+        }
+      },
+      {
+        "id": "node-format-whatsapp-lead",
+        "name": "2. Format & Sanitize Lead",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          260,
+          0
+        ],
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "Date",
+                "value": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+                "type": "string"
+              },
+              {
+                "name": "Name",
+                "value": "={{ $json.body?.name || 'WhatsApp Lead' }}",
+                "type": "string"
+              },
+              {
+                "name": "Phone",
+                "value": "={{ ($json.body?.phone || '').toString().replace(/[^0-9]/g, '') }}",
+                "type": "string"
+              },
+              {
+                "name": "Company",
+                "value": "={{ $json.body?.company || 'Business' }}",
+                "type": "string"
+              },
+              {
+                "name": "Industry",
+                "value": "={{ $json.body?.industry || 'General' }}",
+                "type": "string"
+              },
+              {
+                "name": "Location",
+                "value": "={{ $json.body?.location || 'Not Specified' }}",
+                "type": "string"
+              },
+              {
+                "name": "Team Size",
+                "value": "={{ $json.body?.teamSize || 'Not Specified' }}",
+                "type": "string"
+              },
+              {
+                "name": "Revenue Range",
+                "value": "={{ $json.body?.revenueRange || 'Not Disclosed' }}",
+                "type": "string"
+              },
+              {
+                "name": "Authority Level",
+                "value": "={{ $json.body?.authorityLevel || 'Decision Maker' }}",
+                "type": "string"
+              },
+              {
+                "name": "Monthly Enquiries",
+                "value": "={{ $json.body?.monthlyEnquiries || 'Not Specified' }}",
+                "type": "string"
+              },
+              {
+                "name": "Current Source",
+                "value": "={{ $json.body?.currentSource || 'Not Specified' }}",
+                "type": "string"
+              },
+              {
+                "name": "Current Process",
+                "value": "={{ $json.body?.currentProcess || 'Not Documented' }}",
+                "type": "string"
+              },
+              {
+                "name": "Buying Trigger",
+                "value": "={{ $json.body?.buyingTrigger || 'Exploring Growth' }}",
+                "type": "string"
+              },
+              {
+                "name": "Problem Category",
+                "value": "={{ $json.body?.problemCategory || 'Lead Generation' }}",
+                "type": "string"
+              },
+              {
+                "name": "Pain Point",
+                "value": "={{ $json.body?.painPoint || 'Seeking business growth' }}",
+                "type": "string"
+              },
+              {
+                "name": "Pain Severity",
+                "value": "={{ $json.body?.painSeverity || 'High' }}",
+                "type": "string"
+              },
+              {
+                "name": "Dream Outcome",
+                "value": "={{ $json.body?.dreamOutcome || 'Scale inquiries and revenue' }}",
+                "type": "string"
+              },
+              {
+                "name": "Lost Opportunity",
+                "value": "={{ $json.body?.lostOpportunity || 'Significant' }}",
+                "type": "string"
+              },
+              {
+                "name": "Current Tools",
+                "value": "={{ $json.body?.currentTools || 'Excel / WhatsApp' }}",
+                "type": "string"
+              },
+              {
+                "name": "Transformation Statement",
+                "value": "={{ $json.body?.transformationStatement || ('Automate and scale ' + ($json.body?.company || 'business')) }}",
+                "type": "string"
+              },
+              {
+                "name": "Grand Slam Offer",
+                "value": "={{ $json.body?.grandSlamOffer || 'Custom Autonomous AI Business Agent System' }}",
+                "type": "string"
+              },
+              {
+                "name": "AI Confidence",
+                "value": "={{ $json.body?.aiConfidence || '90% High Fit' }}",
+                "type": "string"
+              },
+              {
+                "name": "Urgency",
+                "value": "={{ $json.body?.urgency || 'High' }}",
+                "type": "string"
+              },
+              {
+                "name": "Timeline",
+                "value": "={{ $json.body?.timeline || 'Immediate' }}",
+                "type": "string"
+              },
+              {
+                "name": "Budget Status",
+                "value": "={{ $json.body?.budgetStatus || 'Allocated' }}",
+                "type": "string"
+              },
+              {
+                "name": "Lead Score",
+                "value": "={{ $json.body?.leadScore || 'Hot' }}",
+                "type": "string"
+              },
+              {
+                "name": "Suresh Closing Script",
+                "value": "={{ $json.body?.sureshClosingScript || 'Introduce AI transformation and book discovery demo.' }}",
+                "type": "string"
+              },
+              {
+                "name": "Follow-up Strategy",
+                "value": "={{ $json.body?.followupStrategy || 'Direct WhatsApp personalized message.' }}",
+                "type": "string"
+              },
+              {
+                "name": "Pipeline Stage",
+                "value": "={{ $json.body?.pipelineStage || ($json.body?.leadScore === 'Hot' ? '2. QUALIFIED' : '1. NEW LEAD') }}",
+                "type": "string"
+              },
+              {
+                "name": "Conversation Intent",
+                "value": "={{ $json.body?.conversationIntent || ($json.body?.urgency === 'Critical' ? 'Ready To Buy' : 'Urgent Problem') }}",
+                "type": "string"
+              },
+              {
+                "name": "Estimated Deal Value",
+                "value": "={{ $json.body?.estimatedDealValue || '\u20b929,999' }}",
+                "type": "string"
+              },
+              {
+                "name": "Win Probability",
+                "value": "={{ $json.body?.winProbability || ($json.body?.leadScore === 'Hot' ? '80%' : '50%') }}",
+                "type": "string"
+              },
+              {
+                "name": "Revenue Forecast",
+                "value": "={{ $json.body?.revenueForecast || '\u20b924,000' }}",
+                "type": "string"
+              },
+              {
+                "name": "Next Followup Date",
+                "value": "={{ $now.plus({ days: ($json.body?.leadScore === 'Hot' ? 1 : 3) }).format('yyyy-MM-dd') }}",
+                "type": "string"
+              },
+              {
+                "name": "Loss Reason",
+                "value": "={{ $json.body?.lossReason || '-' }}",
+                "type": "string"
+              },
+              {
+                "name": "Last Contacted Date",
+                "value": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "node-append-to-sheet",
+        "name": "3. Append to Sheet 2 (36 CRM Intelligence Fields)",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "continueOnFail": true,
+        "position": [
+          560,
+          -140
+        ],
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Sheet2",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Date": "={{ $json.Date }}",
+              "Name": "={{ $json.Name }}",
+              "Phone": "={{ $json.Phone }}",
+              "Company": "={{ $json.Company }}",
+              "Industry": "={{ $json.Industry }}",
+              "Location": "={{ $json.Location }}",
+              "Team Size": "={{ $json['Team Size'] }}",
+              "Revenue Range": "={{ $json['Revenue Range'] }}",
+              "Authority Level": "={{ $json['Authority Level'] }}",
+              "Monthly Enquiries": "={{ $json['Monthly Enquiries'] }}",
+              "Current Source": "={{ $json['Current Source'] }}",
+              "Current Process": "={{ $json['Current Process'] }}",
+              "Buying Trigger": "={{ $json['Buying Trigger'] }}",
+              "Problem Category": "={{ $json['Problem Category'] }}",
+              "Pain Point": "={{ $json['Pain Point'] }}",
+              "Pain Severity": "={{ $json['Pain Severity'] }}",
+              "Dream Outcome": "={{ $json['Dream Outcome'] }}",
+              "Lost Opportunity": "={{ $json['Lost Opportunity'] }}",
+              "Current Tools": "={{ $json['Current Tools'] }}",
+              "Transformation Statement": "={{ $json['Transformation Statement'] }}",
+              "Grand Slam Offer": "={{ $json['Grand Slam Offer'] }}",
+              "AI Confidence": "={{ $json['AI Confidence'] }}",
+              "Urgency": "={{ $json.Urgency }}",
+              "Timeline": "={{ $json.Timeline }}",
+              "Budget Status": "={{ $json['Budget Status'] }}",
+              "Lead Score": "={{ $json['Lead Score'] }}",
+              "Suresh Closing Script": "={{ $json['Suresh Closing Script'] }}",
+              "Follow-up Strategy": "={{ $json['Follow-up Strategy'] }}",
+              "Pipeline Stage": "={{ $json['Pipeline Stage'] }}",
+              "Conversation Intent": "={{ $json['Conversation Intent'] }}",
+              "Estimated Deal Value": "={{ $json['Estimated Deal Value'] }}",
+              "Win Probability": "={{ $json['Win Probability'] }}",
+              "Revenue Forecast": "={{ $json['Revenue Forecast'] }}",
+              "Next Followup Date": "={{ $json['Next Followup Date'] }}",
+              "Loss Reason": "={{ $json['Loss Reason'] }}",
+              "Last Contacted Date": "={{ $json['Last Contacted Date'] }}"
+            },
+            "schema": [
+              {
+                "id": "Date",
+                "displayName": "Date",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Name",
+                "displayName": "Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Phone",
+                "displayName": "Phone",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Company",
+                "displayName": "Company",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Industry",
+                "displayName": "Industry",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Location",
+                "displayName": "Location",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Team Size",
+                "displayName": "Team Size",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Revenue Range",
+                "displayName": "Revenue Range",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Authority Level",
+                "displayName": "Authority Level",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Monthly Enquiries",
+                "displayName": "Monthly Enquiries",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Current Source",
+                "displayName": "Current Source",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Current Process",
+                "displayName": "Current Process",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Buying Trigger",
+                "displayName": "Buying Trigger",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Problem Category",
+                "displayName": "Problem Category",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Pain Point",
+                "displayName": "Pain Point",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Pain Severity",
+                "displayName": "Pain Severity",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Dream Outcome",
+                "displayName": "Dream Outcome",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Lost Opportunity",
+                "displayName": "Lost Opportunity",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Current Tools",
+                "displayName": "Current Tools",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Transformation Statement",
+                "displayName": "Transformation Statement",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Grand Slam Offer",
+                "displayName": "Grand Slam Offer",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "AI Confidence",
+                "displayName": "AI Confidence",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Urgency",
+                "displayName": "Urgency",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Timeline",
+                "displayName": "Timeline",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Budget Status",
+                "displayName": "Budget Status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Lead Score",
+                "displayName": "Lead Score",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Suresh Closing Script",
+                "displayName": "Suresh Closing Script",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Follow-up Strategy",
+                "displayName": "Follow-up Strategy",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Pipeline Stage",
+                "displayName": "Pipeline Stage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Conversation Intent",
+                "displayName": "Conversation Intent",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Estimated Deal Value",
+                "displayName": "Estimated Deal Value",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Win Probability",
+                "displayName": "Win Probability",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Revenue Forecast",
+                "displayName": "Revenue Forecast",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Next Followup Date",
+                "displayName": "Next Followup Date",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Loss Reason",
+                "displayName": "Loss Reason",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Last Contacted Date",
+                "displayName": "Last Contacted Date",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "RMmY56nFkrWF4wQC",
+            "name": "Google Sheets account"
+          }
+        }
+      },
+      {
+        "id": "node-email-admin-alert",
+        "name": "4. Send Mini Sales Intelligence Report (Gmail)",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "continueOnFail": true,
+        "position": [
+          560,
+          60
+        ],
+        "parameters": {
+          "sendTo": "sureshkumar20133151@gmail.com",
+          "subject": "={{ '\ud83d\udd25 [' + $json['Pipeline Stage'] + '] ' + $json.Company + ' (' + $json['Estimated Deal Value'] + ') - ' + $json.Name }}",
+          "emailType": "html",
+          "message": "=<div style=\"max-width: 680px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;\">\n  <!-- Header Banner -->\n  <div style=\"background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); padding: 28px 24px; text-align: center; color: #ffffff;\">\n    <span style=\"background: rgba(255,255,255,0.18); font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 12px; border-radius: 20px; font-weight: 700;\">AI CRM Pipeline Intelligence Dossier</span>\n    <h1 style=\"margin: 12px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;\">\ud83c\udfaf {{ $json.Company }}</h1>\n    <p style=\"margin: 6px 0 0; font-size: 14px; color: #c7d2fe;\">{{ $json.Industry }} &bull; {{ $json.Location }}</p>\n  </div>\n\n  <div style=\"padding: 24px; color: #334155; line-height: 1.6;\">\n    <!-- CRM Deal Metrics Box -->\n    <div style=\"background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;\">\n      <div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;\">\n        <span style=\"background: #1d4ed8; color: #ffffff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;\">STAGE: {{ $json['Pipeline Stage'] }}</span>\n        <span style=\"background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px;\">Intent: {{ $json['Conversation Intent'] }}</span>\n        <span style=\"background: #fef08a; color: #854d0e; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;\">Next Followup: {{ $json['Next Followup Date'] }}</span>\n      </div>\n      <p style=\"margin: 4px 0 0; font-size: 14px; color: #1e3a8a;\"><strong>Deal Value:</strong> {{ $json['Estimated Deal Value'] }} &bull; <strong>Win Probability:</strong> {{ $json['Win Probability'] }} &bull; <strong>Weighted Forecast:</strong> <span style=\"color: #15803d; font-weight: 700;\">{{ $json['Revenue Forecast'] }}</span></p>\n    </div>\n\n    <!-- Quick Stats Pill Bar -->\n    <div style=\"display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap;\">\n      <span style=\"background: #dcfce7; color: #166534; padding: 5px 12px; border-radius: 6px; font-weight: 700; font-size: 13px;\">Score: {{ $json['Lead Score'] }}</span>\n      <span style=\"background: #fee2e2; color: #991b1b; padding: 5px 12px; border-radius: 6px; font-weight: 700; font-size: 13px;\">Urgency: {{ $json.Urgency }}</span>\n      <span style=\"background: #e0e7ff; color: #3730a3; padding: 5px 12px; border-radius: 6px; font-weight: 600; font-size: 13px;\">Role: {{ $json['Authority Level'] }}</span>\n      <span style=\"background: #f1f5f9; color: #475569; padding: 5px 12px; border-radius: 6px; font-size: 13px;\">Rev: {{ $json['Revenue Range'] }}</span>\n    </div>\n\n    <!-- Section 1: Business Diagnosis -->\n    <div style=\"background-color: #f8fafc; border-left: 4px solid #6366f1; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;\">\n      <h3 style=\"margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #4338ca; letter-spacing: 0.5px;\">\ud83e\ude7a Business Diagnosis</h3>\n      <p style=\"margin: 0 0 6px; font-size: 14px; color: #0f172a;\"><strong>Category:</strong> {{ $json['Problem Category'] }} (Severity: {{ $json['Pain Severity'] }})</p>\n      <p style=\"margin: 0 0 6px; font-size: 14px; color: #0f172a;\"><strong>Core Bottleneck:</strong> {{ $json['Pain Point'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #475569;\"><strong>Existing Process:</strong> {{ $json['Current Process'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #b45309;\"><strong>Buying Trigger:</strong> {{ $json['Buying Trigger'] }}</p>\n      <p style=\"margin: 0; font-size: 13px; color: #dc2626; font-weight: 600;\"><strong>Lost Opportunity Cost:</strong> {{ $json['Lost Opportunity'] }}</p>\n    </div>\n\n    <!-- Section 2: Grand Slam Offer Formulation -->\n    <div style=\"background-color: #ecfdf5; border-left: 4px solid #10b981; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;\">\n      <h3 style=\"margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #065f46; letter-spacing: 0.5px;\">\ud83d\udc8e Personalized Grand Slam Offer</h3>\n      <p style=\"margin: 0 0 6px; font-size: 15px; color: #064e3b; font-weight: 700;\">{{ $json['Grand Slam Offer'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #047857;\"><strong>Transformation:</strong> {{ $json['Transformation Statement'] }}</p>\n      <p style=\"margin: 0 0 6px; font-size: 13px; color: #0f766e;\"><strong>Dream Outcome:</strong> {{ $json['Dream Outcome'] }}</p>\n      <p style=\"margin: 0; font-size: 12px; color: #64748b;\"><strong>AI Diagnosis Confidence:</strong> {{ $json['AI Confidence'] }}</p>\n    </div>\n\n    <!-- Section 3: Suresh Closing Cheat-Sheet -->\n    <div style=\"background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;\">\n      <h3 style=\"margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #b45309; letter-spacing: 0.5px;\">\ud83c\udfaf Suresh Closing Call Script & Strategy</h3>\n      <p style=\"margin: 0 0 8px; font-size: 13px; color: #92400e; white-space: pre-line;\"><strong>Call Hook & Pitch:</strong>\n{{ $json['Suresh Closing Script'] }}</p>\n      <p style=\"margin: 0; font-size: 13px; color: #78350f;\"><strong>Follow-up Strategy:</strong> {{ $json['Follow-up Strategy'] }}</p>\n    </div>\n\n    <!-- Section 4: Contact & Operations -->\n    <table style=\"width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;\">\n      <tr><td style=\"padding: 6px 0; color: #64748b; width: 140px;\">Contact Person:</td><td style=\"padding: 6px 0; color: #0f172a;\"><strong>{{ $json.Name }}</strong> ({{ $json['Authority Level'] }})</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">WhatsApp Phone:</td><td style=\"padding: 6px 0; color: #0f172a;\"><a href=\"https://wa.me/{{ $json.Phone }}\" style=\"color: #2563eb; font-weight: 600;\">+{{ $json.Phone }}</a></td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">Team & Inquiries:</td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $json['Team Size'] }} | {{ $json['Monthly Enquiries'] }}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">Current Tools:</td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $json['Current Tools'] }} (Source: {{ $json['Current Source'] }})</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\">Timeline & Budget:</td><td style=\"padding: 6px 0; color: #0f172a;\">{{ $json.Timeline }} | Budget: {{ $json['Budget Status'] }}</td></tr>\n    </table>\n\n    <!-- Action Button -->\n    <div style=\"text-align: center; margin: 24px 0 10px;\">\n      <a href=\"https://wa.me/{{ $json.Phone }}\" style=\"display: inline-block; background-color: #25d366; color: #ffffff; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.25);\">\n        Open Direct WhatsApp Chat to Close &rarr;\n      </a>\n    </div>\n  </div>\n</div>",
+          "options": {}
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "cwBPj5LyhtzfYo07",
+            "name": "Gmail account"
+          }
+        },
+        "webhookId": "0394a255-cbb1-4c41-9382-9587f1126ac2"
+      },
+      {
+        "id": "node-switch-lead-score",
+        "name": "5. Route by Lead Priority",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          560,
+          260
+        ],
+        "parameters": {
+          "mode": "rules",
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json['Lead Score'] }}",
+                      "rightValue": "Hot",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json['Lead Score'] }}",
+                      "rightValue": "Warm",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "node-send-hot-acknowledgement",
+        "name": "6. Send Immediate WhatsApp VIP Acknowledgment (Hot)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "position": [
+          840,
+          180
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"\u0bb5\u0ba3\u0b95\u0bcd\u0b95\u0bae\u0bcd {{ $('2. Format & Sanitize Lead').item.json.Name }}! Suresh Kumar (Founder, SoloDeveloper) has received your requirement for {{ $('2. Format & Sanitize Lead').item.json.Company }}.\\n\\nHe is personally reviewing your {{ $('2. Format & Sanitize Lead').item.json['Grand Slam Offer'] }} and will connect with you shortly for a 10-minute strategy call.\\n\\nIf you have any urgent questions about eliminating '{{ $('2. Format & Sanitize Lead').item.json['Pain Point'] }}', feel free to reply right here!\"\n}"
+        }
+      },
+      {
+        "id": "node-wait-24h",
+        "name": "7. Wait 24 Hours (Day 1 Nurture)",
+        "webhookId": "wait-24h-nurture",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          840,
+          360
+        ],
+        "parameters": {
+          "amount": 24,
+          "unit": "hours"
+        }
+      },
+      {
+        "id": "node-send-day1-value",
+        "name": "8. Send Day 1 Value Hook (WhatsApp)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "position": [
+          1080,
+          360
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. Format & Sanitize Lead').item.json.Name }}! Suresh here from SoloDeveloper.\\n\\nYesterday you mentioned that {{ $('2. Format & Sanitize Lead').item.json.Company }} is facing '{{ $('2. Format & Sanitize Lead').item.json['Pain Point'] }}'.\\n\\nI put together a quick case study on how other {{ $('2. Format & Sanitize Lead').item.json.Industry }} businesses solve this to achieve '{{ $('2. Format & Sanitize Lead').item.json['Dream Outcome'] }}' without extra staff. Would you like to review the 3-minute video breakdown?\"\n}"
+        }
+      },
+      {
+        "id": "node-wait-48h",
+        "name": "9. Wait 48 Hours (Day 3 Followup)",
+        "webhookId": "wait-48h-followup",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          1320,
+          360
+        ],
+        "parameters": {
+          "amount": 48,
+          "unit": "hours"
+        }
+      },
+      {
+        "id": "node-send-day3-strategy",
+        "name": "10. Send Day 3 Strategy Breakdown (WhatsApp)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "position": [
+          1560,
+          360
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. Format & Sanitize Lead').item.json.Name }}, hope your week is going great!\\n\\nMost {{ $('2. Format & Sanitize Lead').item.json.Industry }} leaders we consult lose high-ticket clients simply because inquiries take more than 5 minutes to respond to.\\n\\nWith your custom {{ $('2. Format & Sanitize Lead').item.json['Grand Slam Offer'] }}, incoming inquiries are pre-qualified in 60 seconds 24/7. Do you have 10 minutes this week for a live walkthrough?\"\n}"
+        }
+      },
+      {
+        "id": "node-wait-96h",
+        "name": "11. Wait 96 Hours (Day 7 Followup)",
+        "webhookId": "wait-96h-followup",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          1800,
+          360
+        ],
+        "parameters": {
+          "amount": 96,
+          "unit": "hours"
+        }
+      },
+      {
+        "id": "node-send-day7-invite",
+        "name": "12. Send Day 7 Priority Invite (WhatsApp)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "position": [
+          2040,
+          360
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"phone\": \"{{ $('2. Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. Format & Sanitize Lead').item.json.Name }}, Suresh here. We are finalizing our implementation dates for this fortnight (we onboard only 2 custom client systems at a time to maintain 100% engineering quality).\\n\\nIf you'd still like to deploy your {{ $('2. Format & Sanitize Lead').item.json['Grand Slam Offer'] }} for {{ $('2. Format & Sanitize Lead').item.json.Company }} before your next busy cycle, let's connect and get your pilot live this week!\\n\\nDirect WhatsApp: https://wa.me/919361599097\"\n}"
+        }
+      }
+    ],
+    "connections": {
+      "1. Webhook (WhatsApp Direct Lead)": {
+        "main": [
+          [
+            {
+              "node": "2. Format & Sanitize Lead",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Format & Sanitize Lead": {
+        "main": [
+          [
+            {
+              "node": "3. Append to Sheet 2 (36 CRM Intelligence Fields)",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "4. Send Mini Sales Intelligence Report (Gmail)",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "5. Route by Lead Priority",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Route by Lead Priority": {
+        "main": [
+          [
+            {
+              "node": "6. Send Immediate WhatsApp VIP Acknowledgment (Hot)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "7. Wait 24 Hours (Day 1 Nurture)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Wait 24 Hours (Day 1 Nurture)": {
+        "main": [
+          [
+            {
+              "node": "8. Send Day 1 Value Hook (WhatsApp)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. Send Day 1 Value Hook (WhatsApp)": {
+        "main": [
+          [
+            {
+              "node": "9. Wait 48 Hours (Day 3 Followup)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. Wait 48 Hours (Day 3 Followup)": {
+        "main": [
+          [
+            {
+              "node": "10. Send Day 3 Strategy Breakdown (WhatsApp)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. Send Day 3 Strategy Breakdown (WhatsApp)": {
+        "main": [
+          [
+            {
+              "node": "11. Wait 96 Hours (Day 7 Followup)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11. Wait 96 Hours (Day 7 Followup)": {
+        "main": [
+          [
+            {
+              "node": "12. Send Day 7 Priority Invite (WhatsApp)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "Suresh sureshkumar20133151@gmail.com",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "createdAt": "2026-10-18T18:47:16.443Z",
+    "updatedAt": "2026-10-18T18:47:16.443Z",
+    "workflowPublishHistory": [
+      {
+        "id": 38,
+        "workflowId": "A4dpOmJiZC7jwjaE",
+        "versionId": "24ef9bb7-d77b-4f97-8d1a-b392582f97e5",
+        "event": "activated",
+        "userId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-18T18:47:18.045Z"
+      },
+      {
+        "id": 39,
+        "workflowId": "A4dpOmJiZC7jwjaE",
+        "versionId": "24ef9bb7-d77b-4f97-8d1a-b392582f97e5",
+        "event": "deactivated",
+        "userId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-18T18:47:21.745Z"
+      },
+      {
+        "id": 40,
+        "workflowId": "A4dpOmJiZC7jwjaE",
+        "versionId": "24ef9bb7-d77b-4f97-8d1a-b392582f97e5",
+        "event": "activated",
+        "userId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-18T18:47:21.745Z"
+      }
+    ]
+  }
+}

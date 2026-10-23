@@ -6,3 +6,6 @@ cred_data.json
 .env
 *.env
 .env*
+.baileys_auth/
+**/cred_data.json
+

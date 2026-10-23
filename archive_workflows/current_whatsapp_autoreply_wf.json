@@ -1,0 +1,143 @@
+{
+  "id": "iTGdiQ9ONRwDZxDv",
+  "name": "WhatsApp Auto-Reply (Open-WA API)",
+  "description": null,
+  "active": false,
+  "activeVersionId": null,
+  "createdAt": "2026-10-15T02:43:49.827Z",
+  "updatedAt": "2026-10-15T02:43:49.827Z",
+  "isArchived": false,
+  "versionId": "77d7149e-f479-47e7-ad43-7e018ff5682f",
+  "versionCounter": 1,
+  "sourceWorkflowId": null,
+  "triggerCount": 0,
+  "nodes": [
+    {
+      "id": "node-webhook-inbound",
+      "name": "WhatsApp Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-inbound",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "b83f10e5-52d4-4a96-9f63-289d1740f2ca"
+    },
+    {
+      "id": "node-construct-reply",
+      "name": "Construct Auto Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "phone",
+              "value": "={{ $json.body.from }}",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "senderName",
+              "value": "={{ $json.body.senderName }}",
+              "type": "string"
+            },
+            {
+              "id": "f3",
+              "name": "userMessage",
+              "value": "={{ $json.body.body }}",
+              "type": "string"
+            },
+            {
+              "id": "f4",
+              "name": "replyMessage",
+              "value": "={{ \"Hi \" + ($json.body.senderName || \"there\") + \"! Thank you for messaging us. We received your message: \\\"\" + ($json.body.body || \"\") + \"\\\". We will get back to you shortly!\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-send-reply",
+      "name": "Send WhatsApp Reply (Open-WA)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"={{ $json.phone }}\",\n  \"message\": \"={{ $json.replyMessage }}\"\n}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Inbound Webhook": {
+      "main": [
+        [
+          {
+            "node": "Construct Auto Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construct Auto Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply (Open-WA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodeGroups": [],
+  "settings": {},
+  "staticData": null,
+  "pinData": null,
+  "meta": null,
+  "tags": [],
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "iTGdiQ9ONRwDZxDv",
+      "projectId": "MeSj0Py0w9dF2YKh",
+      "project": {
+        "id": "MeSj0Py0w9dF2YKh",
+        "name": "Suresh sureshkumar20133151@gmail.com <sureshkumar20133151@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-14T19:07:43.229Z",
+        "updatedAt": "2026-10-14T19:15:03.532Z"
+      },
+      "createdAt": "2026-10-15T02:43:49.827Z",
+      "updatedAt": "2026-10-15T02:43:49.827Z"
+    }
+  ],
+  "activeVersion": null
+}
