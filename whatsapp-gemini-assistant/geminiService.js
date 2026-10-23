@@ -264,7 +264,7 @@ class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '12', 10);
+    this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '5', 10);
     this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
     // In-memory cache of conversation turns
@@ -329,8 +329,11 @@ class GeminiService {
         ...profileData,
         updatedAt: new Date().toISOString()
       };
-      fs.writeFileSync(PROFILES_FILE, JSON.stringify(this.profiles, null, 2), 'utf-8');
-      console.log(`💾 [Profile Saved] Updated persistent memory for ${cleanId}`);
+      // Non-blocking async file write
+      fs.promises.writeFile(PROFILES_FILE, JSON.stringify(this.profiles, null, 2), 'utf-8').catch(err => {
+        console.warn('[Profile Memory Async Save Error]:', err.message);
+      });
+      console.log(`💾 [Profile Saved] Updated memory for ${cleanId}`);
     } catch (e) {
       console.warn('[Profile Memory Save Error]:', e.message);
     }
@@ -402,7 +405,10 @@ class GeminiService {
             })
           };
         });
-        fs.writeFileSync(filePath, JSON.stringify(cleanedHistory, null, 2), 'utf-8');
+        // Non-blocking async file write
+        fs.promises.writeFile(filePath, JSON.stringify(cleanedHistory, null, 2), 'utf-8').catch(err => {
+          console.warn(`[History Async Save Error] for ${key}:`, err.message);
+        });
       }
     } catch (e) {
       console.warn(`[History Save Error] for ${chatId}:`, e.message);
@@ -432,7 +438,8 @@ class GeminiService {
   }
 
   cleanFailedTurn(chatId) {
-    const history = this.historyStore.get(chatId);
+    const key = chatId.includes('__') ? chatId : this.getScopedChatId(chatId);
+    const history = this.historyStore.get(key);
     if (!history || history.length === 0) return;
     // Pop incomplete user or model turn
     const last = history[history.length - 1];
@@ -777,13 +784,11 @@ class GeminiService {
         }
       }
 
-      // Lightning-fast models first to prevent 503 high demand stalls on 3.1-flash-lite
+      // Ultra-fast responsive models with thinkingBudget: 0 (sub-second TTFT)
       const modelsToTry = [
         'gemini-2.5-flash',
-        'gemini-flash-latest',
-        'gemini-3.1-flash-lite',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash'
+        'gemini-3.5-flash',
+        'gemini-3-flash-preview'
       ].filter((m, i, arr) => arr.indexOf(m) === i);
 
       let response = null;
@@ -794,16 +799,24 @@ class GeminiService {
       for (const m of modelsToTry) {
         try {
           const contentsToSend = this.sanitizeHistory(history);
-          response = await this.ai.models.generateContent({
+          const genPromise = this.ai.models.generateContent({
             model: m,
             contents: contentsToSend,
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.2,
-              maxOutputTokens: 400,
+              maxOutputTokens: 350,
+              thinkingConfig: { thinkingBudget: 0 },
               tools: activeTools
             }
           });
+
+          // 4.5s circuit breaker prevents hanging calls
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout after 4500ms on model ${m}`)), 4500)
+          );
+
+          response = await Promise.race([genPromise, timeoutPromise]);
           if (response) {
             chosenModel = m;
             break;
@@ -811,7 +824,7 @@ class GeminiService {
         } catch (err) {
           lastErr = err;
           const errMsg = err.message || String(err);
-          console.warn(`[Gemini Try Model ${m}] Failed: ${errMsg.slice(0, 100)}`);
+          console.warn(`[Gemini Try Model ${m}] Failed/Timed Out: ${errMsg.slice(0, 100)}`);
 
           if (
             errMsg.includes('429') ||
@@ -820,7 +833,8 @@ class GeminiService {
             errMsg.includes('503') ||
             errMsg.includes('UNAVAILABLE') ||
             errMsg.includes('high demand') ||
-            errMsg.includes('overloaded')
+            errMsg.includes('overloaded') ||
+            errMsg.includes('Timeout')
           ) {
             continue;
           }
@@ -835,7 +849,9 @@ class GeminiService {
                 contents: fallbackContents,
                 config: {
                   systemInstruction: systemInstruction,
-                  temperature: 0.3
+                  temperature: 0.2,
+                  maxOutputTokens: 350,
+                  thinkingConfig: { thinkingBudget: 0 }
                 }
               });
               if (fallbackRes && fallbackRes.text) {
@@ -905,17 +921,21 @@ class GeminiService {
 
         // Generate follow-up conversational text response or next tool call
         try {
-          const followup = await this.ai.models.generateContent({
+          const followupPromise = this.ai.models.generateContent({
             model: chosenModel,
             contents: this.sanitizeHistory(history),
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.2,
-              maxOutputTokens: 400,
+              maxOutputTokens: 350,
+              thinkingConfig: { thinkingBudget: 0 },
               tools: activeTools
             }
           });
-          response = followup;
+          const followTimeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Follow-up call timed out after 4500ms')), 4500)
+          );
+          response = await Promise.race([followupPromise, followTimeout]);
         } catch (followupErr) {
           console.warn(`[Tool Follow-up Error on ${chosenModel}]:`, followupErr.message);
           // If follow-up fails, break tool loop to avoid crashing
