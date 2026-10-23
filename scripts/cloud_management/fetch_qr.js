@@ -8,10 +8,12 @@ https.get('https://whatsapp-assistant-iqpi.onrender.com', res => {
     const match = data.match(/data:image\/png;base64,([^"']+)/);
     if (match) {
       const buffer = Buffer.from(match[1], 'base64');
-      fs.writeFileSync('C:/Users/Suresh/.gemini/antigravity/brain/0e00006f-fbbd-4b6d-a382-d5a47c501844/whatsapp_qr.png', buffer);
+      fs.writeFileSync('C:/Users/Suresh/.gemini/antigravity/brain/54dd42da-c9cb-436a-ad78-14176b640168/whatsapp_qr.png', buffer);
       console.log('SUCCESS_QR_SAVED');
+    } else if (data.includes('ONLINE')) {
+      console.log('ALREADY_ONLINE_LOGGED_IN');
     } else {
-      console.log('NO_QR_IN_HTML');
+      console.log('STATUS:', data.substring(0, 300));
     }
   });
 }).on('error', err => console.error(err.message));

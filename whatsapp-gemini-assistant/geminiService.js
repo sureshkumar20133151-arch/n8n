@@ -275,7 +275,7 @@ function isModelQuotaExhausted(modelName) {
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '5', 10);
     this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
@@ -796,10 +796,12 @@ class GeminiService {
         }
       }
 
-      // Active models in order of verified quota availability and speed
+      // Active models in order of verified quota availability and speed (<1.5s)
       const modelsToTry = [
-        'gemini-3-flash-preview',
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
         'gemini-3.1-flash-lite',
+        'gemini-3-flash-preview',
         'gemini-3.5-flash'
       ].filter((m, i, arr) => arr.indexOf(m) === i);
 
@@ -816,16 +818,22 @@ class GeminiService {
 
         try {
           const contentsToSend = this.sanitizeHistory(history);
+          const requestConfig = {
+            systemInstruction: systemInstruction,
+            temperature: 0.2,
+            maxOutputTokens: 1000,
+            tools: activeTools
+          };
+
+          // Only models supporting thinking config can receive thinkingBudget
+          if (!m.includes('lite')) {
+            requestConfig.thinkingConfig = { thinkingBudget: 0 };
+          }
+
           const genPromise = this.ai.models.generateContent({
             model: m,
             contents: contentsToSend,
-            config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.2,
-              maxOutputTokens: 1000,
-              thinkingConfig: { thinkingBudget: 0 },
-              tools: activeTools
-            }
+            config: requestConfig
           });
 
           // 12s safety timeout to allow complete LLM response without premature cut-off
@@ -863,31 +871,36 @@ class GeminiService {
             continue;
           }
 
-          // If tool calling / thought signature error, try emergency fallback without tools
+          // If tool calling / thought signature error, try conversational fallback without tools on the same model
           if (errMsg.includes('thought_signature') || errMsg.includes('functionCall') || errMsg.includes('INVALID_ARGUMENT')) {
             console.warn(`[Gemini Tool Error] Attempting conversational fallback without tools for ${m}...`);
             try {
               const fallbackContents = this.sanitizeHistory(history, true);
+              const fallbackConfig = {
+                systemInstruction: systemInstruction,
+                temperature: 0.2,
+                maxOutputTokens: 800
+              };
+              if (!m.includes('lite')) {
+                fallbackConfig.thinkingConfig = { thinkingBudget: 0 };
+              }
+
               const fallbackRes = await this.ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: m,
                 contents: fallbackContents,
-                config: {
-                  systemInstruction: systemInstruction,
-                  temperature: 0.2,
-                  maxOutputTokens: 350,
-                  thinkingConfig: { thinkingBudget: 0 }
-                }
+                config: fallbackConfig
               });
               if (fallbackRes && fallbackRes.text) {
                 response = fallbackRes;
-                chosenModel = 'gemini-2.5-flash';
+                chosenModel = m;
                 break;
               }
             } catch (fallbackErr) {
-              console.error(`[Fallback Attempt Failed]:`, fallbackErr.message);
+              console.error(`[Fallback Attempt Failed for ${m}]:`, fallbackErr.message);
             }
           }
-          throw err;
+          // Do not crash loop on one model failure; continue to next available model
+          continue;
         }
       }
 
