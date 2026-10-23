@@ -240,9 +240,8 @@ async function connectToWhatsApp() {
     });
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
-      // ONLY process real-time incoming user notifications
-      // Ignore 'append' (internal cache sync and outgoing sent messages emitted by Baileys)
-      if (type !== 'notify') return;
+      // Process real-time incoming user notifications ('notify') AND self-chat test messages ('append')
+      if (type !== 'notify' && type !== 'append') return;
 
       for (const msg of messages) {
         try {
@@ -253,6 +252,9 @@ async function connectToWhatsApp() {
           const remoteJid = msg.key.remoteJid;
           const isGroup = remoteJid.endsWith('@g.us');
           const isFromMe = Boolean(msg.key.fromMe);
+
+          // If 'append', ONLY process if it is from me to own self-chat (Message Yourself)
+          if (type === 'append' && !isFromMe) continue;
 
           // 1. Guard against re-processing messages sent by our bot
           if (msgId && sentByBotIds.has(msgId)) {

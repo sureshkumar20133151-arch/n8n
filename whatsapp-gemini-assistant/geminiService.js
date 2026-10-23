@@ -263,7 +263,7 @@ const PROFILES_FILE = path.join(HISTORY_DIR, 'contact_profiles.json');
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.modelName = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
     this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '12', 10);
     this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
@@ -777,14 +777,13 @@ class GeminiService {
         }
       }
 
-      // Fallback model list if the primary model hits 429 rate limit or 503 high demand
+      // Lightning-fast models first to prevent 503 high demand stalls on 3.1-flash-lite
       const modelsToTry = [
-        this.modelName,
-        'gemini-3.1-flash-lite',
-        'gemini-3.5-flash-lite',
-        'gemini-flash-lite-latest',
+        'gemini-2.5-flash',
         'gemini-flash-latest',
-        'gemini-2.5-flash'
+        'gemini-3.1-flash-lite',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash'
       ].filter((m, i, arr) => arr.indexOf(m) === i);
 
       let response = null;
