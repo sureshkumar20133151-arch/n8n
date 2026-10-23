@@ -416,6 +416,19 @@ async function connectToWhatsApp() {
           }
 
           // Handle Boss / Admin Commands from Suresh (e.g. !rule, /rule, !rules, /rules, !delrule, !setslots, !setprice, !help)
+          // Smart Zero-Token Content Intent Routing (Zero LLM Tokens!)
+          const lowerPrompt = prompt.toLowerCase().trim();
+          if (/^(1|one)$/i.test(lowerPrompt)) {
+            personaManager.setMode('wholesale', 'Selection 1');
+            prompt = 'வணக்கம்! அண்ணாமலையார் ஆயில் ஸ்டோர் மொத்த விலை மற்றும் ஸ்டாக் விபரங்களை சொல்லுங்கள்.';
+          } else if (/^(2|two)$/i.test(lowerPrompt)) {
+            personaManager.setMode('restaurant', 'Selection 2');
+            prompt = 'வணக்கம்! தாஜ் ஹோட்டல் பிரியாணி மெனு மற்றும் டோக்கன் ஆர்டர் விபரம் சொல்லுங்கள்.';
+          } else if (/^(3|three)$/i.test(lowerPrompt)) {
+            personaManager.setMode('dev', 'Selection 3');
+            prompt = 'Hello! I am looking for a website and WhatsApp automation solutions for my business.';
+          }
+
           if (isOwner && (prompt.startsWith('!') || prompt.startsWith('/'))) {
             const adminReply = adminRules.handleAdminCommand(prompt);
             if (adminReply) {

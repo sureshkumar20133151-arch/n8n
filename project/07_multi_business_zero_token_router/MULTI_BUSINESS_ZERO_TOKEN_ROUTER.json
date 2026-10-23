@@ -1,0 +1,334 @@
+{
+  "name": "Zero-Token Multi-Business Smart Router (Wholesale, Restaurant, Dev)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## ⚡ Zero-Token Multi-Business Router\n**1 Phone Number (+91 93615 99097) ➔ 3 Autonomous Businesses**\n- **Zero LLM Router:** JavaScript regex classifies queries with **0 token cost**.\n- **Branch 1:** Annamaliyar Oil Store Wholesale (~1,100 tokens)\n- **Branch 2:** Taj Hotel Madurai Biryani (~680 tokens)\n- **Branch 3:** SoloDeveloper.pro Sales OS (~1,500 tokens)\n- **Prevents Token Drain:** Eliminates 85% of redundant prompt tokens!",
+        "height": 420,
+        "width": 1400,
+        "color": 6
+      },
+      "id": "note-master-zero-token",
+      "name": "Architecture Overview Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-multi-business-inbound",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-wb-inbound",
+      "name": "1. [Trigger] Inbound WhatsApp Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -180
+      ],
+      "webhookId": "whatsapp-multi-business-inbound"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || item;\n\nconst phone = String(body.phone || body.from || body.sender || '').replace(/\\D/g, '');\nconst senderName = body.senderName || body.pushName || body.name || 'Friend';\nconst rawMessage = (body.message || body.text || body.userMessage || '').trim();\nconst lower = rawMessage.toLowerCase();\n\n// 1. Check for explicit mode switch commands\nif (/^(!|\\/)?(mode|switch)\\s+(wholesale|oil|annamaliyar)/i.test(lower) || lower === 'switch to oil store') {\n  return [{ json: { route: 'wholesale', modeSet: true, phone, senderName, message: rawMessage, prompt: 'Vanakkam! Annamaliyar Oil Store wholesale mode active.' } }];\n}\nif (/^(!|\\/)?(mode|switch)\\s+(restaurant|food|biryani|taj)/i.test(lower) || lower === 'switch to restaurant') {\n  return [{ json: { route: 'restaurant', modeSet: true, phone, senderName, message: rawMessage, prompt: 'Vanakkam! Taj Hotel Biryani pre-order mode active.' } }];\n}\nif (/^(!|\\/)?(mode|switch)\\s+(dev|developer|solodeveloper|sales)/i.test(lower) || lower === 'switch to dev') {\n  return [{ json: { route: 'dev', modeSet: true, phone, senderName, message: rawMessage, prompt: 'Vanakkam! SoloDeveloper.pro Sales OS mode active.' } }];\n}\n\n// 2. Numbered selection from welcome greeting\nif (/^(1|one)$/i.test(lower)) {\n  return [{ json: { route: 'wholesale', phone, senderName, message: 'I want to check wholesale oil rates and box inventory.', isDirectChoice: true } }];\n}\nif (/^(2|two)$/i.test(lower)) {\n  return [{ json: { route: 'restaurant', phone, senderName, message: 'I want to check the Taj Hotel Biryani menu and pre-order token.', isDirectChoice: true } }];\n}\nif (/^(3|three)$/i.test(lower)) {\n  return [{ json: { route: 'dev', phone, senderName, message: 'I want to build a website and AI WhatsApp automation.', isDirectChoice: true } }];\n}\n\n// 3. Keyword / Intent Classification (Zero-Token Regex)\nconst isOilWholesale = /\\b(oil|gold winner|sunflower|tin|box|boxes|packet|litre|liter|wholesale|retailer|annamaliyar|lorry|loading|can|kann|price per box)\\b/i.test(lower);\nconst isRestaurant = /\\b(biryani|briyani|chicken|mutton|egg|parcel|taj hotel|taj|hotel|meals|food|table|lunch|dinner|token|spicy)\\b/i.test(lower);\nconst isDevService = /\\b(website|web app|next\\.?js|crm|automation|bot|n8n|software|lead generation|proposal|demo|consultant|suresh)\\b/i.test(lower);\n\nif (isOilWholesale && !isRestaurant && !isDevService) {\n  return [{ json: { route: 'wholesale', phone, senderName, message: rawMessage } }];\n}\nif (isRestaurant && !isOilWholesale && !isDevService) {\n  return [{ json: { route: 'restaurant', phone, senderName, message: rawMessage } }];\n}\nif (isDevService && !isOilWholesale && !isRestaurant) {\n  return [{ json: { route: 'dev', phone, senderName, message: rawMessage } }];\n}\n\n// 4. Default / Ambiguous Greeting ('Hi', 'Hello', 'Vanakkam')\n// Sends Zero-Token Template Greeting Menu to eliminate ambiguity without calling Gemini LLM!\nreturn [{\n  json: {\n    route: 'greeting',\n    phone,\n    senderName,\n    message: rawMessage,\n    greetingText: `வணக்கம் ${senderName}! Welcome to our Multi-Business AI Assistant! 👋\\n\\nஎங்களை தொடர்பு கொண்டமைக்கு நன்றி. உங்களுக்கு என்ன விபரம் தேவைப்படுகிறது?\\n\\n1️⃣ *அண்ணாமலையார் ஆயில் ஸ்டோர் (மாட்டுத்தாவணி)*\\n   • Gold Winner Sunflower Oil மொத்த வியாபாரம் (Box & Tin Rates)\\n   • Minimum 1 Box / 1 Tin Delivery\\n\\n2️⃣ *மதுரை தாஜ் ஹோட்டல்*\\n   • சீரக சம்பா தம் பிரியாணி Pre-Orders\\n   • Skip-the-line VIP Digital Token\\n\\n3️⃣ *SoloDeveloper.pro (Suresh Kumar)*\\n   • High-Converting Websites & WhatsApp AI Automations\\n   • n8n CRM Workflows from ₹8,999\\n\\n👉 *1, 2 அல்லது 3* என்று பதிலளிக்கவும் (அல்லது உங்கள் தேவையை நேரடியாக அனுப்பவும்)!`\n  }\n}];"
+      },
+      "id": "node-zero-token-classifier",
+      "name": "2. [Router] Zero-Token Code Classifier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "greeting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "wholesale",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "restaurant",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "dev",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-switch-business",
+      "name": "3. [Switch] Route to Business",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        360,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:10000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.greetingText) }}\n}",
+        "options": {}
+      },
+      "id": "node-send-greeting-menu",
+      "name": "4A. [Greeting] Send 1-Click Menu (0 Tokens)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"systemInstruction\": {\n    \"parts\": [{\n      \"text\": \"You are the wholesale sales manager for Annamaliyar Oil Store, Mattuthavani, Madurai. Proprietor: Manikanda Vinayaga Prabhu. We sell Gold Winner Sunflower Oil in boxes & tins to retailers. 1L Box (16 pkts) = ₹1420, 500ml Box (30 pkts) = ₹740, 15L Tin = ₹1820. Strictly MOQ 1 Box / 1 Tin. Reply in polite Tamil script with English commerce terms. Keep responses under 4 lines.\"\n    }]\n  },\n  \"contents\": [{\n    \"role\": \"user\",\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.message) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.2,\n    \"maxOutputTokens\": 350\n  }\n}",
+        "options": {}
+      },
+      "id": "node-gemini-wholesale",
+      "name": "4B. [Wholesale] Gemini LLM (~1,100 Tokens)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"systemInstruction\": {\n    \"parts\": [{\n      \"text\": \"You are the WhatsApp ordering assistant for Taj Hotel, Madurai. Famous for Authentic Seeraga Samba Dum Biryani. Chicken Biryani = ₹180, Mutton Biryani = ₹260, Egg Biryani = ₹120. Pre-order customers get a digital token to skip the line. If customer confirms order, assign a token like #TAJ-108. Reply in polite, appetite-inducing Tamil script with English terms. Keep response concise (under 4 lines).\"\n    }]\n  },\n  \"contents\": [{\n    \"role\": \"user\",\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.message) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.2,\n    \"maxOutputTokens\": 350\n  }\n}",
+        "options": {}
+      },
+      "id": "node-gemini-restaurant",
+      "name": "4C. [Restaurant] Gemini LLM (~680 Tokens)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"systemInstruction\": {\n    \"parts\": [{\n      \"text\": \"You are the WhatsApp AI Sales Operating System for Suresh Kumar (SoloDeveloper.pro), based in Madurai (+91 93615 99097). We build Next.js High-Converting Websites (from ₹8,999) and 24/7 WhatsApp AI & n8n CRM Automations (from ₹18,999). Follow Hormozi consultative qualification: ask 1 focused question at a time. Professional English or pure Tamil script.\"\n    }]\n  },\n  \"contents\": [{\n    \"role\": \"user\",\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.message) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.2,\n    \"maxOutputTokens\": 500\n  }\n}",
+        "options": {}
+      },
+      "id": "node-gemini-dev",
+      "name": "4D. [Dev / Sales OS] Gemini LLM (~1,500 Tokens)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:10000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. [Router] Zero-Token Code Classifier').item.json.phone }}\",\n  \"message\": {{ JSON.stringify($json.candidates?.[0]?.content?.parts?.[0]?.text || 'வணக்கம்! உங்கள் செய்தி பெறப்பட்டது.') }}\n}",
+        "options": {}
+      },
+      "id": "node-dispatch-reply",
+      "name": "5. [Outbound] Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        -20
+      ]
+    }
+  ],
+  "connections": {
+    "1. [Trigger] Inbound WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "2. [Router] Zero-Token Code Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. [Router] Zero-Token Code Classifier": {
+      "main": [
+        [
+          {
+            "node": "3. [Switch] Route to Business",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. [Switch] Route to Business": {
+      "main": [
+        [
+          {
+            "node": "4A. [Greeting] Send 1-Click Menu (0 Tokens)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4B. [Wholesale] Gemini LLM (~1,100 Tokens)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4C. [Restaurant] Gemini LLM (~680 Tokens)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4D. [Dev / Sales OS] Gemini LLM (~1,500 Tokens)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4B. [Wholesale] Gemini LLM (~1,100 Tokens)": {
+      "main": [
+        [
+          {
+            "node": "5. [Outbound] Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4C. [Restaurant] Gemini LLM (~680 Tokens)": {
+      "main": [
+        [
+          {
+            "node": "5. [Outbound] Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4D. [Dev / Sales OS] Gemini LLM (~1,500 Tokens)": {
+      "main": [
+        [
+          {
+            "node": "5. [Outbound] Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
