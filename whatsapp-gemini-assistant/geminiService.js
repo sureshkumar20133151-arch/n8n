@@ -1,3 +1,7 @@
+const dns = require('dns');
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 const { GoogleGenAI } = require('@google/genai');
 const https = require('https');
 const fs = require('fs');

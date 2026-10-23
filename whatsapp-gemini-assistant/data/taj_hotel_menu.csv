@@ -1,9 +1,42 @@
 Item_ID,Category,Item_Name,Description,Price,Preparation_Time_Mins,Availability
-BRY-001,Biryani,Taj Special Chicken Biryani,Authentic Madurai Seeraga Samba rice with tender chicken + Ennai Kathirikai Dalcha + Onion Raitha + Sweet Bread Halwa,₹190,10,Available
-BRY-002,Biryani,Taj Chicken 65 Biryani,Flavorful Biryani topped with crispy spicy Chicken 65 pieces + Boiled Egg + Dalcha + Raitha,₹230,10,Available
-BRY-003,Biryani,Taj Special Mutton Biryani,Traditional Madurai tender local mutton pieces cooked in slow dum + Egg + Dalcha + Raitha,₹290,12,Available
-BRY-004,Biryani,Taj Mutton Chukka Biryani,Seeraga Samba Biryani served with spicy Madurai dry Mutton Chukka roast + Egg + Dalcha + Raitha,₹340,12,Available
-BRY-005,Biryani,Taj Vanjaram Fish Biryani,Premium Vanjaram (Seer Fish) fry slice infused in rich Biryani rice + Raitha + Fish Gravy,₹270,15,Available
-SD-001,Sides,Madurai Chicken Chukka,Spicy dry roasted pepper chicken (250g),₹140,8,Available
-SD-002,Sides,Mutton Sukka Varuval,Traditional Chettinad tender mutton fry (200g),₹210,8,Available
-BV-001,Beverages,Rose Milk Special,Chilled creamy Madurai special Rose Milk with Badam Pisin,₹50,2,Available
+B01,Biryani,Taj Special Chicken Biryani,Authentic Madurai Seeraga Samba rice with tender chicken + Ennai Kathirikai Dalcha + Onion Raitha + Sweet Bread Halwa,₹190,10,Available
+B02,Biryani,Taj Chicken 65 Biryani,Flavorful Biryani topped with crispy spicy Chicken 65 pieces + Boiled Egg + Dalcha + Raitha,₹230,10,Available
+B03,Biryani,Taj Special Mutton Biryani,Traditional Madurai tender local mutton pieces cooked in slow dum + Egg + Dalcha + Raitha,₹290,12,Available
+B04,Biryani,Taj Mutton Chukka Biryani,Seeraga Samba Biryani served with spicy Madurai dry Mutton Chukka roast + Egg + Dalcha + Raitha,₹340,12,Available
+B05,Biryani,Taj Vanjaram Fish Biryani,Premium Vanjaram (Seer Fish) fry slice infused in rich Biryani rice + Raitha + Fish Gravy,₹270,15,Available
+B06,Biryani,Chicken Egg Biryani,Seeraga Samba Biryani with tender chicken and 2 Boiled Eggs,₹210,10,Available
+B07,Biryani,Plain Kuska,Aromatic Seeraga Samba Biryani rice served with Dalcha and Raitha,₹110,5,Available
+B08,Biryani,Egg Biryani,Flavorful Biryani rice cooked with spices and boiled eggs,₹150,8,Available
+B09,Biryani,Chicken Leg Piece Biryani,Biryani topped with whole juicy spiced Chicken Leg Piece,₹260,12,Available
+B10,Biryani,Prawn Biryani,Fresh tender prawns sauteed in coastal spices layered with dum biryani rice,₹280,15,Available
+C01,Sides,Chicken 65 – Regular,Crispy deep fried spiced chicken bites,₹150,8,Available
+C02,Sides,Madurai Chicken Chukka 250g,Spicy Madurai dry roasted pepper chicken (250g),₹140,8,Available
+C03,Sides,Chicken Lollipop,Juicy chicken wings coated in spicy batter and fried crispy,₹180,10,Available
+C04,Sides,Chicken Pepper Fry,Boneless chicken tossed in crushed black pepper and shallots,₹170,10,Available
+C05,Sides,Chicken Leg Piece,Crispy spiced whole chicken leg piece fry,₹120,10,Available
+C06,Sides,Chicken Gravy,Rich spicy Madurai style chicken curry,₹130,8,Available
+C07,Sides,Chicken Roast,Tender chicken pan roasted in ghee and authentic spices,₹160,10,Available
+C08,Sides,Chicken Pakoda,Crispy crunchy spiced street-style chicken pakoda,₹140,8,Available
+M01,Sides,Mutton Sukka Varuval 200g,Traditional Chettinad tender mutton fry (200g),₹210,10,Available
+M02,Sides,Mutton Pepper Fry,Tender mutton chunks roasted with crushed black peppercorns,₹230,10,Available
+M03,Sides,Mutton Gravy,Traditional slow-cooked thick mutton gravy with rich marrow flavor,₹190,10,Available
+M04,Sides,Mutton Liver Fry,Tender goat liver pan tossed with shallots and pepper,₹170,8,Available
+M05,Sides,Mutton Kola Urundai,Authentic Madurai spiced minced mutton meatballs (4 pcs),₹180,10,Available
+F01,Seafood,Vanjaram Fish Fry,Crispy shallow fried Vanjaram (Seer Fish) darne slice,₹220,12,Available
+F02,Seafood,Fish 65,Spiced bite-sized boneless fish cubes fried crispy,₹180,10,Available
+F03,Seafood,Fish Gravy,Tangy authentic Madurai tamarind fish curry,₹150,8,Available
+F04,Seafood,Prawn 65,Crispy fried marinated fresh coastal prawns,₹220,10,Available
+F05,Seafood,Prawn Pepper Fry,Juicy fresh prawns tossed with crushed pepper and onions,₹240,10,Available
+E01,Extras,Boiled Egg,Hard boiled fresh egg,₹20,2,Available
+E02,Extras,Omelette,Fluffy double egg masala omelette with onions and green chillies,₹40,5,Available
+E03,Extras,Egg Podimas,South Indian spiced scrambled egg podimas,₹60,5,Available
+E04,Extras,Egg Masala,Boiled eggs simmered in spicy onion tomato gravy,₹90,8,Available
+E05,Extras,Extra Dalcha,Signature Ennai Kathirikai Dalcha (200ml),₹20,2,Available
+E06,Extras,Extra Raitha,Fresh curd onion raitha cup,₹15,2,Available
+E07,Extras,Bread Halwa,Rich ghee sweet bread halwa with cashews,₹50,2,Available
+D01,Beverages,Madurai Special Rose Milk,Chilled creamy Rose Milk with Badam Pisin,₹50,2,Available
+D02,Beverages,Jigarthanda,Famous Madurai cool drink with condensed milk basundi & nannari,₹70,2,Available
+D03,Beverages,Badam Milk,Chilled saffron almond milk,₹60,2,Available
+D04,Beverages,Lemon Juice,Refreshing fresh lime juice with mint,₹40,2,Available
+D05,Beverages,Butter Milk,Chilled spiced buttermilk with ginger and curry leaves,₹30,2,Available
+D06,Beverages,Water Bottle,Packaged drinking water 1L,₹20,1,Available
