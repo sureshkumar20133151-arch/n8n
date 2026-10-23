@@ -267,8 +267,17 @@ async function connectToWhatsApp() {
 
           // 3. If from me, ONLY allow if sent to own chat (Message Yourself / Notes to self for testing)
           if (isFromMe) {
-            const myJid = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
-            const isSelfChat = myJid && remoteJid === myJid;
+            const myDigits = (sock.user?.id || '').replace(/\D/g, '').slice(0, 12);
+            const remoteDigits = (remoteJid || '').replace(/\D/g, '');
+            const ownerPhoneDigits = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
+
+            const isSelfChat = 
+              (myDigits && remoteDigits && remoteDigits.startsWith(myDigits)) ||
+              (ownerPhoneDigits && remoteDigits && remoteDigits.startsWith(ownerPhoneDigits)) ||
+              (remoteJid && remoteJid.includes(ownerPhoneDigits)) ||
+              remoteJid === 'me' ||
+              remoteJid.endsWith('@lid');
+
             if (!isSelfChat) {
               continue; // Message sent from Suresh's phone to an external chat -> NEVER auto-reply
             }
@@ -323,12 +332,15 @@ async function connectToWhatsApp() {
             }
           }
 
+          const modeIntentEarly = detectModeSwitchIntent(body);
+
           // Decide whether to reply
           if (isGroup) {
-            if (!enableGroups) continue;
-            if (!body.toLowerCase().startsWith(triggerPrefix)) continue;
+            if (!enableGroups && !modeIntentEarly) continue;
+            if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly) continue;
           } else {
-            if (!autoReplyDM && !body.toLowerCase().startsWith(triggerPrefix)) continue;
+            // Mode switch commands and autoReplyDM allow processing
+            if (!modeIntentEarly && !autoReplyDM && !body.toLowerCase().startsWith(triggerPrefix)) continue;
           }
 
           if (!body && !mediaPayload) continue;
