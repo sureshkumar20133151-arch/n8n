@@ -99,40 +99,48 @@ function detectModeSwitchIntent(rawText) {
   if (!rawText) return null;
   const cleaned = rawText.toLowerCase().trim();
 
-  // 1. Direct commands: !mode, /mode, mode
-  if (cleaned === '!mode' || cleaned === '/mode' || cleaned === 'mode') {
+  // 1. Direct query commands: !mode, /mode, mode, switch, !switch, /switch, which mode
+  if (
+    cleaned === '!mode' || cleaned === '/mode' || cleaned === 'mode' ||
+    cleaned === '!switch' || cleaned === '/switch' || cleaned === 'switch' ||
+    cleaned === 'switch mode' || cleaned === 'change mode' ||
+    /^(which|what|check|show|current|active)\s+mode/i.test(cleaned)
+  ) {
     return { isQuery: true };
   }
-  if (cleaned.startsWith('!mode ') || cleaned.startsWith('/mode ')) {
-    const target = cleaned.replace(/^(!|\/)mode\s+/, '').trim();
+
+  // Parameterized commands: !mode wholesale, /switch dev, !setmode restaurant, etc.
+  if (/^(!|\/)(mode|switch|setmode)\s+/i.test(cleaned)) {
+    const target = cleaned.replace(/^(!|\/)(mode|switch|setmode)\s+/, '').trim();
     return { target };
   }
 
-  // 2. Query phrases: "which mode", "what mode", "current mode", etc.
-  if (/^(which|what|check|show|current|active)\s+mode/i.test(cleaned)) {
-    return { isQuery: true };
-  }
-
-  // 3. Wholesale / Oil Store triggers (handles "switch to oil store", "oil store", "wholesale mode", etc.)
+  // 2. Wholesale / Oil Store triggers
+  // Handles: "switch to oil store", "switch oil", "oil store", "wholesale mode", "oil store ku mathu", "wholesale", "annamaliyar"
   if (
     /\b(oil store|oil shop|wholesale|annamaliyar|oil mode|wholesale mode)\b/i.test(cleaned) ||
-    /^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*(?:oil|wholesale|annamaliyar|shop|store)/i.test(cleaned)
+    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:oil|wholesale|annamaliyar|shop|store)/i.test(cleaned) ||
+    /(?:oil|wholesale|annamaliyar|shop|store)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
   ) {
     return { target: 'wholesale' };
   }
 
-  // 4. Restaurant / Taj Hotel triggers (handles "switch to restaurant", "biryani mode", "taj hotel", etc.)
+  // 3. Restaurant / Taj Hotel Biryani triggers
+  // Handles: "switch to restaurant", "switch restaurant", "biryani mode", "taj hotel", "restaurant ku mathu", "biryani"
   if (
     /\b(restaurant|biryani|taj hotel|taj|food mode|restaurant mode|biryani mode)\b/i.test(cleaned) ||
-    /^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*(?:restaurant|biryani|taj|hotel|food)/i.test(cleaned)
+    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:restaurant|biryani|taj|hotel|food)/i.test(cleaned) ||
+    /(?:restaurant|biryani|taj|hotel|food)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
   ) {
     return { target: 'restaurant' };
   }
 
-  // 5. Dev / SoloDeveloper triggers
+  // 4. Dev / SoloDeveloper triggers
+  // Handles: "switch to dev", "switch dev", "dev mode", "developer mode", "dev ku mathu", "sales os", "solodeveloper"
   if (
     /\b(dev|developer|solodeveloper|sales os|dev mode|developer mode)\b/i.test(cleaned) ||
-    /^(?:please\s+)?(?:switch|change|set|activate|turn on|go)\s+(?:mode\s+to|to|mode)?\s*(?:dev|developer|sales|suresh)/i.test(cleaned)
+    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:dev|developer|sales|suresh)/i.test(cleaned) ||
+    /(?:dev|developer|sales|suresh)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
   ) {
     return { target: 'dev' };
   }
@@ -543,6 +551,15 @@ const server = http.createServer((req, res) => {
 
         const switchResult = personaManager.setMode(targetMode, updatedBy);
         if (switchResult.success) {
+          // Send instant WhatsApp confirmation alert to Suresh's phone so he knows it was switched!
+          if (sock && isClientReady) {
+            const ownerPhoneDigits = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
+            const ownerJid = `${ownerPhoneDigits}@s.whatsapp.net`;
+            sendBotMessage(sock, ownerJid, { text: `⚡ [Dashboard Alert]\n${switchResult.switchMessage}\n_(Source: ${updatedBy})_` }).catch(e => {
+              console.warn('[Dashboard Switch Notify Error]:', e.message);
+            });
+          }
+
           res.writeHead(200, {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': allowedOrigin

@@ -14,7 +14,7 @@ const PERSONAS = {
     tagline: 'Wholesale Gold Winner Sunflower Oil (Boxes & Tins) • MOQ 1 Box / 1 Tin',
     badge: 'Wholesale B2B Mode',
     icon: '📦',
-    switchMessage: '✅ Mode switched to: 📦 *Annamaliyar Oil Store Wholesale Assistant* (Mattuthavani, Madurai).\n• Live inventory, box pricing, & stock check active.\n• Strictly 1 Box / 1 Tin Minimum Order (MOQ).\nReady for retailer inquiries!'
+    switchMessage: '✅ *Switched!* Mode is now active: 📦 *Annamaliyar Oil Store Wholesale Assistant* (Mattuthavani, Madurai).\n• Live inventory, box pricing, & stock check active.\n• Strictly 1 Box / 1 Tin Minimum Order (MOQ).\nReady for retailer inquiries!'
   },
   restaurant: {
     id: 'restaurant',
@@ -23,7 +23,7 @@ const PERSONAS = {
     tagline: 'Authentic Seeraga Samba Dum Biryani • Skip-the-Counter Pre-Orders & Digital Token',
     badge: 'Restaurant / Food Mode',
     icon: '🍗',
-    switchMessage: '✅ Mode switched to: 🍗 *Taj Hotel, Madurai Biryani Assistant*.\n• Menu browsing, UPI payment string, & Digital Token generator active.\n• Instant counter skip-the-line pickup ready!'
+    switchMessage: '✅ *Switched!* Mode is now active: 🍗 *Taj Hotel Madurai Biryani Assistant*.\n• Menu browsing, UPI payment string, & Digital Token generator active.\n• Instant counter skip-the-line pickup ready!'
   },
   dev: {
     id: 'dev',
@@ -33,7 +33,7 @@ const PERSONAS = {
     tagline: 'Senior AI & Web Consultant • Websites from ₹8,999 • WhatsApp AI & CRM Automations',
     badge: 'Default Developer Mode',
     icon: '💻',
-    switchMessage: '✅ Mode switched to: 💻 *Suresh Kumar SoloDeveloper.pro Sales Operating System*.\n• Hormozi 3-Way Qualification, Proposal Engine & Demo Booking active.\nReady for web & AI automation prospects!'
+    switchMessage: '✅ *Switched!* Mode is now active: 💻 *Suresh Kumar SoloDeveloper.pro Sales Operating System*.\n• Hormozi 3-Way Qualification, Proposal Engine & Demo Booking active.\nReady for web & AI automation prospects!'
   }
 };
 
