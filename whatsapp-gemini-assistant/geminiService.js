@@ -260,10 +260,22 @@ if (!fs.existsSync(HISTORY_DIR)) {
 
 const PROFILES_FILE = path.join(HISTORY_DIR, 'contact_profiles.json');
 
+// Global dynamic model cooldown cache to skip quota-exhausted (HTTP 429) models with 0ms delay
+const exhaustedModelsCache = new Map();
+function isModelQuotaExhausted(modelName) {
+  const hit = exhaustedModelsCache.get(modelName);
+  if (!hit) return false;
+  if (Date.now() - hit > 60 * 60 * 1000) { // 1 hour cooldown
+    exhaustedModelsCache.delete(modelName);
+    return false;
+  }
+  return true;
+}
+
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
     this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '5', 10);
     this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
@@ -784,11 +796,11 @@ class GeminiService {
         }
       }
 
-      // Ultra-fast responsive models with thinkingBudget: 0 (sub-second TTFT)
+      // Active models in order of verified quota availability and speed
       const modelsToTry = [
-        'gemini-2.5-flash',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview'
+        'gemini-3-flash-preview',
+        'gemini-3.1-flash-lite',
+        'gemini-3.5-flash'
       ].filter((m, i, arr) => arr.indexOf(m) === i);
 
       let response = null;
@@ -797,6 +809,11 @@ class GeminiService {
       const activeTools = this.getActiveTools(isOwner);
 
       for (const m of modelsToTry) {
+        // Skip quota-exhausted models immediately (saves 1.5s failed network round-trip)
+        if (isModelQuotaExhausted(m)) {
+          continue;
+        }
+
         try {
           const contentsToSend = this.sanitizeHistory(history);
           const genPromise = this.ai.models.generateContent({
@@ -805,15 +822,15 @@ class GeminiService {
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.2,
-              maxOutputTokens: 350,
+              maxOutputTokens: 1000,
               thinkingConfig: { thinkingBudget: 0 },
               tools: activeTools
             }
           });
 
-          // 4.5s circuit breaker prevents hanging calls
+          // 12s safety timeout to allow complete LLM response without premature cut-off
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout after 4500ms on model ${m}`)), 4500)
+            setTimeout(() => reject(new Error(`Timeout after 12000ms on model ${m}`)), 12000)
           );
 
           response = await Promise.race([genPromise, timeoutPromise]);
@@ -829,6 +846,13 @@ class GeminiService {
           if (
             errMsg.includes('429') ||
             errMsg.includes('quota') ||
+            errMsg.includes('RESOURCE_EXHAUSTED')
+          ) {
+            exhaustedModelsCache.set(m, Date.now());
+            continue;
+          }
+
+          if (
             errMsg.includes('404') ||
             errMsg.includes('503') ||
             errMsg.includes('UNAVAILABLE') ||
@@ -927,13 +951,13 @@ class GeminiService {
             config: {
               systemInstruction: systemInstruction,
               temperature: 0.2,
-              maxOutputTokens: 350,
+              maxOutputTokens: 1000,
               thinkingConfig: { thinkingBudget: 0 },
               tools: activeTools
             }
           });
           const followTimeout = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Follow-up call timed out after 4500ms')), 4500)
+            setTimeout(() => reject(new Error('Follow-up call timed out after 12000ms')), 12000)
           );
           response = await Promise.race([followupPromise, followTimeout]);
         } catch (followupErr) {
@@ -944,6 +968,11 @@ class GeminiService {
       }
 
       let replyText = (response && response.text) ? response.text.trim() : "";
+      if (!replyText && response?.candidates?.[0]?.content?.parts) {
+        // Extract text from parts when thoughtSignature is present
+        const parts = response.candidates[0].content.parts;
+        replyText = parts.filter(p => p.text).map(p => p.text).join('').trim();
+      }
       if (!replyText) {
         if (mode === 'wholesale') {
           replyText = "வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர் மாட்டுத்தாவணி. Gold Winner 1L, 1/2L, 200ml, 100ml, 5L Can அல்லது 15Ltr/15Kg டின் ரேட் மற்றும் ஸ்டாக் விபரம் என்ன தேவை?";
@@ -992,6 +1021,14 @@ class GeminiService {
       // Graceful error messages - NEVER show raw JSON or thought signature errors to WhatsApp!
       if (isOwner) {
         return "Vanakkam Suresh! I had a temporary issue processing that request, but I have cleanly recovered. How can I assist you with your system or leads right now?";
+      }
+
+      if (mode === 'wholesale') {
+        return "வணக்கம் அண்ணா! சர்வரில் ஒரு சிறிய தாமதம் ஏற்பட்டுள்ளது. உங்கள் ஆயில் தேவைகள் அல்லது ஆர்டர் விபரங்களை மீண்டும் ஒருமுறை பகிர முடியுமா அண்ணா? 🙏";
+      }
+
+      if (mode === 'restaurant') {
+        return "வணக்கம்! சர்வரில் ஒரு சிறிய தாமதம். உங்கள் தாஜ் ஹோட்டல் பிரியாணி ஆர்டரை மீண்டும் ஒருமுறை அனுப்பவும்! 🍗🙏";
       }
 
       const hasTamilInInput = /[\u0B80-\u0BFF]/.test(userText || '');
