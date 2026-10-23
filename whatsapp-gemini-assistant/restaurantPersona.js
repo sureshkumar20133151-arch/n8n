@@ -1,17 +1,9 @@
 const restaurantMenu = require('./restaurantMenuService');
 
+// Streamlined tool set: Menu queries answered directly from prompt in 1-round,
+// tool used exclusively for order booking and token generation.
 const RESTAURANT_TOOLS = [{
   functionDeclarations: [
-    {
-      name: 'getRestaurantMenu',
-      description: 'Call this tool to retrieve the complete or filtered menu for Taj Hotel Madurai, including Chicken Biryani, Mutton Biryani, Vanjaram Fish Biryani, sides and rose milk.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          category: { type: 'STRING', description: 'Category to filter, e.g. "Biryani", "Sides", "Beverages", "all"' }
-        }
-      }
-    },
     {
       name: 'bookRestaurantOrder',
       description: 'Call this tool when a customer confirms their food pre-order. Automatically calculates total, assigns a unique Digital Token Number (#TAJ-XXX), logs the order for the kitchen display, and provides counter skip-the-line pickup instructions.',

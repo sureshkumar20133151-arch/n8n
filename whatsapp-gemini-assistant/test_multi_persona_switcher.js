@@ -134,7 +134,6 @@ runTest('GeminiService selects correct system prompt and tools based on active p
   assert(wholesalePrompt.includes('Manikanda Vinayaga Prabhu'), 'Wholesale prompt missing proprietor');
   assert(wholesalePrompt.includes('MOQ is STRICTLY 1 Box'), 'Wholesale prompt missing MOQ rule');
   const wholesaleTools = gemini.getActiveTools(false);
-  assert(wholesaleTools[0].functionDeclarations.some(f => f.name === 'checkWholesaleInventory'));
   assert(wholesaleTools[0].functionDeclarations.some(f => f.name === 'bookWholesaleOrder'));
 
   // Mode: restaurant

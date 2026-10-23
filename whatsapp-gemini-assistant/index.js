@@ -410,13 +410,13 @@ async function connectToWhatsApp() {
 
           activeChatLocks.add(remoteJid);
           try {
-            // Send typing indicator
-            await sock.sendPresenceUpdate('composing', remoteJid);
+            // Send typing indicator (non-blocking)
+            sock.sendPresenceUpdate('composing', remoteJid).catch(() => {});
 
             // Generate response with Gemini AI
             const reply = await gemini.generateResponse(remoteJid, prompt, mediaPayload, { isOwner, senderName });
 
-            await sock.sendPresenceUpdate('paused', remoteJid);
+            sock.sendPresenceUpdate('paused', remoteJid).catch(() => {});
 
             // Send message safely using sendBotMessage
             await sendBotMessage(sock, remoteJid, { text: reply }, { quoted: msg });

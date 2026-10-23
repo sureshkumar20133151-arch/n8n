@@ -1,21 +1,9 @@
 const wholesaleInventory = require('./wholesaleInventoryService');
 
+// Streamlined tool set: Direct response for stock/price queries (instant 1-round reply),
+// tool calling used only for order booking.
 const WHOLESALE_TOOLS = [{
   functionDeclarations: [
-    {
-      name: 'checkWholesaleInventory',
-      description: 'Call this tool to check live stock, pouch rates, box rates, MRP, and packaging specifications for Gold Winner sunflower oil products (1L, 500ml, 200ml, 100ml, 5L Can, 15 Ltr Tin, 15 Kg Tin) from Annamaliyar Oil Store inventory.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          productQuery: {
-            type: 'STRING',
-            description: 'Item name or size to check, e.g. "1 Litre", "500ml", "15 Ltr Tin", "15 Kg Tin", "200ml", "all"'
-          }
-        },
-        required: ['productQuery']
-      }
-    },
     {
       name: 'bookWholesaleOrder',
       description: 'Call this tool when a grocery store, retail merchant, or customer confirms an order for oil boxes or tins. Strictly note that Minimum Order Quantity (MOQ) is 1 Box or 1 Tin/Can. Collect store name, area in Madurai, contact person, and item breakdown.',

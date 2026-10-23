@@ -799,8 +799,8 @@ class GeminiService {
             contents: contentsToSend,
             config: {
               systemInstruction: systemInstruction,
-              temperature: 0.3,
-              // Expose OWNER_TOOLS for Suresh, LEAD_TOOLS for customers
+              temperature: 0.2,
+              maxOutputTokens: 400,
               tools: activeTools
             }
           });
@@ -910,7 +910,8 @@ class GeminiService {
             contents: this.sanitizeHistory(history),
             config: {
               systemInstruction: systemInstruction,
-              temperature: 0.3,
+              temperature: 0.2,
+              maxOutputTokens: 400,
               tools: activeTools
             }
           });
