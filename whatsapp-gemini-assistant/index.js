@@ -302,11 +302,22 @@ async function connectToWhatsApp() {
             }
           }
 
+          // Unwrap ephemeral, viewOnce, and edited message containers
+          let innerMsg = msg.message;
+          if (innerMsg.ephemeralMessage?.message) innerMsg = innerMsg.ephemeralMessage.message;
+          if (innerMsg.viewOnceMessage?.message) innerMsg = innerMsg.viewOnceMessage.message;
+          if (innerMsg.viewOnceMessageV2?.message) innerMsg = innerMsg.viewOnceMessageV2.message;
+          if (innerMsg.editedMessage?.message) innerMsg = innerMsg.editedMessage.message;
+          if (innerMsg.documentWithCaptionMessage?.message) innerMsg = innerMsg.documentWithCaptionMessage.message;
+
           // Extract text from various message types
-          const textMessage = msg.message.conversation ||
-            msg.message.extendedTextMessage?.text ||
-            msg.message.imageMessage?.caption ||
-            msg.message.videoMessage?.caption ||
+          const textMessage = innerMsg.conversation ||
+            innerMsg.extendedTextMessage?.text ||
+            innerMsg.imageMessage?.caption ||
+            innerMsg.videoMessage?.caption ||
+            innerMsg.buttonsResponseMessage?.selectedButtonId ||
+            innerMsg.listResponseMessage?.singleSelectReply?.selectedRowId ||
+            innerMsg.templateButtonReplyMessage?.selectedId ||
             '';
 
           const body = textMessage.trim();
@@ -379,7 +390,8 @@ async function connectToWhatsApp() {
           const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone);
 
           // Routable destination JID: route self-chat or @lid to owner phone @s.whatsapp.net
-          const replyJid = (isFromMe || remoteJid.endsWith('@lid'))
+          const isSelfRoute = isFromMe && (remoteJid === 'me' || remoteJid.endsWith('@lid') || (typeof isSelfChat !== 'undefined' && isSelfChat));
+          const replyJid = isSelfRoute
             ? `${ownerPhone}@s.whatsapp.net`
             : remoteJid;
           const quoteOption = isFromMe ? {} : { quoted: msg };
