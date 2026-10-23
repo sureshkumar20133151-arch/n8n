@@ -586,14 +586,20 @@ const server = http.createServer((req, res) => {
 
   // Serve Switcher Dashboard directly from server at /switcher or /admin/switcher
   if (req.url === '/switcher' || req.url === '/admin/switcher') {
-    const switcherPath = path.resolve(__dirname, '..', 'project', 'switcher_web_page.html');
-    if (fs.existsSync(switcherPath)) {
-      const html = fs.readFileSync(switcherPath, 'utf-8');
-      res.writeHead(200, {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Access-Control-Allow-Origin': allowedOrigin
-      });
-      return res.end(html);
+    const candidatePaths = [
+      path.resolve(__dirname, 'data', 'switcher_web_page.html'),
+      path.resolve(__dirname, '..', 'project', 'switcher_web_page.html'),
+      path.resolve(__dirname, 'switcher_web_page.html')
+    ];
+    for (const switcherPath of candidatePaths) {
+      if (fs.existsSync(switcherPath)) {
+        const html = fs.readFileSync(switcherPath, 'utf-8');
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(html);
+      }
     }
   }
 

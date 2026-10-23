@@ -1,0 +1,9 @@
+Item_ID,Category,Item_Name,Description,Price,Preparation_Time_Mins,Availability
+BRY-001,Biryani,Taj Special Chicken Biryani,Authentic Madurai Seeraga Samba rice with tender chicken + Ennai Kathirikai Dalcha + Onion Raitha + Sweet Bread Halwa,₹190,10,Available
+BRY-002,Biryani,Taj Chicken 65 Biryani,Flavorful Biryani topped with crispy spicy Chicken 65 pieces + Boiled Egg + Dalcha + Raitha,₹230,10,Available
+BRY-003,Biryani,Taj Special Mutton Biryani,Traditional Madurai tender local mutton pieces cooked in slow dum + Egg + Dalcha + Raitha,₹290,12,Available
+BRY-004,Biryani,Taj Mutton Chukka Biryani,Seeraga Samba Biryani served with spicy Madurai dry Mutton Chukka roast + Egg + Dalcha + Raitha,₹340,12,Available
+BRY-005,Biryani,Taj Vanjaram Fish Biryani,Premium Vanjaram (Seer Fish) fry slice infused in rich Biryani rice + Raitha + Fish Gravy,₹270,15,Available
+SD-001,Sides,Madurai Chicken Chukka,Spicy dry roasted pepper chicken (250g),₹140,8,Available
+SD-002,Sides,Mutton Sukka Varuval,Traditional Chettinad tender mutton fry (200g),₹210,8,Available
+BV-001,Beverages,Rose Milk Special,Chilled creamy Madurai special Rose Milk with Badam Pisin,₹50,2,Available
