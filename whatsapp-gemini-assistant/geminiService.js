@@ -962,16 +962,20 @@ class GeminiService {
 
         // Generate follow-up conversational text response or next tool call
         try {
+          const followupConfig = {
+            systemInstruction: systemInstruction,
+            temperature: 0.2,
+            maxOutputTokens: 1000,
+            tools: activeTools
+          };
+          if (!chosenModel.includes('lite')) {
+            followupConfig.thinkingConfig = { thinkingBudget: 0 };
+          }
+
           const followupPromise = this.ai.models.generateContent({
             model: chosenModel,
             contents: this.sanitizeHistory(history),
-            config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.2,
-              maxOutputTokens: 1000,
-              thinkingConfig: { thinkingBudget: 0 },
-              tools: activeTools
-            }
+            config: followupConfig
           });
           const followTimeout = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Follow-up call timed out after 12000ms')), 12000)
@@ -994,7 +998,10 @@ class GeminiService {
         if (mode === 'wholesale') {
           replyText = "வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர் மாட்டுத்தாவணி. Gold Winner 1L, 1/2L, 200ml, 100ml, 5L Can அல்லது 15Ltr/15Kg டின் ரேட் மற்றும் ஸ்டாக் விபரம் என்ன தேவை?";
         } else if (mode === 'restaurant') {
-          replyText = "வணக்கம்! தாஜ் ஹோட்டல் மதுரை 🍗. இன்றைய ஸ்பெஷல் சிக்கன் பிரியாணி, மட்டன் பிரியாணி அல்லது வஞ்சிரம் மீன் பிரியாணி எத்தனை பார்சல் ரெடி பண்ண வேண்டும்?";
+          const isOngoing = history && history.length > 2;
+          replyText = isOngoing
+            ? "சரிங்க சார்! உங்கள் தகவலை குறித்துக்கொண்டேன். வேறு ஏதாவது சேர்க்க வேண்டுமா, அல்லது இந்த ஆர்டரை உறுதி செய்யலாமா? 🍗✨"
+            : "வணக்கம்! தாஜ் ஹோட்டல் மதுரை 🍗. இன்றைய ஸ்பெஷல் சிக்கன் பிரியாணி, மட்டன் பிரியாணி அல்லது வஞ்சிரம் மீன் பிரியாணி எத்தனை பார்சல் ரெடி பண்ண வேண்டும்?";
         } else if (hasTamil) {
           replyText = "நன்றி! உங்கள் விபரங்களை குறித்துக் கொண்டேன். உங்களுக்கு மிகச் சரியான தீர்வை பரிந்துரைக்க, மேலும் ஒரு சிறிய விபரம்...";
         } else if (asksForTanglish || isTanglishText) {

@@ -6,7 +6,7 @@ const RESTAURANT_TOOLS = [{
   functionDeclarations: [
     {
       name: 'bookRestaurantOrder',
-      description: 'Call this tool ONLY when customer explicitly confirms their food order with item breakdown, customer name, pickup details, and payment method. Automatically assigns a unique Digital Token Number (#TAJ-XXX), logs the order for the kitchen display, and provides express counter pickup instructions.',
+      description: 'CRITICAL PRECONDITION: DO NOT CALL THIS TOOL if the customer is merely inquiring about availability ("chicken 65 irukka?"), prices, or modifying items. CALL THIS TOOL ONLY AND STRICTLY WHEN the customer gives explicit final order confirmation ("Confirm", "Yes confirm", "Order podunga", "உறுதி செய்யுங்க") after seeing the final bill. Automatically assigns a unique Digital Token Number (#TAJ-XXX), logs the order for kitchen display, and provides express counter pickup instructions.',
       parameters: {
         type: 'OBJECT',
         properties: {
