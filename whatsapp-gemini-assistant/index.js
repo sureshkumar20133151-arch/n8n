@@ -888,102 +888,38 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ success: true, message: 'Auth session reset. Generating fresh QR code...' }));
   }
 
+    // Dynamic QR Code API for the Switcher Dashboard
+  if (req.url === '/api/qr-data' || req.url === '/qr-data') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(JSON.stringify({
+      ready: isClientReady,
+      status: isClientReady ? 'online' : 'connecting',
+      qrDataUrl: latestQrDataUrl || null
+    }));
+  }
+
+  // Serve the complete Interactive Multi-Persona Switcher Dashboard for Home (/) and (/switcher)
+  const candidatePaths = [
+    path.resolve(__dirname, 'data', 'switcher_web_page.html'),
+    path.resolve(__dirname, 'switcher_web_page.html'),
+    path.resolve(__dirname, '..', 'project', 'switcher_web_page.html')
+  ];
+  for (const switcherPath of candidatePaths) {
+    if (fs.existsSync(switcherPath)) {
+      const html = fs.readFileSync(switcherPath, 'utf-8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(html);
+    }
+  }
+
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-
-  if (isClientReady) {
-    return res.end(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="utf-8">
-        <title>WhatsApp Gemini Assistant - Online</title>
-        <style>
-          body { font-family: -apple-system, sans-serif; background: #111b21; color: #e9edef; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-          .card { background: #202c33; padding: 40px; border-radius: 16px; text-align: center; max-width: 480px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-          h1 { color: #25d366; margin-top: 0; }
-          .badge { display: inline-block; background: #25d366; color: #111b21; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 13px; margin-bottom: 16px; }
-          p { color: #8696a0; line-height: 1.6; }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <div class="badge">● ONLINE & 24/7 ACTIVE</div>
-          <h1>WhatsApp Gemini Assistant</h1>
-          <p>Powered by ultra-fast Baileys Engine (40MB RAM). Active and replying to incoming messages in real-time.</p>
-          <form method="POST" action="/restart" style="margin-top: 24px;">
-            <button type="submit" style="background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b; padding: 8px 18px; border-radius: 18px; cursor: pointer; font-size: 12px;">
-              ⚠️ Unlink & Generate New QR Code
-            </button>
-          </form>
-        </div>
-      </body>
-      </html>
-    `);
-  }
-
-  if (latestQrDataUrl) {
-    return res.end(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="utf-8">
-        <title>Scan WhatsApp QR Code</title>
-        <meta http-equiv="refresh" content="18">
-        <style>
-          body { font-family: -apple-system, sans-serif; background: #111b21; color: #e9edef; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-          .card { background: #202c33; padding: 32px; border-radius: 16px; text-align: center; max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-          h1 { color: #25d366; font-size: 22px; margin-top: 0; }
-          .qr-box { background: #fff; padding: 16px; border-radius: 12px; display: inline-block; margin: 16px 0; }
-          img { display: block; width: 300px; height: 300px; }
-          .note { color: #8696a0; font-size: 13px; }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <h1>Link WhatsApp Assistant</h1>
-          <p style="color:#8696a0;">Scan this QR code with WhatsApp on your phone:</p>
-          <div class="qr-box">
-            <img src="${latestQrDataUrl}" alt="WhatsApp QR Code" />
-          </div>
-          <p class="note">Page automatically refreshes every 18s</p>
-          <form method="POST" action="/restart" style="margin-top: 14px;">
-            <button type="submit" style="background: transparent; color: #8696a0; border: 1px solid #374248; padding: 8px 16px; border-radius: 18px; cursor: pointer; font-size: 12px;">
-              🔄 Refresh / Get New QR Code
-            </button>
-          </form>
-        </div>
-      </body>
-      </html>
-    `);
-  }
-
-  return res.end(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="utf-8">
-      <meta http-equiv="refresh" content="4">
-      <title>Starting WhatsApp Assistant...</title>
-      <style>
-        body { font-family: -apple-system, sans-serif; background: #111b21; color: #e9edef; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #202c33; padding: 36px; border-radius: 16px; text-align: center; max-width: 460px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .status-box { background: #111b21; color: #25d366; padding: 12px 18px; border-radius: 8px; font-family: monospace; font-size: 13px; margin: 18px 0; border: 1px solid #374248; word-break: break-word; }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <h2 style="color:#25d366;margin-top:0;">WhatsApp Assistant Starting...</h2>
-        <div class="status-box">${escapeHtml(currentStatus)}</div>
-        <p style="color:#8696a0;font-size:13px;line-height:1.5;">Connecting to WhatsApp servers. QR code will appear here in seconds.</p>
-        <form method="POST" action="/restart" style="margin-top: 22px;">
-          <button type="submit" style="background: #25d366; color: #111b21; border: none; padding: 12px 24px; border-radius: 24px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 12px rgba(37,211,102,0.3);">
-            🔄 Reset & Generate Fresh QR Code
-          </button>
-        </form>
-      </div>
-    </body>
-    </html>
-  `);
+  return res.end('<h1>SoloDeveloper.pro Switcher Dashboard is loading...</h1>');
 });
 
 server.listen(PORT, '0.0.0.0', () => {
