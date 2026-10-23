@@ -128,13 +128,14 @@
           <div class="card-meta">
             <b>Proprietor:</b> Manikanda Vinayaga Prabhu<br>
             <b>Location:</b> Mattuthavani Wholesale Market, Madurai<br>
-            <b>Product:</b> Gold Winner Refined Sunflower Oil Boxes
+            <b>Product:</b> Gold Winner Refined Sunflower Oil (Boxes & Tins)
           </div>
           <ul class="feature-list">
-            <li>1 Litre, 500ml (1/2 L), 200ml, 100ml Box Rates</li>
-            <li>Pouch pieces per box & Minimum Order (MOQ)</li>
-            <li>Live Stock Check (Reads Google Sheet directly)</li>
-            <li>Automated Lorry Load Order Dispatch Log</li>
+            <li>1L (10 pouches/box @ ₹1,420), 500ml (10 pouches @ ₹740)</li>
+            <li>200ml (48 pouches @ ₹1,536), 100ml (96 pouches @ ₹1,632)</li>
+            <li>15Ltr Tin (₹2,180) & 15Kg Bulk Tin (₹2,420)</li>
+            <li><b>Strict MOQ: 1 Box / 1 Tin</b> (Retailer friendly)</li>
+            <li>Live Google Sheet Stock & Lorry Dispatch Logger</li>
           </ul>
         </div>
         <button class="btn btn-primary" id="btn-wholesale" onclick="switchMode('wholesale')">⚡ Switch to Wholesale Mode</button>
@@ -212,6 +213,16 @@
   <div id="toast">✅ Mode Switched Successfully!</div>
 
   <script>
+    // Intelligent API Base:
+    // If running on Vercel, use Render backend URL by default.
+    // Can also be overridden via localStorage if using custom domain.
+    const DEFAULT_RENDER_BACKEND = 'https://whatsapp-assistant-iqpi.onrender.com';
+    let API_BASE = localStorage.getItem('sw_api_base') || (
+      window.location.hostname.includes('render.com') || window.location.hostname === 'localhost'
+        ? (window.location.port === '10000' ? '' : window.location.origin)
+        : DEFAULT_RENDER_BACKEND
+    );
+
     const modes = {
       dev: {
         title: "SoloDeveloper.pro Web & Automation Sales",
@@ -224,8 +235,8 @@
         title: "Annamaliyar Oil Store — Wholesale Gold Winner (Mattuthavani)",
         cardId: "card-wholesale",
         btnId: "btn-wholesale",
-        sampleUser: "Prabhu anna, 1/2 litre box rate enna? 200ml stock irukka?",
-        sampleBot: "வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர் (மாட்டுத்தாவணி) 📦<br>• Gold Winner 1/2L (500ml): <b>1 பாக்ஸ் = 24 பாக்கெட் (விலை ₹1,776)</b>.<br>• 200ml Pouch: <b>1 பாக்ஸ் = 48 பீஸ் (விலை ₹1,536)</b> - ஸ்டாக்கில் 60 பாக்ஸ் உள்ளது!<br>எத்தனை பாக்ஸ் லோடிங் போட வேண்டும்?"
+        sampleUser: "Prabhu anna, 1 Litre box rate enna? 15Kg tin irukka?",
+        sampleBot: "வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர் (மாட்டுத்தாவணி) 📦<br>• Gold Winner 1L: <b>1 பாக்ஸ் = 10 பாக்கெட் (விலை ₹1,420 / பாக்கெட் ₹142)</b>.<br>• 15 Kg Bulk Tin: <b>விலை ₹2,420 (MRP ₹2,690)</b> - ஸ்டாக்கில் 20 டின் உள்ளது!<br><b>குறைந்தபட்சம் 1 பாக்ஸ் அல்லது 1 டின் கூட ஆர்டர் செய்யலாம்!</b> எத்தனை பாக்ஸ் லோடிங் போட வேண்டும்?"
       },
       restaurant: {
         title: "Taj Hotel, Madurai — Biryani Pre-Order & Token System",
@@ -236,10 +247,10 @@
       }
     };
 
-    let currentMode = "dev";
+    let currentMode = "wholesale"; // Wholesale is primary priority
 
     function updatePreview() {
-      const data = modes[currentMode];
+      const data = modes[currentMode] || modes.wholesale;
       document.getElementById('current-mode-label').innerText = data.title;
       
       const chatHtml = `
@@ -264,20 +275,55 @@
       });
     }
 
-    function switchMode(newMode) {
-      if (currentMode === newMode) return;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerHTML = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    async function switchMode(newMode) {
       currentMode = newMode;
       updatePreview();
+      showToast(`⚡ Switching WhatsApp Bot to: <b>${modes[newMode].title}</b>...`);
 
-      // Show toast
-      const toast = document.getElementById('toast');
-      toast.innerText = `✅ WhatsApp Switched to: ${modes[newMode].title}`;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+      try {
+        const response = await fetch(`${API_BASE}/api/persona`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: newMode, updatedBy: 'Vercel Switcher Dashboard' })
+        });
+        const data = await response.json();
+        if (data.success) {
+          showToast(`✅ WhatsApp Bot (+91 93615 99097) is now LIVE on: <b>${modes[newMode].title}</b>!`);
+        } else {
+          showToast(`⚠️ Server response: ${data.error || 'Failed to switch'}`);
+        }
+      } catch (err) {
+        console.warn('Backend call failed, switched locally:', err);
+        showToast(`✅ Mode switched locally to: <b>${modes[newMode].title}</b> (Backend syncing...)`);
+      }
+    }
+
+    async function fetchLiveModeFromServer() {
+      try {
+        const res = await fetch(`${API_BASE}/api/persona`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.activeMode && modes[data.activeMode]) {
+            currentMode = data.activeMode;
+            updatePreview();
+            console.log('✅ Synchronized active persona with WhatsApp backend:', data.activeMode);
+          }
+        }
+      } catch (err) {
+        console.log('Using default mode, backend sync:', err.message);
+      }
     }
 
     // Init
     updatePreview();
+    fetchLiveModeFromServer();
   </script>
 </body>
 </html>

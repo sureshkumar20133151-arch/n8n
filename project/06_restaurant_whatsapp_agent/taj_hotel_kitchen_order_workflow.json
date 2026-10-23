@@ -1,0 +1,104 @@
+{
+  "name": "Restaurant Kitchen Order & Token Workflow - Taj Hotel Madurai",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tajhotel-order",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-taj-webhook",
+      "name": "Taj Hotel Order Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body || $input.first().json;\n\nconst token = input.token || ('#TAJ-' + Math.floor(100 + Math.random() * 900));\nconst customerName = input.customerName || 'Customer';\nconst phone = input.phone || '';\nconst items = input.items || [];\nconst totalAmount = input.totalAmount || '₹0';\nconst paymentMethod = input.paymentMethod || 'UPI (tajhotelmadurai@upi)';\nconst specialInstructions = input.specialInstructions || 'None';\n\nlet itemsList = '';\nif (Array.isArray(items) && items.length > 0) {\n  itemsList = items.map(it => `• ${it.quantity || 1}x ${it.itemName || it.name || 'Biryani'}`).join('\\n');\n} else {\n  itemsList = '• 1x Special Biryani Parcel';\n}\n\n// WhatsApp Confirmation to Customer\nconst customerConfirmation = `✅ *ஆர்டர் உறுதியானது! - மதுரை தாஜ் ஹோட்டல்* 🍗\\n\\n` +\n  `வணக்கம் ${customerName}!\\n` +\n  `🎟️ *உங்கள் டோக்கன் எண்:* *${token}*\\n\\n` +\n  `📋 *ஆர்டர் செய்த பொருட்கள்:*\\n${itemsList}\\n\\n` +\n  `💰 *மொத்த பில் தொகை:* ${totalAmount}\\n` +\n  `💳 *பணம் செலுத்தும் முறை:* ${paymentMethod}\\n\\n` +\n  `⏰ *பார்சல் 10 நிமிடங்களில் தயார்!*\\n` +\n  `⚡ *கவுண்டரில் வரிசையில் நிற்க வேண்டாம்!* நேராக VIP Pre-Order கவுண்டருக்கு வந்து Token *${token}* சொல்லி உடனே பெற்றுக்கொள்ளலாம்! நன்றி, மீண்டும் வருக! 🙏`;\n\n// Kitchen Display Ticket\nconst kitchenTicket = `🔔 *KITCHEN DISPLAY TICKET* [TOKEN: ${token}]\\n` +\n  `👤 Customer: ${customerName} (${phone})\\n` +\n  `🥘 Items:\\n${itemsList}\\n` +\n  `📝 Notes: ${specialInstructions}\\n` +\n  `💵 Total: ${totalAmount} (${paymentMethod})\\n` +\n  `⏱️ Target: 10 mins`;\n\nreturn [{\n  json: {\n    token,\n    customerName,\n    phone,\n    totalAmount,\n    customerConfirmation,\n    kitchenTicket,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-taj-format",
+      "name": "Generate Token & Format Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:10000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.customerConfirmation) }}\n}",
+        "options": {}
+      },
+      "id": "node-taj-send-customer",
+      "name": "Send Token to Customer WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:10000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"919361599097\",\n  \"message\": {{ JSON.stringify($json.kitchenTicket) }}\n}",
+        "options": {}
+      },
+      "id": "node-taj-kitchen-alert",
+      "name": "Kitchen Display / Tablet Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Taj Hotel Order Webhook": {
+      "main": [
+        [
+          {
+            "node": "Generate Token & Format Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Token & Format Messages": {
+      "main": [
+        [
+          {
+            "node": "Send Token to Customer WhatsApp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Kitchen Display / Tablet Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

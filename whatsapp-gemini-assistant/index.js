@@ -16,6 +16,8 @@ const path = require('path');
 const fs = require('fs');
 const GeminiService = require('./geminiService');
 const adminRules = require('./adminRulesManager');
+const personaManager = require('./personaManager');
+const wholesaleInventory = require('./wholesaleInventoryService');
 
 const gemini = new GeminiService();
 
@@ -310,6 +312,28 @@ async function connectToWhatsApp() {
             continue;
           }
 
+          // Instant Multi-Persona Switcher Commands (!mode wholesale, !mode restaurant, !mode dev, !mode)
+          const lowerPrompt = prompt.toLowerCase().trim();
+          if (lowerPrompt === '!mode' || lowerPrompt === '/mode' || lowerPrompt.startsWith('!mode ') || lowerPrompt.startsWith('/mode ')) {
+            const parts = prompt.trim().split(/\s+/);
+            if (parts.length === 1) {
+              const currentModeInfo = personaManager.formatCurrentModeReply();
+              await sendBotMessage(sock, remoteJid, { text: currentModeInfo }, { quoted: msg });
+              console.log(`🎛️ [Mode Status Queried] Current: ${personaManager.getActiveMode()} by ${remoteJid}\n`);
+              continue;
+            } else {
+              const targetMode = parts[1];
+              const switchRes = personaManager.setMode(targetMode, `WhatsApp (${remoteJid})`);
+              if (switchRes.success) {
+                await sendBotMessage(sock, remoteJid, { text: switchRes.switchMessage }, { quoted: msg });
+                console.log(`⚡ [Mode Switched in 0.1s] Now active: ${switchRes.currentMode} by ${remoteJid}\n`);
+              } else {
+                await sendBotMessage(sock, remoteJid, { text: `⚠️ ${switchRes.error}` }, { quoted: msg });
+              }
+              continue;
+            }
+          }
+
           // Handle Boss / Admin Commands from Suresh (e.g. !rule, /rule, !rules, /rules, !delrule, !setslots, !setprice, !help)
           if (isOwner && (prompt.startsWith('!') || prompt.startsWith('/'))) {
             const adminReply = adminRules.handleAdminCommand(prompt);
@@ -396,9 +420,9 @@ const MAX_BODY_SIZE = 100 * 1024; // 100 KB limit to prevent DoS
 
 // HTTP server for Render port-binding, UptimeRobot, and Web QR viewing
 const server = http.createServer((req, res) => {
-  const allowedOrigin = process.env.CORS_ORIGIN || '*';
+  const allowedOrigin = req.headers.origin || process.env.CORS_ORIGIN || '*';
 
-  // CORS support for website chatbots
+  // CORS support for website chatbots & Vercel Switcher dashboard
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': allowedOrigin,
@@ -406,6 +430,127 @@ const server = http.createServer((req, res) => {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     return res.end();
+  }
+
+  // Multi-Persona API: GET current active persona & catalog of all personas
+  if (req.url === '/api/persona' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(JSON.stringify({
+      success: true,
+      activeMode: personaManager.getActiveMode(),
+      persona: personaManager.getPersonaDetails(),
+      allPersonas: personaManager.getAllPersonas(),
+      lastUpdated: personaManager.lastUpdated,
+      updatedBy: personaManager.updatedBy
+    }));
+  }
+
+  // Multi-Persona API: POST switch active persona in 0.1s
+  if (req.url === '/api/persona' && req.method === 'POST') {
+    let body = '';
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const targetMode = payload.mode || payload.persona || '';
+        const updatedBy = payload.updatedBy || 'Vercel Web Switcher Dashboard';
+
+        const switchResult = personaManager.setMode(targetMode, updatedBy);
+        if (switchResult.success) {
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': allowedOrigin
+          });
+          return res.end(JSON.stringify({
+            success: true,
+            activeMode: switchResult.currentMode,
+            persona: switchResult.persona,
+            message: `Switched WhatsApp assistant to ${switchResult.persona.name}`
+          }));
+        } else {
+          res.writeHead(400, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': allowedOrigin
+          });
+          return res.end(JSON.stringify({ success: false, error: switchResult.error }));
+        }
+      } catch (e) {
+        res.writeHead(400, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify({ success: false, error: 'Invalid JSON payload' }));
+      }
+    });
+    return;
+  }
+
+  // Wholesale Live Google Sheet / Inventory API: GET live items
+  if (req.url === '/api/wholesale/inventory' && req.method === 'GET') {
+    const items = wholesaleInventory.getAll();
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(JSON.stringify({
+      success: true,
+      client: 'Annamaliyar Oil Store, Mattuthavani, Madurai',
+      proprietor: 'Manikanda Vinayaga Prabhu',
+      moqPolicy: 'Strictly 1 Box / 1 Tin/Can',
+      itemCount: items.length,
+      items: items,
+      lastLoaded: wholesaleInventory.lastLoaded
+    }));
+  }
+
+  // Wholesale Google Sheets Trigger Sync
+  if (req.url === '/api/wholesale/sync' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const syncRes = await wholesaleInventory.syncFromGoogleSheet(payload.sheetUrl);
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify(syncRes));
+      } catch (err) {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Serve Switcher Dashboard directly from server at /switcher or /admin/switcher
+  if (req.url === '/switcher' || req.url === '/admin/switcher') {
+    const switcherPath = path.resolve(__dirname, '..', 'project', 'switcher_web_page.html');
+    if (fs.existsSync(switcherPath)) {
+      const html = fs.readFileSync(switcherPath, 'utf-8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(html);
+    }
   }
 
   // REST API endpoint for Website Chatbots (Option B)

@@ -1,0 +1,104 @@
+{
+  "name": "Wholesale Order Dispatch Workflow - Annamaliyar Oil Store",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "annamaliyar-order",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-wh-webhook",
+      "name": "Wholesale Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body || $input.first().json;\n\nconst orderId = input.orderId || ('AOS-' + Math.floor(100000 + Math.random() * 900000));\nconst storeName = input.storeName || 'Retail Customer';\nconst contactPerson = input.contactPerson || storeName;\nconst deliveryArea = input.deliveryArea || 'Madurai Market';\nconst phone = input.phone || '';\nconst items = input.items || [];\nconst totalEstimatedValue = input.totalEstimatedValue || '₹0';\nconst remarks = input.remarks || 'Standard lorry dispatch';\n\n// Format items for WhatsApp\nlet itemsFormatted = '';\nif (Array.isArray(items) && items.length > 0) {\n  itemsFormatted = items.map(it => {\n    const name = it.productName || it.name || 'Gold Winner Oil';\n    const size = it.packSize || '';\n    const qty = it.boxQuantity || it.quantity || 1;\n    const rate = it.boxRate ? (' @ ₹' + it.boxRate) : '';\n    return `• ${qty}x ${name} (${size})${rate}`;\n  }).join('\\n');\n} else {\n  itemsFormatted = '• 1 Box Gold Winner Oil';\n}\n\n// Message to Retailer\nconst retailerMsg = `📦 *அண்ணாமலையார் ஆயில் ஸ்டோர் - ஆர்டர் உறுதி செய்யப்பட்டது!*\\n\\n` +\n  `வணக்கம் ${contactPerson} அண்ணா (${storeName})!\\n` +\n  `உங்கள் மொத்த ஆர்டர் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது.\\n\\n` +\n  `📋 *ஆர்டர் விபரம் (Order ID: ${orderId}):*\\n` +\n  `${itemsFormatted}\\n\\n` +\n  `💰 *மதிப்பிடப்பட்ட மொத்த தொகை:* ${totalEstimatedValue}\\n` +\n  `🚚 *டெலிவரி இடம்:* ${deliveryArea}\\n` +\n  `⏰ *லாரி லோடிங்:* இன்று மதியம் 2:00 மணி (மாட்டுத்தாவணி மார்க்கெட்)\\n\\n` +\n  `பிரபு அண்ணா உங்கள் ஆர்டரை லோடிங் செய்ய ஏற்பாடு செய்து வருகிறார். ஏதேனும் சந்தேகம் இருந்தால் தொடர்பு கொள்ளவும்! 🙏`;\n\n// Urgent Alert to Prabhu Anna (Owner)\nconst ownerAlert = `🚨 *புதிய மொத்த ஆர்டர் வந்துள்ளது! (New Wholesale Order)*\\n\\n` +\n  `🏪 *கடை:* ${storeName} (${deliveryArea})\\n` +\n  `👤 *தொடர்பு:* ${contactPerson} (${phone})\\n` +\n  `📋 *பொருட்கள்:*\\n${itemsFormatted}\\n\\n` +\n  `💵 *பில் மதிப்பு:* ${totalEstimatedValue}\\n` +\n  `🚛 *டெஸ்க்பாட்ச்:* இன்று மதியம் 2 மணி லாரி லோடிங்\\n` +\n  `🔖 *Order ID:* ${orderId}`;\n\nreturn [{\n  json: {\n    orderId,\n    storeName,\n    contactPerson,\n    phone,\n    deliveryArea,\n    totalEstimatedValue,\n    retailerMsg,\n    ownerAlert,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-wh-format",
+      "name": "Format Order & Dispatch Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:10000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.retailerMsg) }}\n}",
+        "options": {}
+      },
+      "id": "node-wh-send-retailer",
+      "name": "Send Confirmation to Retailer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:10000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"919361599097\",\n  \"message\": {{ JSON.stringify($json.ownerAlert) }}\n}",
+        "options": {}
+      },
+      "id": "node-wh-alert-prabhu",
+      "name": "Alert Prabhu Anna (Owner)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Wholesale Inbound Webhook": {
+      "main": [
+        [
+          {
+            "node": "Format Order & Dispatch Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Order & Dispatch Details": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation to Retailer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Alert Prabhu Anna (Owner)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

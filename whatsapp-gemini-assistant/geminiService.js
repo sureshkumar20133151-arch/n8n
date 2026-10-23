@@ -4,6 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const { buildSystemPrompt } = require('./knowledgeBase');
 const { calculateSalesManagerMetrics } = require('./offerEngine');
+const personaManager = require('./personaManager');
+const { WHOLESALE_TOOLS, buildWholesaleSystemPrompt, executeWholesaleToolCall } = require('./wholesalePersona');
+const { RESTAURANT_TOOLS, buildRestaurantSystemPrompt, executeRestaurantToolCall } = require('./restaurantPersona');
 
 const LEAD_TOOLS = [{
   functionDeclarations: [{
@@ -278,9 +281,32 @@ class GeminiService {
   }
 
   getSystemInstruction() {
+    const mode = personaManager.getActiveMode();
+    if (mode === 'wholesale') {
+      return buildWholesaleSystemPrompt();
+    }
+    if (mode === 'restaurant') {
+      return buildRestaurantSystemPrompt();
+    }
     const base = buildSystemPrompt();
     const liveRules = adminRules.formatPromptExtension();
     return liveRules ? `${base}\n\n${liveRules}` : base;
+  }
+
+  getActiveTools(isOwner) {
+    const mode = personaManager.getActiveMode();
+    if (mode === 'wholesale') {
+      return WHOLESALE_TOOLS;
+    }
+    if (mode === 'restaurant') {
+      return RESTAURANT_TOOLS;
+    }
+    return isOwner ? OWNER_TOOLS : LEAD_TOOLS;
+  }
+
+  getScopedChatId(chatId) {
+    const mode = personaManager.getActiveMode();
+    return `${chatId}__${mode}`;
   }
 
   loadContactProfiles() {
@@ -320,11 +346,12 @@ class GeminiService {
   }
 
   getOrCreateHistory(chatId) {
+    const key = chatId.includes('__') ? chatId : this.getScopedChatId(chatId);
     // If already in memory, move to most recently used position
-    if (this.historyStore.has(chatId)) {
-      const history = this.historyStore.get(chatId);
-      this.historyStore.delete(chatId);
-      this.historyStore.set(chatId, history);
+    if (this.historyStore.has(key)) {
+      const history = this.historyStore.get(key);
+      this.historyStore.delete(key);
+      this.historyStore.set(key, history);
       return history;
     }
 
@@ -338,29 +365,30 @@ class GeminiService {
       }
     }
 
-    const filePath = this.getHistoryFilePath(chatId);
+    const filePath = this.getHistoryFilePath(key);
     if (fs.existsSync(filePath)) {
       try {
         const raw = fs.readFileSync(filePath, 'utf-8');
         const data = JSON.parse(raw);
         if (Array.isArray(data)) {
-          console.log(`📂 [History Restored] Loaded ${data.length} turns for ${chatId}`);
-          this.historyStore.set(chatId, data);
+          console.log(`📂 [History Restored] Loaded ${data.length} turns for ${key}`);
+          this.historyStore.set(key, data);
           return data;
         }
       } catch (e) {
-        console.warn(`[History Load Error] for ${chatId}:`, e.message);
+        console.warn(`[History Load Error] for ${key}:`, e.message);
       }
     }
-    this.historyStore.set(chatId, []);
-    return this.historyStore.get(chatId);
+    this.historyStore.set(key, []);
+    return this.historyStore.get(key);
   }
 
   saveHistory(chatId) {
     try {
-      const history = this.historyStore.get(chatId);
+      const key = chatId.includes('__') ? chatId : this.getScopedChatId(chatId);
+      const history = this.historyStore.get(key);
       if (history) {
-        const filePath = this.getHistoryFilePath(chatId);
+        const filePath = this.getHistoryFilePath(key);
         // Strip large inlineData (base64 images/audio) before persisting to disk to prevent massive JSON files
         const cleanedHistory = history.map(entry => {
           if (!entry || !Array.isArray(entry.parts)) return entry;
@@ -382,6 +410,18 @@ class GeminiService {
   }
 
   resetHistory(chatId) {
+    const modes = ['dev', 'wholesale', 'restaurant'];
+    modes.forEach(m => {
+      const key = `${chatId}__${m}`;
+      this.historyStore.delete(key);
+      try {
+        const filePath = this.getHistoryFilePath(key);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (e) {}
+    });
+
     this.historyStore.delete(chatId);
     try {
       const filePath = this.getHistoryFilePath(chatId);
@@ -496,6 +536,15 @@ class GeminiService {
   async executeToolCall(fnCall, chatId, cleanId) {
     const fnName = fnCall.name;
     const args = fnCall.args || {};
+    const mode = personaManager.getActiveMode();
+
+    if (mode === 'wholesale') {
+      return await executeWholesaleToolCall(fnCall, chatId);
+    }
+
+    if (mode === 'restaurant') {
+      return await executeRestaurantToolCall(fnCall, chatId);
+    }
 
     if (fnName === 'saveLeadDetails') {
       console.log(`🎯 [AI Sales Intelligence Generated]:`, args);
@@ -604,8 +653,8 @@ class GeminiService {
     const cleanDigits = (chatId || '').replace(/\D/g, '');
     const isOwnerByPhone = cleanDigits === this.ownerPhone;
     const isOwner = Boolean(options.isOwner || isOwnerByPhone);
-
     const cleanId = (chatId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const mode = personaManager.getActiveMode();
 
     // Update owner status in profile store
     if (isOwner) {
@@ -634,58 +683,73 @@ class GeminiService {
         userParts.push({ text: audioInstruction });
       } else if (userText && userText.trim().length > 0) {
         let contextualText = userText.trim();
-
         const trimmedLower = userText.trim().toLowerCase();
         const hasTamil = /[\u0B80-\u0BFF]/.test(userText);
         const asksForTamil = /\b(tamil|தமிழ்)\b/i.test(userText);
         const asksForTanglish = false;
         const isTanglishText = false;
-        const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
-        const isDeclining = /(எனக்கு எதும் தெரிஞ்சுக்க வேண்டாம்|வேண்டாம்|not interested|dont want|don't want|nothing needed|stop|leave me|விருப்பமில்லை)/i.test(trimmedLower);
 
-        // Immediate respectful opt-out response (never pitch or interrogate when client says no)
-        if (isDeclining && !isOwner) {
-          const declineReply = (hasTamil || asksForTamil)
-            ? "கண்டிப்பாக, உங்கள் முடிவை மதிக்கிறேன்! உங்கள் நேரத்திற்கு மிக்க நன்றி. எதிர்காலத்தில் உங்கள் பிசினஸுக்கு Modern Website அல்லது WhatsApp Automation தேவைப்பட்டால், SoloDeveloper.pro-ல் Suresh-ஐ (+91 93615 99097) எப்போது வேண்டுமானாலும் தொடர்பு கொள்ளலாம். உங்கள் நாள் சிறக்கட்டும், வணக்கம்! 🙏"
-            : (asksForTanglish || isTanglishText)
-            ? "Kandippa, unga decision-ah respect panren! Unga valuable time-ku romba thanks. Future-la unga business-ku Modern Website or WhatsApp Automation thevaipatta, Suresh (+91 93615 99097 / SoloDeveloper.pro)-ah eppo vena contact pannalam. Have a great day! 🙏"
-            : "Understood! Thank you so much for your time. If you ever need a modern website or WhatsApp automation in the future, feel free to reach out to Suresh (+91 93615 99097) at SoloDeveloper.pro. Have a wonderful day ahead! 🙏";
-
-          history.push({ role: 'user', parts: [{ text: userText }] });
-          history.push({ role: 'model', parts: [{ text: declineReply }] });
-          this.saveHistory(chatId);
-          return declineReply;
-        }
-
-        // If talking to Suresh (Boss Mode)
-        if (isOwner) {
-          contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
-        } else if (isAskingIdentity) {
-          contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI WhatsApp Assistant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
+        if (mode === 'wholesale') {
+          if (isOwner) {
+            contextualText = `[Direct message from Manikanda Vinayaga Prabhu / Suresh. Greet respectfully ("வணக்கம் அண்ணா") and provide live wholesale stock, box pricing, or order dispatch details]: ${contextualText}`;
+          } else {
+            contextualText = `[Wholesale Oil Inquiry: Annamaliyar Oil Store, Mattuthavani Wholesale Market, Madurai. MOQ is strictly 1 Box or 1 Tin. State box rate and pouch breakdown. Clarify 15Ltr Tin (Volume ₹2,180) vs 15Kg Tin (Weight ₹2,420). If ordering, collect Store Name, Madurai Delivery Area, Contact Person, and call bookWholesaleOrder]: ${contextualText}`;
+          }
+        } else if (mode === 'restaurant') {
+          if (isOwner) {
+            contextualText = `[Direct message from Taj Hotel Madurai management. Assist with menu items, kitchen pre-orders, and tokens]: ${contextualText}`;
+          } else {
+            contextualText = `[Taj Hotel Madurai Biryani Parcel Inquiry. Welcome warmly with food emojis. Highlight Seeraga Samba Dum Biryani (Chicken ₹190, Mutton ₹290, Fish ₹270). Suggest Mutton Sukka or Rose Milk. When confirmed, call bookRestaurantOrder to generate Token #TAJ-XXX for 10-second counter pickup]: ${contextualText}`;
+          }
         } else {
-          // Check known profile for returning client
-          const profile = this.getContactProfile(cleanId);
-          if (profile && profile.name && history.length === 0) {
-            const isBareGreeting = /^(hi|hello|hey|vanakkam|வணக்கம்|hola)[\s!.]*$/i.test(trimmedLower);
-            if (isBareGreeting) {
-              contextualText = `[Context Note: Contact previously connected as ${profile.name}. Since they sent a fresh greeting, greet them warmly, re-introduce SoloDeveloper.pro and Suresh Kumar politely without being overly presumptuous or assuming they remember past chats, and ask how you can help them today]: ${contextualText}`;
-            } else {
-              contextualText = `[Context Note: Returning contact ${profile.name} (${profile.company || ''})]: ${contextualText}`;
+          // Dev mode (SoloDeveloper)
+          const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
+          const isDeclining = /(எனக்கு எதும் தெரிஞ்சுக்க வேண்டாம்|வேண்டாம்|not interested|dont want|don't want|nothing needed|stop|leave me|விருப்பமில்லை)/i.test(trimmedLower);
+
+          // Immediate respectful opt-out response (never pitch or interrogate when client says no)
+          if (isDeclining && !isOwner) {
+            const declineReply = (hasTamil || asksForTamil)
+              ? "கண்டிப்பாக, உங்கள் முடிவை மதிக்கிறேன்! உங்கள் நேரத்திற்கு மிக்க நன்றி. எதிர்காலத்தில் உங்கள் பிசினஸுக்கு Modern Website அல்லது WhatsApp Automation தேவைப்பட்டால், SoloDeveloper.pro-ல் Suresh-ஐ (+91 93615 99097) எப்போது வேண்டுமானாலும் தொடர்பு கொள்ளலாம். உங்கள் நாள் சிறக்கட்டும், வணக்கம்! 🙏"
+              : (asksForTanglish || isTanglishText)
+              ? "Kandippa, unga decision-ah respect panren! Unga valuable time-ku romba thanks. Future-la unga business-ku Modern Website or WhatsApp Automation thevaipatta, Suresh (+91 93615 99097 / SoloDeveloper.pro)-ah eppo vena contact pannalam. Have a great day! 🙏"
+              : "Understood! Thank you so much for your time. If you ever need a modern website or WhatsApp automation in the future, feel free to reach out to Suresh (+91 93615 99097) at SoloDeveloper.pro. Have a wonderful day ahead! 🙏";
+
+            history.push({ role: 'user', parts: [{ text: userText }] });
+            history.push({ role: 'model', parts: [{ text: declineReply }] });
+            this.saveHistory(chatId);
+            return declineReply;
+          }
+
+          // If talking to Suresh (Boss Mode)
+          if (isOwner) {
+            contextualText = `[Direct message from SURESH KUMAR (+91 93615 99097 - Owner & Creator of SoloDeveloper.pro). Do not treat him as a prospect or ask discovery questions. Greet respectfully as Suresh/Boss and assist directly with his request]: ${contextualText}`;
+          } else if (isAskingIdentity) {
+            contextualText = `[IDENTITY RE-INTRODUCTION DIRECTIVE: The user does not know who we are or asked who we are. Apologize politely for any confusion. Warmly re-introduce yourself as the AI WhatsApp Assistant for Suresh Kumar (SoloDeveloper.pro), Full-Stack Developer & AI Automation Architect based in Madurai (+91 93615 99097). Explain clearly that we build high-converting modern websites (Next.js) and 24/7 WhatsApp AI automation systems for businesses. Ask for their good name or what business they run]: ${contextualText}`;
+          } else {
+            // Check known profile for returning client
+            const profile = this.getContactProfile(cleanId);
+            if (profile && profile.name && history.length === 0) {
+              const isBareGreeting = /^(hi|hello|hey|vanakkam|வணக்கம்|hola)[\s!.]*$/i.test(trimmedLower);
+              if (isBareGreeting) {
+                contextualText = `[Context Note: Contact previously connected as ${profile.name}. Since they sent a fresh greeting, greet them warmly, re-introduce SoloDeveloper.pro and Suresh Kumar politely without being overly presumptuous or assuming they remember past chats, and ask how you can help them today]: ${contextualText}`;
+              } else {
+                contextualText = `[Context Note: Returning contact ${profile.name} (${profile.company || ''})]: ${contextualText}`;
+              }
             }
           }
-        }
 
-        // INTERRUPTION & INQUIRY HANDLING DIRECTIVE
-        const isAskingQuestion = /\?|price|cost|rate|pricing|how much|epdi|evalo|evvalavu|enge|where|portfolio|sample|demo|website irukka/i.test(trimmedLower);
-        if (isAskingQuestion && !isOwner) {
-          contextualText = `[INTERRUPTION & INQUIRY DIRECTIVE: The user asked a direct question. Answer their question directly, transparently, and politely in 2-3 lines first (e.g. mention pricing from ₹8,999 to ₹24,999+). Then seamlessly continue the discovery flow by asking the next uncollected item from your state checklist. Do NOT ignore their question and do NOT restart the greeting]: ${contextualText}`;
-        }
+          // INTERRUPTION & INQUIRY HANDLING DIRECTIVE
+          const isAskingQuestion = /\?|price|cost|rate|pricing|how much|epdi|evalo|evvalavu|enge|where|portfolio|sample|demo|website irukka/i.test(trimmedLower);
+          if (isAskingQuestion && !isOwner) {
+            contextualText = `[INTERRUPTION & INQUIRY DIRECTIVE: The user asked a direct question. Answer their question directly, transparently, and politely in 2-3 lines first (e.g. mention pricing from ₹8,999 to ₹24,999+). Then seamlessly continue the discovery flow by asking the next uncollected item from your state checklist. Do NOT ignore their question and do NOT restart the greeting]: ${contextualText}`;
+          }
 
-        // SCRIPT & LANGUAGE DIRECTIVE
-        if (hasTamil || asksForTamil || /\b(tanglish|tamil|தமிழ்)\b/i.test(userText)) {
-          contextualText = `[CRITICAL SCRIPT & LANGUAGE DIRECTIVE: The user communicated in or requested Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish (no English spelling of Tamil words like 'Saaptiya', 'vanakkam', etc.). All commerce and tech words (Business, Order, Website, WhatsApp, Staff, Stock, Price, Products, Demo, Appointment, Delay, Revenue) MUST ALWAYS be kept in English script. Ask EXACTLY ONE question]: ${contextualText}`;
-        } else {
-          contextualText = `[CRITICAL SCRIPT & LANGUAGE DIRECTIVE: Reply in clear, modern, professional English with LLM intelligence and consultative warmth. Ask EXACTLY ONE question]: ${contextualText}`;
+          // SCRIPT & LANGUAGE DIRECTIVE
+          if (hasTamil || asksForTamil || /\b(tanglish|tamil|தமிழ்)\b/i.test(userText)) {
+            contextualText = `[CRITICAL SCRIPT & LANGUAGE DIRECTIVE: The user communicated in or requested Tamil. You MUST reply ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்). Absolutely NEVER write Latin Tanglish (no English spelling of Tamil words like 'Saaptiya', 'vanakkam', etc.). All commerce and tech words (Business, Order, Website, WhatsApp, Staff, Stock, Price, Products, Demo, Appointment, Delay, Revenue) MUST ALWAYS be kept in English script. Ask EXACTLY ONE question]: ${contextualText}`;
+          } else {
+            contextualText = `[CRITICAL SCRIPT & LANGUAGE DIRECTIVE: Reply in clear, modern, professional English with LLM intelligence and consultative warmth. Ask EXACTLY ONE question]: ${contextualText}`;
+          }
         }
 
         userParts.push({ text: contextualText });
@@ -726,7 +790,7 @@ class GeminiService {
       let response = null;
       let lastErr = null;
       let chosenModel = this.modelName;
-      const activeTools = isOwner ? OWNER_TOOLS : LEAD_TOOLS;
+      const activeTools = this.getActiveTools(isOwner);
 
       for (const m of modelsToTry) {
         try {
@@ -861,7 +925,11 @@ class GeminiService {
 
       let replyText = (response && response.text) ? response.text.trim() : "";
       if (!replyText) {
-        if (hasTamil) {
+        if (mode === 'wholesale') {
+          replyText = "வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர் மாட்டுத்தாவணி. Gold Winner 1L, 1/2L, 200ml, 100ml, 5L Can அல்லது 15Ltr/15Kg டின் ரேட் மற்றும் ஸ்டாக் விபரம் என்ன தேவை?";
+        } else if (mode === 'restaurant') {
+          replyText = "வணக்கம்! தாஜ் ஹோட்டல் மதுரை 🍗. இன்றைய ஸ்பெஷல் சிக்கன் பிரியாணி, மட்டன் பிரியாணி அல்லது வஞ்சிரம் மீன் பிரியாணி எத்தனை பார்சல் ரெடி பண்ண வேண்டும்?";
+        } else if (hasTamil) {
           replyText = "நன்றி! உங்கள் விபரங்களை குறித்துக் கொண்டேன். உங்களுக்கு மிகச் சரியான தீர்வை பரிந்துரைக்க, மேலும் ஒரு சிறிய விபரம்...";
         } else if (asksForTanglish || isTanglishText) {
           replyText = "Great! Unga details note pannikitten. Ungalukku perfect solution architecture ready panna, oru small question...";

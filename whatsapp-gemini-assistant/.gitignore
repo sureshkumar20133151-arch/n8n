@@ -5,3 +5,5 @@ node_modules/
 .env
 scan-qr.html
 *.log
+wholesale_orders.json
+restaurant_orders.json
