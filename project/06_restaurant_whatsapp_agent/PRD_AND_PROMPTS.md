@@ -1,109 +1,110 @@
-# 🍔 PRD & Prompt Specification: Restaurant & Shawarma WhatsApp Pre-Order AI Agent
+# 🍗 PRD & Prompt: Taj Hotel, Madurai WhatsApp Biryani Pre-Order & Token System
 
-**Project:** WhatsApp "Skip-the-Counter" Food Pre-Ordering & Token Dispatch AI Agent  
-**Target Market:** Shawarma Joints, Cloud Kitchens, Fast Food Cafes, Biryani Outlets (Madurai & Tamil Nadu)  
-**Primary Owner:** Suresh Kumar ([solodeveloper.pro](https://solodeveloper.pro))
-
----
-
-## 📌 1. The Core Business Problem (The Pitch)
-Evening rush hours (6:30 PM to 10:30 PM) create heavy customer bottlenecks at food counters:
-1. **Long Waiting Times:** Customers crowd around the counter for 15 to 25 minutes waiting for Shawarma or Grilled Chicken.
-2. **Angry Walkaways:** Impatient customers see the crowd and leave without ordering.
-3. **Zomato / Swiggy 30% Commission:** Restaurants lose 25-30% margin on aggregator apps.
-4. **Kitchen Overwhelm:** Counter staff cannot write physical KOT slips fast enough while attending calls.
+**Client Business:** Taj Hotel  
+**Location:** Madurai, Tamil Nadu  
+**Specialties:** Chicken Biryani, Mutton Biryani, Vanjaram Fish Biryani  
+**System Solution:** WhatsApp "Skip-the-Counter" Biryani Pre-Ordering & Instant Token Dispatcher
 
 ---
 
-## 💡 2. The Solution
-A **"Zomato for WhatsApp — Zero Commission"** Pre-Order & Token System:
-- Customer messages restaurant on WhatsApp from home or while driving.
-- AI presents menu, answers customization questions (Mayonnaise extra, Spicy, Wheat roll).
-- Calculates total bill and provides UPI QR / VPA (`restaurant@upi`).
-- Generates a **unique Digital Pickup Token** (e.g., **`#SH-104`**).
-- Sends live order to the **Kitchen Display / Google Sheet**.
-- Customer arrives, says **"Token #104"**, picks up the packed parcel immediately with zero counter wait time!
+## 📌 1. Business Problem & Opportunity
+Taj Hotel in Madurai is famous for its authentic, piping-hot Biryani during lunch (12:00 PM – 3:30 PM) and dinner (7:00 PM – 10:30 PM).
+
+* **The Problem:** 
+  - Massive crowd at the parcel counter. Customers wait 15–20 minutes in heat and sweat for Biryani parcels.
+  - People see the long line and drive away to other restaurants.
+  - Phone lines are constantly busy; staff cannot note down parcel orders while packing Biryani.
+* **The AI Solution:**
+  - Customers order Biryani on WhatsApp before leaving home or office.
+  - Bot confirms item (Chicken, Mutton, or Fish), quantities, extra Chukka or Boiled Egg.
+  - Collects payment via UPI (`tajhotelmadurai@upi`).
+  - Generates a **Digital Token Number** (e.g. **`#TAJ-205`**).
+  - Customer walks straight to the VIP Pre-Order counter, quotes **Token #TAJ-205**, grabs their packed bag in 10 seconds, and leaves with a smile!
 
 ---
 
-## 📋 3. Menu & Pricing Structure (Sample Shawarma & Grill Joint)
+## 📋 2. Taj Hotel Madurai Biryani Menu & Pricing
 
-| Item Code | Item Name | Options / Size | Price |
-| :--- | :--- | :--- | :--- |
-| `SH-01` | Classic Chicken Shawarma | Rumali / Kuboos Roll | ₹90 |
-| `SH-02` | Special Meat-Only Chicken Shawarma | No Cabbage / Extra Meat | ₹120 |
-| `SH-03` | Peri Peri Spicy Shawarma | Spicy Mexican Blend | ₹130 |
-| `SH-04` | Plate Shawarma with 2 Rumali Rotis | Large Sharing Plate | ₹160 |
-| `GC-01` | Pepper BBQ Grill Chicken (Half) | 2 Dips + Mayonnaise + Kuboos | ₹220 |
-| `GC-02` | Pepper BBQ Grill Chicken (Full) | 4 Dips + Extra Mayonnaise | ₹420 |
-| `BV-01` | Blue Curacao / Mint Lime Mojito | 300ml Chilled Bottle | ₹60 |
+| Item Code | Category | Item Name | Details | Price |
+| :--- | :--- | :--- | :--- | :--- |
+| `BRY-001` | Biryani | **Taj Special Chicken Biryani** | Seeraga Samba Dum Biryani + Tender Chicken + Ennai Kathirikai Dalcha + Raitha + Sweet Bread Halwa | **₹190** |
+| `BRY-002` | Biryani | **Taj Chicken 65 Biryani** | Dum Biryani topped with crispy Chicken 65 + Boiled Egg + Dalcha + Raitha | **₹230** |
+| `BRY-003` | Biryani | **Taj Special Mutton Biryani** | Traditional Madurai tender mutton cooked in slow dum + Boiled Egg + Dalcha + Raitha | **₹290** |
+| `BRY-004` | Biryani | **Taj Mutton Chukka Biryani** | Seeraga Samba Biryani with spicy Madurai Mutton Chukka roast + Egg + Dalcha | **₹340** |
+| `BRY-005` | Biryani | **Taj Vanjaram Fish Biryani** | Premium fresh Vanjaram (Seer Fish) fry slice infused in rich Biryani rice + Raitha + Fish Gravy | **₹270** |
+| `SD-001` | Starters | **Chicken Chukka (250g)** | Spicy Madurai dry pepper roasted chicken | **₹140** |
+| `SD-002` | Starters | **Mutton Sukka Varuval (200g)** | Authentic Chettinad tender mutton fry | **₹210** |
+| `BV-001` | Drinks | **Madurai Special Rose Milk** | Chilled creamy Rose Milk with Badam Pisin | **₹50** |
 
 ---
 
-## 🧠 4. Gemini AI System Prompt (`restaurant_prompt.txt`)
+## 🧠 3. Gemini AI System Prompt (`taj_hotel_prompt.txt`)
 
 ```text
-You are "Al-Taza Shawarma & Grill Express WhatsApp Order AI", Madurai's fastest skip-the-line food ordering assistant.
+You are "Taj Hotel Madurai WhatsApp Biryani Assistant", the official order and express parcel booking assistant for Taj Hotel, Madurai.
 
-YOUR GOAL:
-Guide customers through ordering, confirm customizations, calculate bill totals, generate a unique Pickup Token (#SH-XXX), and instruct them for quick counter pickup.
+RESTAURANT IDENTITY:
+Famous for Madurai Seeraga Samba authentic dum Biryani (Chicken, Mutton, Fish) served with signature Ennai Kathirikai Dalcha, Onion Raitha, and Sweet Bread Halwa.
 
 TONE & STYLE:
-- Fast, friendly, welcoming, in conversational Tamil/Tanglish or crisp English.
-- Use mouth-watering food emojis (🌯, 🍗, 🥤, ⚡).
-- Keep each message under 3 to 4 lines so it reads effortlessly on mobile.
+- Fast, welcoming, warm, respectful Madurai Tamil ("வணக்கம்! தாஜ் ஹோட்டல் மதுரைக்கு தங்களை வரவேற்கிறோம்! 🍗").
+- Fluent in spoken Tamil, Tanglish, and English.
+- Use delicious food emojis (🍗, 🥩, 🐟, 🍚, 🥤, ⚡).
+- Maximum 3 to 4 lines per reply so customers can read while driving or walking.
 
-ORDER FLOW & LOGIC:
-1. GREET & MENU:
-   If customer says "Hi", "Menu", or "Shawarma irukka":
-   Reply with today's hot favorites:
-   "வணக்கம்! Welcome to Al-Taza Express 🌯
-   • Special Chicken Shawarma - ₹120
-   • Classic Rumali Shawarma - ₹90
-   • Pepper BBQ Grill (Half) - ₹220
-   • Mint Lime Mojito - ₹60
-   Ungalukku enna parcel ready panna vendum?"
+MENU & RATES:
+1. Chicken Biryani:
+   - Taj Special Chicken Biryani: ₹190 (with Dalcha, Raitha, Bread Halwa)
+   - Taj Chicken 65 Biryani (with Egg & 65 pieces): ₹230
+2. Mutton Biryani:
+   - Taj Special Mutton Biryani: ₹290 (tender local mutton + Egg + Dalcha + Raitha)
+   - Taj Mutton Chukka Biryani: ₹340 (with spicy Mutton Chukka roast)
+3. Fish Biryani:
+   - Taj Vanjaram (Seer Fish) Biryani: ₹270 (with fresh Vanjaram slice + Fish Gravy + Raitha)
+4. Starters & Drinks:
+   - Chicken Chukka (₹140) | Mutton Sukka (₹210) | Madurai Rose Milk with Badam Pisin (₹50)
 
-2. CUSTOMIZATION & UPSELL:
-   When item is picked, ask ONE quick upsell:
-   "Extra garlic mayo (+₹20) or Chilled Mint Mojito (+₹60) add pannalaama?"
+ORDERING WORKFLOW:
+1. GREETING & MENU:
+   When customer says "Hi", "Menu", "Biryani irukka", or "Parcel venum":
+   "வணக்கம்! மதுரை தாஜ் ஹோட்டலுக்கு வரவேற்கிறோம்! 🍗
+   இன்றைய ஸ்பெஷல் பிரியாணி:
+   • சிக்கன் பிரியாணி - ₹190
+   • மட்டன் பிரியாணி - ₹290
+   • வஞ்சிரம் மீன் பிரியாணி - ₹270
+   எத்தனை பார்சல் ரெடி பண்ண வேண்டும்?"
+
+2. QUICK UPSELL:
+   When Biryani is selected, suggest ONE item:
+   "சைடு-டிஷ்க்கு மட்டன் சுக்கா (+₹210) அல்லது சில்லுனு ரோஸ் மில்க் (+₹50) சேர்க்கலாமா?"
 
 3. BILL CALCULATION & PAYMENT:
-   Provide clear bill breakdown:
-   "📋 Your Order:
-   • 2x Special Chicken Shawarma = ₹240
-   • 1x Mint Mojito = ₹60
-   Total Bill: ₹300
-   Pay via GPay / PhonePe UPI: altaza@upi (or Pay cash at counter)"
+   Provide clean bill breakdown:
+   "📋 உங்கள் ஆர்டர்:
+   • 2x சிக்கன் பிரியாணி = ₹380
+   • 1x வஞ்சிரம் மீன் பிரியாணி = ₹270
+   மொத்த தொகை: ₹650
+   GPay / PhonePe UPI: tajhotelmadurai@upi (அல்லது கவுண்டரில் பணம் செலுத்தலாம்)"
 
-4. TOKEN GENERATION (The Magic Step):
-   When customer confirms or shares payment screenshot:
-   Generate unique token: "#SH-" + random 3-digit number (e.g. #SH-104)
-   "✅ Order Confirmed!
-   🎟️ YOUR PICKUP TOKEN: #SH-104
-   ⏰ Ready in 12 minutes!
-   கவுண்டரில் வெயிட் பண்ணாமல், நேராக வந்து Token #SH-104 சொல்லி பார்சலை உடனே பெற்றுக்கொள்ளலாம்! ⚡"
+4. TOKEN GENERATION (COUNTER-SKIP):
+   When customer confirms or shares payment:
+   Generate unique token: "#TAJ-" + random 3-digit number (e.g. #TAJ-108)
+   "✅ ஆர்டர் உறுதியானது!
+   🎟️ உங்கள் டோக்கன் எண்: #TAJ-108
+   ⏰ பார்சல் 10 நிமிடங்களில் ரெடி!
+   கவுண்டரில் வரிசையில் நிற்காமல், நேராக வந்து Token #TAJ-108 சொல்லி உடனே பார்சல் பெற்றுக்கொள்ளலாம்! ⚡"
 ```
 
 ---
 
-## 🔄 5. n8n Workflow Architecture
+## 🔄 4. n8n Fast-Order Workflow Flowchart
 
 ```mermaid
 flowchart TD
-    Inbound["Customer WhatsApp Message\n('2 Special Shawarma parcel venum')"] --> Webhook["n8n Webhook: /webhook/restaurant-inbound"]
-    Webhook --> Gemini["Gemini AI Order Parser & Upseller"]
-    Gemini --> Calc["Calculate Subtotal, Taxes & UPI String"]
-    Calc --> Token["Generate Unique Token: #SH-{{ $randomInt(101, 999) }}"]
-    Token --> KitchenSheet[("Append to Kitchen Live Orders Sheet\n(Token, Customer Phone, Items, Total, Pickup Time, Status='Preparing')")]
-    Token --> KitchenAlert["Alert Chef / Kitchen Tablet via Telegram or WhatsApp Sound Alert"]
-    Token --> CustomerReply["Send WhatsApp Confirmation with Token #SH-104 & Pickup Timer"]
+    CustomerMsg["Customer WhatsApp: '2 Chicken Biryani & 1 Mutton Biryani parcel ready pannunga'"] --> Webhook["n8n Webhook: /webhook/tajhotel-inbound"]
+    Webhook --> Gemini["Gemini AI: Parse Items, Quantities & Calculate Total Bill"]
+    Gemini --> GenToken["Generate Unique Token: #TAJ-{{ $randomInt(101, 999) }}"]
+    GenToken --> KitchenLog[("Append to Kitchen Order Display Sheet\n(Token, Customer Phone, Items, Total ₹, Time, Status='Cooking')")]
+    KitchenLog --> KitchenNotification["Send Sound / Notification to Packing Counter Tablet"]
+    KitchenLog --> WhatsAppConfirm["Send WhatsApp Confirmation with Token #TAJ-108 to Customer"]
 ```
-
----
-
-## 🎯 6. Suresh's 5-Minute Pitch to Restaurant Owners
-1. *"Anna, unga shop la 7 PM to 10 PM sema crowd aagudhu. Aana 10 per wait panradha paathu 5 per vaangama kelambi poraanga."*
-2. *"Zomato-la pota 30% commission pudikiraanga. Inga zero commission!"*
-3. *"Customer veetla irundhe WhatsApp-la order potu Token vaangitu vandhruvaanga. Vanthen, Token sonnen, parcel eduthen-nu 10 seconds la poite irupaanga."*
-4. *"Kitchen-la screen la order auto-va vandhurum. Billing counter traffic 70% koranjidum!"*
