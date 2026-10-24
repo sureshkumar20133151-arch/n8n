@@ -263,15 +263,19 @@ class RestaurantCartService {
     // Log order to kitchen orders
     restaurantMenu.logOrder({
       token,
+      chatId,
       customerName: cart.customerName,
       customerPhone: chatId.replace(/\D/g, ''),
       items: cart.items.map(it => ({
-        itemName: it.name,
+        code: it.code,
+        name: it.name,
         quantity: it.quantity,
         price: it.price,
         subtotal: it.lineTotal
       })),
+      subtotal: cart.subtotal,
       freeGift: cart.freeGift ? cart.freeGift.name : null,
+      total: cart.total,
       totalAmount: `₹${cart.total}`,
       paymentMethod: cart.paymentMethod,
       pickupWaitTime: cart.pickupTime

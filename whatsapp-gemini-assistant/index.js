@@ -22,6 +22,8 @@ const GeminiService = require('./geminiService');
 const adminRules = require('./adminRulesManager');
 const personaManager = require('./personaManager');
 const wholesaleInventory = require('./wholesaleInventoryService');
+const restaurantMenu = require('./restaurantMenuService');
+const restaurantCart = require('./restaurantCartService');
 
 const gemini = new GeminiService();
 
@@ -657,6 +659,59 @@ const server = http.createServer((req, res) => {
       }
     });
     return;
+  }
+
+  // Restaurant Orders API: GET live orders list
+  if (req.url === '/api/restaurant/orders' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    const orders = restaurantMenu.getOrders(100);
+    return res.end(JSON.stringify({
+      success: true,
+      count: orders.length,
+      orders
+    }));
+  }
+
+  // Restaurant Orders API: POST update status (Preparing, Ready for Pickup, Delivered)
+  if (req.url === '/api/restaurant/orders/status' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const token = payload.token || payload.orderId;
+        const status = payload.status;
+        const updateRes = restaurantMenu.updateOrderStatus(token, status);
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify(updateRes));
+      } catch (err) {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Serve Kitchen Display Screen (KDS) at /kitchen or /orders
+  if (req.url === '/kitchen' || req.url === '/orders' || req.url === '/kds') {
+    const kdsPath = path.resolve(__dirname, 'data', 'kitchen_display.html');
+    if (fs.existsSync(kdsPath)) {
+      const html = fs.readFileSync(kdsPath, 'utf-8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(html);
+    }
   }
 
   // Serve Switcher Dashboard directly from server at /switcher or /admin/switcher

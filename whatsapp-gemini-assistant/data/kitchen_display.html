@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍗 Taj Hotel Madurai – Live Kitchen Display System (KDS)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+Tamil:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #151c2e;
+      --border: #23314d;
+      --accent: #f59e0b;
+      --accent-glow: rgba(245, 158, 11, 0.2);
+      --success: #10b981;
+      --warning: #f97316;
+      --text: #f3f4f6;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', 'Noto Sans Tamil', sans-serif;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-icon {
+      font-size: 36px;
+      background: #1e293b;
+      padding: 10px;
+      border-radius: 14px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .brand h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .brand p {
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+    }
+    .stat-pill {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .filter-bar {
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .tab-group {
+      display: flex;
+      gap: 8px;
+    }
+    .tab-btn {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+    .sound-toggle {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .orders-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 18px;
+    }
+    .order-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .order-card.new-pulse {
+      animation: pulse-border 1.5s infinite;
+    }
+    @keyframes pulse-border {
+      0% { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
+      50% { border-color: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.4); }
+      100% { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
+    }
+    .order-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .token-badge {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+    .order-time {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .status-CONFIRMED, .status-Sent { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; }
+    .status-Preparing { background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid #f97316; }
+    .status-Ready { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+    .status-Delivered { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid #94a3b8; }
+
+    .customer-info {
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+    .customer-name {
+      font-weight: 700;
+      color: #fff;
+    }
+    .customer-phone {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .items-list {
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 14px;
+      border-bottom: 1px dashed #1e293b;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-qty-name { font-weight: 600; }
+    .item-amt { color: var(--muted); }
+    .gift-badge {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #10b981;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .order-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .total-amount {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .payment-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .action-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .btn-action {
+      padding: 8px 4px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      transition: opacity 0.2s;
+    }
+    .btn-action:hover { opacity: 0.85; }
+    .btn-preparing { background: #f97316; color: #fff; }
+    .btn-ready { background: #10b981; color: #fff; }
+    .btn-delivered { background: #475569; color: #fff; }
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🍗</div>
+      <div>
+        <h1>Taj Hotel Madurai</h1>
+        <p>Live Kitchen Display & Express Pickup System (KDS)</p>
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-pill">
+        <div class="stat-val" id="stat-pending">0</div>
+        <div class="stat-lbl">Active Orders</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-val" id="stat-ready">0</div>
+        <div class="stat-lbl">Ready for Pickup</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-val" id="stat-total">0</div>
+        <div class="stat-lbl">Today's Total</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <div class="tab-group">
+      <button class="tab-btn active" onclick="setFilter('active')">⚡ Active Orders</button>
+      <button class="tab-btn" onclick="setFilter('ready')">🟢 Ready for Pickup</button>
+      <button class="tab-btn" onclick="setFilter('all')">📋 All Orders</button>
+    </div>
+    <button class="sound-toggle" id="soundBtn" onclick="toggleSound()">
+      🔔 Audio Alerts: <span id="soundStatus" style="font-weight: 700; color: #10b981;">ON</span>
+    </button>
+  </div>
+
+  <div class="orders-grid" id="ordersGrid">
+    <div class="empty-state">Loading kitchen orders...</div>
+  </div>
+
+  <script>
+    let currentFilter = 'active';
+    let knownTokens = new Set();
+    let isSoundEnabled = true;
+
+    function playChime() {
+      if (!isSoundEnabled) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      isSoundEnabled = !isSoundEnabled;
+      document.getElementById('soundStatus').innerText = isSoundEnabled ? 'ON' : 'OFF';
+      document.getElementById('soundStatus').style.color = isSoundEnabled ? '#10b981' : '#94a3b8';
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderOrders();
+    }
+
+    let cachedOrders = [];
+
+    async function fetchOrders() {
+      try {
+        const res = await fetch('/api/restaurant/orders');
+        const data = await res.json();
+        if (data && data.orders) {
+          // Check for brand new orders to ring chime
+          let hasNew = false;
+          data.orders.forEach(o => {
+            if (o.token && !knownTokens.has(o.token)) {
+              knownTokens.add(o.token);
+              if (cachedOrders.length > 0) hasNew = true;
+            }
+          });
+          if (hasNew) playChime();
+
+          cachedOrders = data.orders;
+          updateStats();
+          renderOrders();
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+      }
+    }
+
+    function updateStats() {
+      const active = cachedOrders.filter(o => o.order_status !== 'Delivered' && o.order_status !== 'Ready for Pickup').length;
+      const ready = cachedOrders.filter(o => o.order_status === 'Ready for Pickup').length;
+      document.getElementById('stat-pending').innerText = active;
+      document.getElementById('stat-ready').innerText = ready;
+      document.getElementById('stat-total').innerText = cachedOrders.length;
+    }
+
+    function renderOrders() {
+      const grid = document.getElementById('ordersGrid');
+      let filtered = cachedOrders;
+
+      if (currentFilter === 'active') {
+        filtered = cachedOrders.filter(o => o.order_status !== 'Delivered');
+      } else if (currentFilter === 'ready') {
+        filtered = cachedOrders.filter(o => o.order_status === 'Ready for Pickup');
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty-state">🎉 No orders in this tab. All parcels cleared!</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(order => {
+        const itemsHtml = (order.items || []).map(it => `
+          <div class="item-row">
+            <span class="item-qty-name">${it.quantity || 1}x ${it.name || it.itemName}</span>
+            <span class="item-amt">₹${it.subtotal || it.price || 0}</span>
+          </div>
+        `).join('');
+
+        const giftHtml = order.free_gift ? `
+          <div class="gift-badge">
+            🎁 <span>FREE GIFT: ${order.free_gift.name}</span>
+          </div>
+        ` : '';
+
+        const timeAgo = formatTimeAgo(order.created_at || order.createdAt);
+        const statusClass = `status-${(order.order_status || 'CONFIRMED').replace(/\s+/g, '')}`;
+
+        return `
+          <div class="order-card ${order.order_status !== 'Delivered' ? 'new-pulse' : ''}">
+            <div>
+              <div class="order-top">
+                <div>
+                  <div class="token-badge">${order.token || '#TAJ-???'}</div>
+                  <span class="status-badge ${statusClass}">${order.order_status || 'CONFIRMED'}</span>
+                </div>
+                <div class="order-time">
+                  ${timeAgo}<br>
+                  <small style="color: var(--accent); font-weight:700;">⏱️ ${order.pickup_window || '10-12 Mins'}</small>
+                </div>
+              </div>
+
+              <div class="customer-info">
+                <div class="customer-name">${order.customer?.name || order.customerName || 'Taj Customer'}</div>
+                <div class="customer-phone">📱 ${order.customer?.phone || order.phone || 'WhatsApp Client'}</div>
+              </div>
+
+              <div class="items-list">
+                ${itemsHtml}
+                ${giftHtml}
+              </div>
+            </div>
+
+            <div>
+              <div class="order-footer">
+                <div>
+                  <div class="total-amount">${order.total_formatted || '₹' + (order.total || 0)}</div>
+                  <div class="payment-tag">${order.payment_method || 'Cash on Pickup'}</div>
+                </div>
+              </div>
+
+              <div class="action-btns">
+                <button class="btn-action btn-preparing" onclick="updateStatus('${order.token}', 'Preparing')">🍳 Preparing</button>
+                <button class="btn-action btn-ready" onclick="updateStatus('${order.token}', 'Ready for Pickup')">🟢 Ready</button>
+                <button class="btn-action btn-delivered" onclick="updateStatus('${order.token}', 'Delivered')">✅ Delivered</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateStatus(token, status) {
+      try {
+        await fetch('/api/restaurant/orders/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, status })
+        });
+        fetchOrders();
+      } catch (err) {
+        alert('Failed to update status: ' + err.message);
+      }
+    }
+
+    function formatTimeAgo(dateStr) {
+      if (!dateStr) return 'Just now';
+      const sec = Math.floor((new Date() - new Date(dateStr)) / 1000);
+      if (sec < 60) return `${sec}s ago`;
+      const min = Math.floor(sec / 60);
+      if (min < 60) return `${min}m ago`;
+      const hr = Math.floor(min / 60);
+      return `${hr}h ago`;
+    }
+
+    fetchOrders();
+    setInterval(fetchOrders, 4000);
+  </script>
+</body>
+</html>

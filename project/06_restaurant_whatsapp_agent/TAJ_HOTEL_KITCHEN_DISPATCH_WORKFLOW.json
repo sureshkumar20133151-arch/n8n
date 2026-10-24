@@ -1,0 +1,110 @@
+{
+  "name": "Taj Hotel Madurai - Kitchen Order Dispatch & Staff Alert Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tajhotel-order",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "webhook-order-inbound",
+      "name": "Kitchen Order Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract order data from incoming payload\nconst body = $input.first().json.body || $input.first().json;\n\nconst token = body.token || '#TAJ-???';\nconst orderId = body.order_id || 'TAJ-UNKNOWN';\nconst customerName = body.customer?.name || body.customerName || 'Customer';\nconst phone = body.customer?.phone || body.phone || 'Unknown';\nconst items = body.items || [];\nconst totalFormatted = body.total_formatted || `₹${body.total || 0}`;\nconst paymentMethod = body.payment_method || 'CASH_ON_PICKUP';\nconst pickupWindow = body.pickup_window || '10–12 Mins';\nconst freeGift = body.free_gift ? body.free_gift.name : null;\n\n// Format checklist for Kitchen Staff\nlet itemListStr = items.map(it => `• *${it.quantity}x* ${it.name} (${it.code || 'B'})`).join('\\n');\nif (freeGift) {\n  itemListStr += `\\n• 🎁 *FREE GIFT:* ${freeGift} (₹0)`;\n}\n\nconst staffNotificationMessage = `🍗 *TAJ HOTEL MADURAI - NEW KITCHEN ORDER*\\n` +\n  `🎟️ *TOKEN:* ${token} _(${pickupWindow})_\\n` +\n  `🆔 *Order ID:* ${orderId}\\n` +\n  `👤 *Customer:* ${customerName} (📱 +${phone})\\n` +\n  `💵 *Payment:* ${paymentMethod} — *Total: ${totalFormatted}*\\n\\n` +\n  `📋 *ITEMS TO PACK:*\\n` +\n  itemListStr + `\\n\\n` +\n  `⚡ *Status:* Express Counter Pickup ready in ${pickupWindow}!`;\n\nreturn [{\n  json: {\n    token,\n    orderId,\n    customerName,\n    phone,\n    items,\n    totalFormatted,\n    paymentMethod,\n    pickupWindow,\n    freeGift,\n    staffNotificationMessage,\n    receivedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "code-format-kitchen-ticket",
+      "name": "Format Kitchen Ticket & Message"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"event\": \"ORDER_CONFIRMED\",\n  \"token\": \"{{ $json.token }}\",\n  \"order_id\": \"{{ $json.orderId }}\",\n  \"kitchen_status\": \"RECEIVED_BY_KITCHEN\",\n  \"timestamp\": \"{{ $json.receivedAt }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        -100
+      ],
+      "id": "respond-webhook-success",
+      "name": "Respond 200 OK to Bot"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"919361599097\",\n  \"message\": \"{{ $json.staffNotificationMessage }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        120
+      ],
+      "id": "notify-staff-whatsapp",
+      "name": "WhatsApp Staff Alert (Suresh / Cashier)"
+    }
+  ],
+  "connections": {
+    "Kitchen Order Webhook": {
+      "main": [
+        [
+          {
+            "node": "Format Kitchen Ticket & Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Kitchen Ticket & Message": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK to Bot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WhatsApp Staff Alert (Suresh / Cashier)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
