@@ -225,7 +225,13 @@
       "position": [
         1500,
         560
-      ]
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "CjKY06ijITLYe9k4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
       "parameters": {
@@ -287,7 +293,8 @@
       "position": [
         2220,
         180
-      ]
+      ],
+      "disabled": true
     },
     {
       "parameters": {
@@ -311,7 +318,8 @@
       "position": [
         2220,
         380
-      ]
+      ],
+      "disabled": true
     },
     {
       "parameters": {
