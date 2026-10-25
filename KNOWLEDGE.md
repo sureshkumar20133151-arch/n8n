@@ -103,7 +103,13 @@ WHATSAPP_SEND_API=https://whatsapp-assistant-iqpi.onrender.com/api/send-message
 # n8n Pre-authenticated Credential IDs
 CREDENTIAL_GMAIL=cwBPj5LyhtzfYo07
 CREDENTIAL_GOOGLE_SHEETS=RMmY56nFkrWF4wQC
+CREDENTIAL_GOOGLE_SHEETS_2=XtknJPUddSwDeQRl
+CREDENTIAL_GEMINI=CjKY06ijITLYe9k4
 CREDENTIAL_APIFY=qF7Y8bKvycPoEFoA
+
+# Active Google Spreadsheets
+SPREADSHEET_REDDIT_LEADS=17tBLdLnSiRt0XxaTDm0JAeA50iNZQzFwJoq63MiHRNQ
+SPREADSHEET_REDDIT_LEADS_URL=https://docs.google.com/spreadsheets/d/17tBLdLnSiRt0XxaTDm0JAeA50iNZQzFwJoq63MiHRNQ/edit
 
 # Primary Communication & Alert Targets
 OWNER_PHONE=+919361599097
