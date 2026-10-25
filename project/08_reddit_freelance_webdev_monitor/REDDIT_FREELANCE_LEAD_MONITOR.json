@@ -1,0 +1,534 @@
+{
+  "name": "Reddit Freelance Web Development Lead Monitor & Auto-Pitcher",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-trigger-init-sheet",
+      "name": "1-Click: Create New Google Sheet",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"title\": \"Reddit Freelance Leads - Web Development\"\n  },\n  \"sheets\": [\n    {\n      \"properties\": {\n        \"title\": \"Reddit Leads\",\n        \"gridProperties\": {\n          \"frozenRowCount\": 1\n        }\n      },\n      \"data\": [\n        {\n          \"startRow\": 0,\n          \"startColumn\": 0,\n          \"rowData\": [\n            {\n              \"values\": [\n                { \"userEnteredValue\": { \"stringValue\": \"Date\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Subreddit\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Post Title\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Client\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Budget\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Project Type\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Tech Stack\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Urgency\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Client Problem\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Custom Pitch\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Reddit URL\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Status\" } }\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "node-api-create-sheet",
+      "name": "Create & Name Google Sheet (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        -100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RMmY56nFkrWF4wQC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst spreadsheetId = res.spreadsheetId;\nconst spreadsheetUrl = res.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;\nconst title = res.properties ? res.properties.title : 'Reddit Freelance Leads - Web Development';\n\nreturn [{\n  json: {\n    status: \"SUCCESS_SHEET_CREATED\",\n    title,\n    spreadsheetId,\n    spreadsheetUrl,\n    message: `🎉 Google Sheet '${title}' successfully created with all 12 columns!`\n  }\n}];"
+      },
+      "id": "node-init-sheet-success",
+      "name": "Sheet Created Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Check Reddit Every 15 Mins",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-manual-trigger",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Expanded list of top subreddits for freelance web development hiring\nreturn [\n  { json: { subreddit: \"forhire\", url: \"https://www.reddit.com/r/forhire/new.rss\" } },\n  { json: { subreddit: \"hiring\", url: \"https://www.reddit.com/r/hiring/new.rss\" } },\n  { json: { subreddit: \"jobbit\", url: \"https://www.reddit.com/r/jobbit/new.rss\" } },\n  { json: { subreddit: \"hireaprogrammer\", url: \"https://www.reddit.com/r/hireaprogrammer/new.rss\" } },\n  { json: { subreddit: \"remotejobs\", url: \"https://www.reddit.com/r/remotejobs/new.rss\" } },\n  { json: { subreddit: \"freelance_forhire\", url: \"https://www.reddit.com/r/freelance_forhire/new.rss\" } },\n  { json: { subreddit: \"webdev\", url: \"https://www.reddit.com/r/webdev/new.rss\" } },\n  { json: { subreddit: \"DesignJobs\", url: \"https://www.reddit.com/r/DesignJobs/new.rss\" } }\n];"
+      },
+      "id": "node-feed-sources",
+      "name": "Expanded Subreddits List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "FreelanceLeadRadar/3.0 (Contact: freelance-dev@monitor.local)"
+            },
+            {
+              "name": "Accept",
+              "value": "application/atom+xml,application/xml,text/xml"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-fetch-feed",
+      "name": "Fetch Reddit RSS Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        360
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Reddit Atom/RSS XML into structured post items\nconst xml = $input.first().json.data || $input.first().json.body || $input.first().json;\nconst subreddit = $('Expanded Subreddits List').item.json.subreddit || 'reddit';\n\nconst rawXml = typeof xml === 'string' ? xml : JSON.stringify(xml);\nconst entries = [];\nconst entryRegex = /<entry>([\\s\\S]*?)<\\/entry>/gi;\nlet match;\n\nwhile ((match = entryRegex.exec(rawXml)) !== null) {\n  const block = match[1];\n  const id = (block.match(/<id>([^<]+)<\\/id>/i) || [])[1] || '';\n  const rawTitle = (block.match(/<title>([^<]+)<\\/title>/i) || [])[1] || '';\n  const linkMatch = block.match(/<link[^>]+href=[\"']([^\"']+)[\"']/i);\n  const link = linkMatch ? linkMatch[1] : '';\n  const author = (block.match(/<author>[\\s\\S]*?<name>([^<]+)<\\/name>/i) || [])[1] || '';\n  const published = (block.match(/<published>([^<]+)<\\/published>/i) || [])[1] || '';\n  const rawContent = (block.match(/<content[^>]*>([\\s\\S]*?)<\\/content>/i) || [])[1] || '';\n\n  // Decode HTML entities and clean HTML tags\n  const cleanContent = rawContent\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  const title = rawTitle\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .trim();\n\n  if (id && title) {\n    entries.push({\n      json: {\n        id,\n        title,\n        link,\n        author,\n        subreddit: 'r/' + subreddit,\n        published,\n        content: cleanContent\n      }\n    });\n  }\n}\n\nreturn entries;"
+      },
+      "id": "node-parse-xml",
+      "name": "Parse Reddit Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// STRICT FILTER:\n// 1. Must be [HIRING] (Clients seeking freelancers)\n// 2. Reject [FOR HIRE] (Freelancers advertising)\n// 3. Website / Fullstack / Frontend / Backend Web Development Keywords\n// 4. TODAY ONLY: Published within the last 24 hours\n// 5. BUDGET MENTION REQUIRED: Must state explicit budget, hourly rate, or currency\n\nconst items = $input.all();\nconst results = [];\nconst now = new Date();\n\n// Web Development Keywords Regex\nconst webDevRegex = /\\b(web|website|web\\s*app|frontend|front\\s*end|backend|back\\s*end|fullstack|full\\s*stack|developer|software\\s*engineer|react|nextjs|next\\.js|vue|angular|node|nodejs|node\\.js|javascript|typescript|wordpress|shopify|woocommerce|landing\\s*page|tailwind|html|css|php|laravel|django|python|saas)\\b/i;\n\n// Budget & Rate Regex (Must match $, €, £, USD, EUR, /hr, or 'budget: ...')\nconst budgetRegex = /([$€£]\\s*[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k\\b|\\/hr|\\/hour|hr|per hour))?)|(\\b[\\d,]+(?:\\.\\d+)?\\s*(?:usd|eur|gbp|cad|aud|\\/hr|per hour)\\b)|(\\bbudget\\s*[:=-]?\\s*[$€£]?[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k|usd|eur|gbp))?)|(\\b(?:rate|pay|compensation|fixed)\\s*[:=-]?\\s*[$€£]?[\\d,]+(?:\\.\\d+)?)/i;\n\n// Explicitly unpaid / equity only keywords to exclude\nconst unpaidRegex = /\\b(equity only|unpaid|no budget|zero budget|rev\\s*share only|revenue share only)\\b/i;\n\nfor (const item of items) {\n  const title = item.json.title || '';\n  const content = item.json.content || '';\n  const author = item.json.author || '';\n  const published = item.json.published || '';\n  const combinedText = title + ' ' + content;\n\n  // Exclude bot or deleted accounts\n  if (author === '/u/AutoModerator' || author === '[deleted]') continue;\n\n  // Reject [FOR HIRE] (Freelancers offering services)\n  const isForHire = /\\[for\\s*hire\\]|^for\\s*hire/i.test(title);\n  if (isForHire) continue;\n\n  // Must explicitly be a client hiring\n  const isHiring = /\\[hiring\\]|^hiring\\b/i.test(title) || /hiring/i.test(item.json.subreddit);\n  if (!isHiring) continue;\n\n  // Filter 1: Website & Software Development relevance\n  const isWebDev = webDevRegex.test(title) || webDevRegex.test(content);\n  if (!isWebDev) continue;\n\n  // Filter 2: TODAY ONLY (Within last 24 hours)\n  const publishedDate = new Date(published);\n  const diffHours = (now - publishedDate) / (1000 * 60 * 60);\n  if (isNaN(diffHours) || diffHours > 24 || diffHours < -1) continue;\n\n  // Filter 3: BUDGET MENTION REQUIRED\n  if (unpaidRegex.test(combinedText)) continue;\n  const budgetMatch = combinedText.match(budgetRegex);\n  if (!budgetMatch) continue;\n\n  const detectedBudget = budgetMatch[0].trim();\n\n  // Format published time for display (e.g. \"3 hours ago\")\n  const hoursAgo = Math.max(0, Math.round(diffHours));\n  const timeAgoStr = hoursAgo === 0 ? 'Just now (Today)' : `${hoursAgo} hr${hoursAgo > 1 ? 's' : ''} ago (Today)`;\n\n  results.push({\n    json: {\n      ...item.json,\n      detectedBudget,\n      timeAgoStr\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "node-filter-webdev-hiring",
+      "name": "Filter: [HIRING] + WebDev + Budget + Today Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deduplicate across repeated scheduled runs\n// Uses n8n workflow static data to remember already-processed post IDs\nconst staticData = $getWorkflowStaticData('global');\nstaticData.processedIds = staticData.processedIds || [];\n\nconst items = $input.all();\nconst freshLeads = [];\n\nfor (const item of items) {\n  const id = item.json.id;\n  if (!staticData.processedIds.includes(id)) {\n    staticData.processedIds.push(id);\n    freshLeads.push(item);\n  }\n}\n\n// Retain only last 500 IDs to keep state lightweight\nif (staticData.processedIds.length > 500) {\n  staticData.processedIds = staticData.processedIds.slice(-500);\n}\n\nreturn freshLeads;"
+      },
+      "id": "node-deduplicate",
+      "name": "Deduplicate Seen Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert Freelance Web Development Client Acquisition Specialist.\n\nAnalyze this Reddit freelance client hiring post and craft a winning response proposal.\n\n=== REDDIT POST ===\nSubreddit: {{ $json.subreddit }}\nTitle: {{ $json.title }}\nAuthor: {{ $json.author }}\nPosted: {{ $json.timeAgoStr }}\nDetected Budget: {{ $json.detectedBudget }}\nFull Post Details:\n{{ $json.content }}\n\n=== OBJECTIVE ===\n1. Confirm this is an actionable website / web app / software freelance gig with a real budget.\n2. Extract estimated budget, required tech stack, and client's core problem.\n3. Write a high-converting, personalized 3-sentence DM proposal ready to send to the client on Reddit.\n\n=== PITCH GUIDELINES ===\n- Zero generic fluff (NO 'I hope this finds you well', NO 'I have 8+ years experience').\n- Sentence 1: Acknowledge their exact goal or pain point directly.\n- Sentence 2: State exactly how you'd execute it and what similar web project you've completed.\n- Sentence 3: Low-friction CTA (e.g., 'Happy to show you a quick live demo or prototype if you have 5 minutes').\n- Tone: Professional, competent, direct.\n\n=== OUTPUT FORMAT (RETURN ONLY VALID JSON) ===\n{\n  \"is_actionable\": true,\n  \"project_type\": \"e.g. Next.js SaaS MVP / WordPress Redesign / Shopify Store / Full-stack Web App\",\n  \"budget\": \"e.g. $1,500 / $45/hr\",\n  \"tech_stack\": \"e.g. React, Next.js, Tailwind, Node.js\",\n  \"urgency\": \"Urgent / Medium / Flexible\",\n  \"client_summary\": \"1-sentence summary of what the client needs\",\n  \"custom_pitch\": \"The exact 3-sentence proposal to DM the client\"\n}"
+      },
+      "id": "node-ai-pitch-generator",
+      "name": "AI Lead Analyzer & Pitch Drafter",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        1500,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "node-gemini-chat-model",
+      "name": "Google Gemini Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean up JSON fences and combine AI analysis with original Reddit post data\nconst items = $input.all();\nconst results = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const rawOutput = items[i].json.text || items[i].json.output || items[i].json.content || '';\n  const cleanJsonStr = rawOutput.replace(/```json|```/gi, '').trim();\n  const original = $('Deduplicate Seen Posts').all()[i].json;\n  \n  let aiData = {};\n  try {\n    aiData = JSON.parse(cleanJsonStr);\n  } catch (err) {\n    aiData = {\n      is_actionable: true,\n      project_type: \"Website Development Project\",\n      budget: original.detectedBudget || \"Specified in post\",\n      tech_stack: \"Web Technologies\",\n      urgency: \"Normal\",\n      client_summary: original.title,\n      custom_pitch: \"Hi, I saw your website development post and have relevant experience with this exact stack. I can help you build this out cleanly.\"\n    };\n  }\n\n  const finalBudget = aiData.budget || original.detectedBudget || 'Specified in post';\n  const authorName = (original.author || '').replace('/u/', '');\n  const cleanPitch = aiData.custom_pitch || '';\n  const dateFormatted = original.published ? new Date(original.published).toISOString().replace('T', ' ').substring(0, 16) : new Date().toISOString().replace('T', ' ').substring(0, 16);\n\n  // Telegram / Discord formatted markdown message\n  const formattedMessage = `🚨 *NEW REDDIT WEB DEV CLIENT FOUND (TODAY)!*\\n\\n` +\n    `📌 *Subreddit:* ${original.subreddit}\\n` +\n    `🏷️ *Title:* ${original.title}\\n` +\n    `👤 *Client:* [${original.author}](https://reddit.com/user/${authorName})\\n` +\n    `💰 *Budget Mentioned:* *${finalBudget}*\\n` +\n    `⏰ *Posted:* ${original.timeAgoStr}\\n` +\n    `🛠️ *Tech Stack:* ${aiData.tech_stack || 'Web Tech'}\\n` +\n    `⚡ *Urgency:* ${aiData.urgency || 'Normal'}\\n\\n` +\n    `📝 *What They Need:*\\n${aiData.client_summary || original.title}\\n\\n` +\n    `💬 *Recommended DM Pitch (Copy & Send):*\\n\"${cleanPitch}\"\\n\\n` +\n    `🔗 *Direct Link to Apply:*\\n${original.link}`;\n\n  // Sleek HTML Email Dossier for Gmail Alert\n  const emailSubject = `🚨 [Reddit Lead] ${aiData.project_type || 'Web Dev'} (${finalBudget}) - ${original.subreddit}`;\n  const htmlEmailMessage = `\n<div style=\"max-width: 620px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);\">\n  <div style=\"background: linear-gradient(135deg, #ff4500 0%, #ea580c 100%); padding: 24px 28px; color: #ffffff;\">\n    <span style=\"background: rgba(255,255,255,0.22); padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;\">Actionable Freelance Gig</span>\n    <h1 style=\"margin: 12px 0 0; font-size: 20px; font-weight: 700; line-height: 1.3;\">${original.title}</h1>\n  </div>\n  <div style=\"padding: 28px; color: #334155; font-size: 14px; line-height: 1.6;\">\n    <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 14px;\">\n      <tr><td style=\"padding: 6px 0; color: #64748b; width: 140px;\"><strong>💰 Budget:</strong></td><td style=\"padding: 6px 0; color: #16a34a; font-weight: 700; font-size: 16px;\">${finalBudget}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>📌 Subreddit:</strong></td><td style=\"padding: 6px 0; color: #0f172a; font-weight: 600;\">${original.subreddit}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>👤 Client:</strong></td><td style=\"padding: 6px 0;\"><a href=\"https://reddit.com/user/${authorName}\" style=\"color: #2563eb; text-decoration: none; font-weight: 600;\">${original.author}</a></td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>⏰ Time:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">${original.timeAgoStr}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>🛠️ Tech Stack:</strong></td><td style=\"padding: 6px 0; color: #0f172a; font-weight: 600;\">${aiData.tech_stack || 'Web Tech'}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>⚡ Urgency:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">${aiData.urgency || 'Normal'}</td></tr>\n    </table>\n    <div style=\"background-color: #f8fafc; border-left: 4px solid #ff4500; padding: 14px 18px; margin-bottom: 22px; border-radius: 4px;\">\n      <h3 style=\"margin: 0 0 6px; font-size: 13px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;\">What the Client Needs:</h3>\n      <p style=\"margin: 0; color: #334155;\">${aiData.client_summary || original.title}</p>\n    </div>\n    <div style=\"background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px; margin-bottom: 26px;\">\n      <div style=\"margin-bottom: 8px; font-weight: 700; color: #166534; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;\">💬 Recommended DM Proposal (Copy & Send):</div>\n      <p style=\"margin: 0; color: #14532d; font-style: italic; font-size: 15px; line-height: 1.5;\">\"${cleanPitch}\"</p>\n    </div>\n    <div style=\"text-align: center; margin: 24px 0 10px;\">\n      <a href=\"${original.link}\" style=\"display: inline-block; background-color: #ff4500; color: #ffffff; padding: 13px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(255, 69, 0, 0.25);\">\n        🚀 Open Reddit Post & Apply Now &rarr;\n      </a>\n    </div>\n  </div>\n</div>`;\n\n  results.push({\n    json: {\n      ...original,\n      ...aiData,\n      budget: finalBudget,\n      dateFormatted,\n      status: \"New Lead\",\n      formattedMessage,\n      emailSubject,\n      htmlEmailMessage\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "node-format-lead-payload",
+      "name": "Format Lead Alert Card",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "filter-actionable",
+              "leftValue": "={{ $json.is_actionable }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-filter-actionable",
+      "name": "Is Actionable Gig?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ $json.formattedMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-alert",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2220,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/YOUR_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.formattedMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-discord-alert",
+      "name": "Send Discord Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "sureshkumar20133151@gmail.com",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $json.htmlEmailMessage }}",
+        "options": {}
+      },
+      "id": "node-gmail-alert",
+      "name": "Send Gmail Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2220,
+        580
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cwBPj5LyhtzfYo07",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Reddit Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.dateFormatted }}",
+            "Subreddit": "={{ $json.subreddit }}",
+            "Post Title": "={{ $json.title }}",
+            "Client": "={{ $json.author }}",
+            "Budget": "={{ $json.budget }}",
+            "Project Type": "={{ $json.project_type }}",
+            "Tech Stack": "={{ $json.tech_stack }}",
+            "Urgency": "={{ $json.urgency }}",
+            "Client Problem": "={{ $json.client_summary }}",
+            "Custom Pitch": "={{ $json.custom_pitch }}",
+            "Reddit URL": "={{ $json.link }}",
+            "Status": "={{ $json.status }}"
+          },
+          "schema": [
+            { "id": "Date", "displayName": "Date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Subreddit", "displayName": "Subreddit", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Post Title", "displayName": "Post Title", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Client", "displayName": "Client", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Budget", "displayName": "Budget", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Project Type", "displayName": "Project Type", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Tech Stack", "displayName": "Tech Stack", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Urgency", "displayName": "Urgency", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Client Problem", "displayName": "Client Problem", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Custom Pitch", "displayName": "Custom Pitch", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Reddit URL", "displayName": "Reddit URL", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Status", "displayName": "Status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-google-sheet-record",
+      "name": "Save Lead to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2220,
+        780
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RMmY56nFkrWF4wQC",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "1-Click: Create New Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Create & Name Google Sheet (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create & Name Google Sheet (API)": {
+      "main": [
+        [
+          {
+            "node": "Sheet Created Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reddit Every 15 Mins": {
+      "main": [
+        [
+          {
+            "node": "Expanded Subreddits List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Expanded Subreddits List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expanded Subreddits List": {
+      "main": [
+        [
+          {
+            "node": "Fetch Reddit RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Reddit RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Parse Reddit Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reddit Posts": {
+      "main": [
+        [
+          {
+            "node": "Filter: [HIRING] + WebDev + Budget + Today Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: [HIRING] + WebDev + Budget + Today Only": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Seen Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate Seen Posts": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Analyzer & Pitch Drafter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Lead Analyzer & Pitch Drafter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead Analyzer & Pitch Drafter": {
+      "main": [
+        [
+          {
+            "node": "Format Lead Alert Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Lead Alert Card": {
+      "main": [
+        [
+          {
+            "node": "Is Actionable Gig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Actionable Gig?": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Discord Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Gmail Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Save Lead to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
