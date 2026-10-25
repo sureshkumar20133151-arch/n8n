@@ -14,6 +14,22 @@
     },
     {
       "parameters": {
+        "httpMethod": "GET",
+        "path": "create-reddit-leads-sheet",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-init-sheet",
+      "name": "Webhook: Create Sheet via URL",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -260
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://sheets.googleapis.com/v4/spreadsheets",
         "authentication": "predefinedCredentialType",
@@ -48,6 +64,21 @@
       "typeVersion": 2,
       "position": [
         640,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Google Sheet successfully created with all 12 column headers!\",\n  \"spreadsheetId\": \"{{ $json.spreadsheetId }}\",\n  \"spreadsheetUrl\": \"{{ $json.spreadsheetUrl }}\"\n}",
+        "options": {}
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        860,
         -100
       ]
     },
@@ -380,11 +411,33 @@
         ]
       ]
     },
+    "Webhook: Create Sheet via URL": {
+      "main": [
+        [
+          {
+            "node": "Create & Name Google Sheet (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Create & Name Google Sheet (API)": {
       "main": [
         [
           {
             "node": "Sheet Created Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet Created Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
             "type": "main",
             "index": 0
           }
