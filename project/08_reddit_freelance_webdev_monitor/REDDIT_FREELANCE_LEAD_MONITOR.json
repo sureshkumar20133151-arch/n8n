@@ -38,13 +38,13 @@
         -96
       ],
       "parameters": {
-        "method": "POST",
-        "url": "https://sheets.googleapis.com/v4/spreadsheets",
+        "method": "PUT",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw/values/Reddit!A1:L1?valueInputOption=USER_ENTERED",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleSheetsOAuth2Api",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"properties\": {\n    \"title\": \"Reddit Freelance Leads - Web Development\"\n  },\n  \"sheets\": [\n    {\n      \"properties\": {\n        \"title\": \"Reddit Leads\",\n        \"gridProperties\": {\n          \"frozenRowCount\": 1\n        }\n      },\n      \"data\": [\n        {\n          \"startRow\": 0,\n          \"startColumn\": 0,\n          \"rowData\": [\n            {\n              \"values\": [\n                { \"userEnteredValue\": { \"stringValue\": \"Date\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Subreddit\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Post Title\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Client\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Budget\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Project Type\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Tech Stack\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Urgency\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Client Problem\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Custom Pitch\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Reddit URL\" } },\n                { \"userEnteredValue\": { \"stringValue\": \"Status\" } }\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}",
+        "jsonBody": "{\"range\": \"Reddit!A1:L1\", \"majorDimension\": \"ROWS\", \"values\": [[\"Date\", \"Subreddit\", \"Post Title\", \"Client\", \"Budget\", \"Project Type\", \"Tech Stack\", \"Urgency\", \"Client Problem\", \"Custom Pitch\", \"Reddit URL\", \"Status\"]]}",
         "options": {}
       },
       "credentials": {
@@ -360,12 +360,12 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "17tBLdLnSiRt0XxaTDm0JAeA50iNZQzFwJoq63MiHRNQ",
+          "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
           "mode": "id"
         },
         "sheetName": {
           "__rl": true,
-          "value": "Reddit Leads",
+          "value": "Reddit",
           "mode": "name"
         },
         "columns": {
