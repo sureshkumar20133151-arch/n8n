@@ -1,5 +1,16 @@
 {
+  "id": "KwSOFWeaCHM9B99C",
   "name": "Reddit Freelance Web Development Lead Monitor & Auto-Pitcher",
+  "description": null,
+  "active": true,
+  "activeVersionId": "46fcb68a-206b-4747-a9c1-74a803420948",
+  "createdAt": "2026-10-25T05:36:39.448Z",
+  "updatedAt": "2026-10-28T03:24:02.251Z",
+  "isArchived": false,
+  "versionId": "46fcb68a-206b-4747-a9c1-74a803420948",
+  "versionCounter": 33,
+  "sourceWorkflowId": null,
+  "triggerCount": 4,
   "nodes": [
     {
       "id": "node-trigger-init-sheet",
@@ -123,7 +134,7 @@
         368
       ],
       "parameters": {
-        "jsCode": "// Expanded list of top subreddits for freelance web development hiring\nreturn [\n  { json: { subreddit: \"forhire\", url: \"https://www.reddit.com/r/forhire/new.rss\" } },\n  { json: { subreddit: \"hiring\", url: \"https://www.reddit.com/r/hiring/new.rss\" } },\n  { json: { subreddit: \"jobbit\", url: \"https://www.reddit.com/r/jobbit/new.rss\" } },\n  { json: { subreddit: \"hireaprogrammer\", url: \"https://www.reddit.com/r/hireaprogrammer/new.rss\" } },\n  { json: { subreddit: \"remotejobs\", url: \"https://www.reddit.com/r/remotejobs/new.rss\" } },\n  { json: { subreddit: \"freelance_forhire\", url: \"https://www.reddit.com/r/freelance_forhire/new.rss\" } },\n  { json: { subreddit: \"webdev\", url: \"https://www.reddit.com/r/webdev/new.rss\" } },\n  { json: { subreddit: \"DesignJobs\", url: \"https://www.reddit.com/r/DesignJobs/new.rss\" } }\n];"
+        "jsCode": "return [\n  {\n    json: {\n      url: \"https://www.reddit.com/r/forhire+hiring+jobbit+hireaprogrammer+remotejobs+freelance_forhire+webdev+DesignJobs/new.rss\"\n    }\n  }\n];"
       }
     },
     {
@@ -134,6 +145,7 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
+      "continueOnFail": true,
       "position": [
         608,
         368
@@ -145,7 +157,7 @@
           "parameters": [
             {
               "name": "User-Agent",
-              "value": "FreelanceLeadRadar/3.0 (Contact: freelance-dev@monitor.local)"
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
             },
             {
               "name": "Accept",
@@ -154,7 +166,7 @@
           ]
         },
         "options": {
-          "timeout": 15000
+          "timeout": 20000
         }
       }
     },
@@ -168,7 +180,7 @@
         368
       ],
       "parameters": {
-        "jsCode": "// Parse Reddit Atom/RSS XML into structured post items\nconst xml = $input.first().json.data || $input.first().json.body || $input.first().json;\nconst subreddit = $('Expanded Subreddits List').item.json.subreddit || 'reddit';\n\nconst rawXml = typeof xml === 'string' ? xml : JSON.stringify(xml);\nconst entries = [];\nconst entryRegex = /<entry>([\\s\\S]*?)<\\/entry>/gi;\nlet match;\n\nwhile ((match = entryRegex.exec(rawXml)) !== null) {\n  const block = match[1];\n  const id = (block.match(/<id>([^<]+)<\\/id>/i) || [])[1] || '';\n  const rawTitle = (block.match(/<title>([^<]+)<\\/title>/i) || [])[1] || '';\n  const linkMatch = block.match(/<link[^>]+href=[\"']([^\"']+)[\"']/i);\n  const link = linkMatch ? linkMatch[1] : '';\n  const author = (block.match(/<author>[\\s\\S]*?<name>([^<]+)<\\/name>/i) || [])[1] || '';\n  const published = (block.match(/<published>([^<]+)<\\/published>/i) || [])[1] || '';\n  const rawContent = (block.match(/<content[^>]*>([\\s\\S]*?)<\\/content>/i) || [])[1] || '';\n\n  // Decode HTML entities and clean HTML tags\n  const cleanContent = rawContent\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  const title = rawTitle\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .trim();\n\n  if (id && title) {\n    entries.push({\n      json: {\n        id,\n        title,\n        link,\n        author,\n        subreddit: 'r/' + subreddit,\n        published,\n        content: cleanContent\n      }\n    });\n  }\n}\n\nreturn entries;"
+        "jsCode": "const rawXml = $input.first().json.data || $input.first().json.body || (typeof $input.first().json === 'string' ? $input.first().json : JSON.stringify($input.first().json));\nconst entries = [];\nconst entryRegex = /<entry>([\\s\\S]*?)<\\/entry>/gi;\nlet match;\n\nwhile ((match = entryRegex.exec(rawXml)) !== null) {\n  const block = match[1];\n  const id = (block.match(/<id>([^<]+)<\\/id>/i) || [])[1] || '';\n  const rawTitle = (block.match(/<title>([^<]+)<\\/title>/i) || [])[1] || '';\n  const linkMatch = block.match(/<link[^>]+href=[\"']([^\"']+)[\"']/i);\n  const link = linkMatch ? linkMatch[1] : '';\n  const author = (block.match(/<author>[\\s\\S]*?<name>([^<]+)<\\/name>/i) || [])[1] || '';\n  const published = (block.match(/<published>([^<]+)<\\/published>/i) || [])[1] || '';\n  const rawContent = (block.match(/<content[^>]*>([\\s\\S]*?)<\\/content>/i) || [])[1] || '';\n  const catMatch = block.match(/<category[^>]+term=\"([^\"]+)\"/i);\n  const subreddit = catMatch ? 'r/' + catMatch[1] : 'r/forhire';\n\n  const cleanContent = rawContent\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  const title = rawTitle\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .trim();\n\n  if (id && title) {\n    entries.push({\n      json: {\n        id,\n        title,\n        link,\n        author,\n        subreddit,\n        published,\n        content: cleanContent\n      }\n    });\n  }\n}\n\nreturn entries;"
       }
     },
     {
@@ -181,7 +193,7 @@
         368
       ],
       "parameters": {
-        "jsCode": "// STRICT FILTER:\n// 1. Must be [HIRING] (Clients seeking freelancers)\n// 2. Reject [FOR HIRE] (Freelancers advertising)\n// 3. Website / Fullstack / Frontend / Backend Web Development Keywords\n// 4. TODAY ONLY: Published within the last 24 hours\n// 5. BUDGET MENTION REQUIRED: Must state explicit budget, hourly rate, or currency\n\nconst items = $input.all();\nconst results = [];\nconst now = new Date();\n\n// Web Development Keywords Regex\nconst webDevRegex = /\\b(web|website|web\\s*app|frontend|front\\s*end|backend|back\\s*end|fullstack|full\\s*stack|developer|software\\s*engineer|react|nextjs|next\\.js|vue|angular|node|nodejs|node\\.js|javascript|typescript|wordpress|shopify|woocommerce|landing\\s*page|tailwind|html|css|php|laravel|django|python|saas)\\b/i;\n\n// Budget & Rate Regex (Must match $, \u20ac, \u00a3, USD, EUR, /hr, or 'budget: ...')\nconst budgetRegex = /([$\u20ac\u00a3]\\s*[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k\\b|\\/hr|\\/hour|hr|per hour))?)|(\\b[\\d,]+(?:\\.\\d+)?\\s*(?:usd|eur|gbp|cad|aud|\\/hr|per hour)\\b)|(\\bbudget\\s*[:=-]?\\s*[$\u20ac\u00a3]?[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k|usd|eur|gbp))?)|(\\b(?:rate|pay|compensation|fixed)\\s*[:=-]?\\s*[$\u20ac\u00a3]?[\\d,]+(?:\\.\\d+)?)/i;\n\n// Explicitly unpaid / equity only keywords to exclude\nconst unpaidRegex = /\\b(equity only|unpaid|no budget|zero budget|rev\\s*share only|revenue share only)\\b/i;\n\nfor (const item of items) {\n  const title = item.json.title || '';\n  const content = item.json.content || '';\n  const author = item.json.author || '';\n  const published = item.json.published || '';\n  const combinedText = title + ' ' + content;\n\n  // Exclude bot or deleted accounts\n  if (author === '/u/AutoModerator' || author === '[deleted]') continue;\n\n  // Reject [FOR HIRE] (Freelancers offering services)\n  const isForHire = /\\[for\\s*hire\\]|^for\\s*hire/i.test(title);\n  if (isForHire) continue;\n\n  // Must explicitly be a client hiring\n  const isHiring = /\\[hiring\\]|^hiring\\b/i.test(title) || /hiring/i.test(item.json.subreddit);\n  if (!isHiring) continue;\n\n  // Filter 1: Website & Software Development relevance\n  const isWebDev = webDevRegex.test(title) || webDevRegex.test(content);\n  if (!isWebDev) continue;\n\n  // Filter 2: TODAY ONLY (Within last 24 hours)\n  const publishedDate = new Date(published);\n  const diffHours = (now - publishedDate) / (1000 * 60 * 60);\n  if (isNaN(diffHours) || diffHours > 24 || diffHours < -1) continue;\n\n  // Filter 3: BUDGET MENTION REQUIRED\n  if (unpaidRegex.test(combinedText)) continue;\n  const budgetMatch = combinedText.match(budgetRegex);\n  if (!budgetMatch) continue;\n\n  const detectedBudget = budgetMatch[0].trim();\n\n  // Format published time for display (e.g. \"3 hours ago\")\n  const hoursAgo = Math.max(0, Math.round(diffHours));\n  const timeAgoStr = hoursAgo === 0 ? 'Just now (Today)' : `${hoursAgo} hr${hoursAgo > 1 ? 's' : ''} ago (Today)`;\n\n  results.push({\n    json: {\n      ...item.json,\n      detectedBudget,\n      timeAgoStr\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "// UNIFIED FILTER FOR REDDIT + REMOTEOK / WEWORKREMOTELY\nconst items = $input.all();\nconst results = [];\nconst now = new Date();\n\n// Tech & Web Dev Keywords\nconst webDevRegex = /\\b(web|website|web\\s*app|frontend|front\\s*end|backend|back\\s*end|fullstack|full\\s*stack|developer|software\\s*engineer|react|nextjs|next\\.js|vue|angular|node|nodejs|node\\.js|javascript|typescript|wordpress|shopify|woocommerce|landing\\s*page|tailwind|html|css|php|laravel|django|python|saas|api)\\b/i;\n\n// Budget regex\nconst budgetRegex = /([$\u20ac\u00a3]\\s*[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k\\b|\\/hr|\\/hour|hr|per hour))?)|(\\b[\\d,]+(?:\\.\\d+)?\\s*(?:usd|eur|gbp|cad|aud|\\/hr|per hour)\\b)|(\\bbudget\\s*[:=-]?\\s*[$\u20ac\u00a3]?[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k|usd|eur|gbp))?)|(\\b(?:rate|pay|compensation|fixed)\\s*[:=-]?\\s*[$\u20ac\u00a3]?[\\d,]+(?:\\.\\d+)?)/i;\n\nfor (const item of items) {\n  const title = item.json.title || '';\n  const content = item.json.content || '';\n  const author = item.json.author || '';\n  const combinedText = title + ' ' + content;\n\n  // Exclude bot or spam\n  if (author === '/u/AutoModerator' || author === '[deleted]') continue;\n\n  // Reject [FOR HIRE]\n  if (/\\[for\\s*hire\\]|^for\\s*hire/i.test(title)) continue;\n\n  // Filter 1: Must be web development / engineering\n  const isWebDev = webDevRegex.test(title) || webDevRegex.test(content);\n  if (!isWebDev) continue;\n\n  // Detect budget\n  let detectedBudget = item.json.detectedBudget || '';\n  if (!detectedBudget) {\n    const budgetMatch = combinedText.match(budgetRegex);\n    if (budgetMatch) {\n      detectedBudget = budgetMatch[0].trim();\n    } else if (item.json.subreddit === 'RemoteOK') {\n      detectedBudget = 'Competitive / Market Rate';\n    }\n  }\n\n  // Format time display\n  const publishedDate = new Date(item.json.published || now);\n  const diffHours = (now - publishedDate) / (1000 * 60 * 60);\n  const hoursAgo = isNaN(diffHours) ? 1 : Math.max(0, Math.round(diffHours));\n  const timeAgoStr = hoursAgo === 0 ? 'Just now (Today)' : `${hoursAgo} hr${hoursAgo > 1 ? 's' : ''} ago`;\n\n  results.push({\n    json: {\n      ...item.json,\n      detectedBudget: detectedBudget || '$50 - $100/hr (Estimated)',\n      timeAgoStr\n    }\n  });\n}\n\nreturn results;"
       }
     },
     {
@@ -194,7 +206,7 @@
         368
       ],
       "parameters": {
-        "jsCode": "// Deduplicate across repeated scheduled runs\n// Uses n8n workflow static data to remember already-processed post IDs\nconst staticData = $getWorkflowStaticData('global');\nstaticData.processedIds = staticData.processedIds || [];\n\nconst items = $input.all();\nconst freshLeads = [];\n\nfor (const item of items) {\n  const id = item.json.id;\n  if (!staticData.processedIds.includes(id)) {\n    staticData.processedIds.push(id);\n    freshLeads.push(item);\n  }\n}\n\n// Retain only last 500 IDs to keep state lightweight\nif (staticData.processedIds.length > 500) {\n  staticData.processedIds = staticData.processedIds.slice(-500);\n}\n\nreturn freshLeads;"
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.processedIds = [];\n\nconst items = $input.all();\nconst freshLeads = items.slice(0, 3);\n\nfor (const itm of freshLeads) {\n  staticData.processedIds.push(itm.json.id);\n}\n\nreturn freshLeads;"
       }
     },
     {
@@ -202,6 +214,9 @@
       "name": "AI Lead Analyzer & Pitch Drafter",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
       "position": [
         1504,
         368
@@ -221,6 +236,7 @@
         560
       ],
       "parameters": {
+        "modelName": "gemini-3.5-flash-lite",
         "options": {
           "temperature": 0.2
         }
@@ -328,6 +344,7 @@
       "webhookId": "f50ccd61-f131-4491-8b96-f3217e6669ed",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
+      "continueOnFail": true,
       "position": [
         2224,
         592
@@ -503,6 +520,97 @@
           "name": "Google Sheets account 2"
         }
       }
+    },
+    {
+      "id": "node-webhook-manual-run",
+      "name": "Webhook: Manual Run",
+      "webhookId": "17d4bcc7-a3f2-4cbc-abdb-c11ae79c0cf3",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        160,
+        640
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "run-reddit-monitor-now",
+        "responseMode": "onReceived",
+        "responseData": "Workflow execution started! Monitoring 8 subreddits...",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-webhook-reddit-ingest",
+      "name": "Webhook: Local Reddit Ingest",
+      "webhookId": "3a6fb4b5-dab0-41d2-87dd-a3dedd5cf495",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        380,
+        560
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reddit-lead-ingest",
+        "responseMode": "onReceived",
+        "responseData": "Reddit posts received and queued for AI analysis!",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-unpack-reddit",
+      "name": "Unpack Ingested Reddit Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        560
+      ],
+      "parameters": {
+        "jsCode": "// Extract array of posts forwarded from local Reddit relay\nconst body = $input.first().json.body || $input.first().json;\nconst posts = Array.isArray(body.posts) ? body.posts : (Array.isArray(body) ? body : [body]);\n\nconst formatted = [];\nfor (const p of posts) {\n  if (p && (p.title || p.content)) {\n    formatted.push({\n      json: {\n        id: p.id || ('reddit_' + Math.random().toString(36).substring(7)),\n        title: p.title || 'Freelance Lead',\n        link: p.link || p.url || 'https://reddit.com',\n        author: p.author || '/u/reddit_client',\n        subreddit: p.subreddit ? (p.subreddit.startsWith('r/') ? p.subreddit : 'r/' + p.subreddit) : 'r/forhire',\n        published: p.published || new Date().toISOString(),\n        content: p.content || p.selftext || p.title || ''\n      }\n    });\n  }\n}\n\nreturn formatted;"
+      }
+    },
+    {
+      "id": "node-fetch-cloud-gigs",
+      "name": "Fetch Cloud Remote Gigs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        260
+      ],
+      "parameters": {
+        "url": "https://remoteok.com/api?tag=dev",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      }
+    },
+    {
+      "id": "node-parse-cloud-gigs",
+      "name": "Parse Cloud Remote Gigs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        260
+      ],
+      "parameters": {
+        "jsCode": "// Parse RemoteOK & WeWorkRemotely high-paying developer leads\nconst items = $input.all();\nconst gigs = [];\n\nfor (const item of items) {\n  // RemoteOK array\n  const list = Array.isArray(item.json) ? item.json : (item.json.data ? item.json.data : [item.json]);\n  for (const job of list) {\n    if (!job || !job.position) continue;\n    \n    // Skip terms/legal item\n    if (job.legal || job.company === 'Remote OK') continue;\n\n    const company = job.company || 'Tech Company';\n    const position = job.position || 'Web Developer';\n    const tags = Array.isArray(job.tags) ? job.tags.join(', ') : (job.tags || 'Web Dev');\n    \n    // Format detected budget/salary\n    let budget = 'Competitive / Market Rate';\n    if (job.salary_min && job.salary_min > 0) {\n      budget = `$${Math.round(job.salary_min/1000)}k - $${Math.round(job.salary_max/1000)}k/yr`;\n    }\n\n    const title = `[HIRING] ${company} is hiring ${position}`;\n    const desc = (job.description || '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n    const snippet = desc.substring(0, 500) + '...';\n\n    gigs.push({\n      json: {\n        id: 'remoteok_' + (job.id || Math.random().toString(36).substring(7)),\n        title: title,\n        link: job.url || 'https://remoteok.com',\n        author: company,\n        subreddit: 'RemoteOK',\n        published: job.date || new Date().toISOString(),\n        content: `Role: ${position}. Company: ${company}. Tech: ${tags}. Compensation: ${budget}. Details: ${snippet}`,\n        detectedBudget: budget\n      }\n    });\n  }\n}\n\n// Ultra-low RAM optimization for free tier: keep top 15 newest gigs\nreturn gigs.slice(0, 15);"
+      }
     }
   ],
   "connections": {
@@ -554,7 +662,7 @@
       "main": [
         [
           {
-            "node": "Expanded Subreddits List",
+            "node": "Fetch Cloud Remote Gigs",
             "type": "main",
             "index": 0
           }
@@ -690,11 +798,974 @@
       "main": [
         []
       ]
+    },
+    "Webhook: Manual Run": {
+      "main": [
+        [
+          {
+            "node": "Fetch Cloud Remote Gigs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Cloud Remote Gigs": {
+      "main": [
+        [
+          {
+            "node": "Parse Cloud Remote Gigs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Cloud Remote Gigs": {
+      "main": [
+        [
+          {
+            "node": "Filter: [HIRING] + WebDev + Budget + Today Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Local Reddit Ingest": {
+      "main": [
+        [
+          {
+            "node": "Unpack Ingested Reddit Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unpack Ingested Reddit Posts": {
+      "main": [
+        [
+          {
+            "node": "Filter: [HIRING] + WebDev + Budget + Today Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
+  "nodeGroups": [],
   "settings": {
     "executionOrder": "v1",
     "availableInMCP": true,
     "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Check Reddit Every 15 Mins": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "global": {
+      "processedIds": [
+        "remoteok_1137573",
+        "remoteok_1137572",
+        "remoteok_1137571"
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [],
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "KwSOFWeaCHM9B99C",
+      "projectId": "MeSj0Py0w9dF2YKh",
+      "project": {
+        "id": "MeSj0Py0w9dF2YKh",
+        "name": "Suresh sureshkumar20133151@gmail.com <sureshkumar20133151@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-14T19:07:43.229Z",
+        "updatedAt": "2026-10-14T19:15:03.532Z"
+      },
+      "createdAt": "2026-10-25T05:36:39.448Z",
+      "updatedAt": "2026-10-25T05:36:39.448Z"
+    }
+  ],
+  "activeVersion": {
+    "versionId": "46fcb68a-206b-4747-a9c1-74a803420948",
+    "workflowId": "KwSOFWeaCHM9B99C",
+    "nodes": [
+      {
+        "id": "node-trigger-init-sheet",
+        "name": "1-Click: Create New Google Sheet",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          160,
+          -96
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "node-webhook-init-sheet",
+        "name": "Webhook: Create Sheet via URL",
+        "webhookId": "c041d300-d948-4758-9e11-d84b43272592",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          160,
+          -256
+        ],
+        "parameters": {
+          "path": "create-reddit-leads-sheet",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "node-api-create-sheet",
+        "name": "Create & Name Google Sheet (API)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          400,
+          -96
+        ],
+        "parameters": {
+          "method": "PUT",
+          "url": "https://sheets.googleapis.com/v4/spreadsheets/1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw/values/Reddit!A1:L1?valueInputOption=USER_ENTERED",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleSheetsOAuth2Api",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\"range\": \"Reddit!A1:L1\", \"majorDimension\": \"ROWS\", \"values\": [[\"Date\", \"Subreddit\", \"Post Title\", \"Client\", \"Budget\", \"Project Type\", \"Tech Stack\", \"Urgency\", \"Client Problem\", \"Custom Pitch\", \"Reddit URL\", \"Status\"]]}",
+          "options": {}
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "XtknJPUddSwDeQRl",
+            "name": "Google Sheets account 2"
+          }
+        }
+      },
+      {
+        "id": "node-init-sheet-success",
+        "name": "Sheet Created Confirmation",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          640,
+          -96
+        ],
+        "parameters": {
+          "jsCode": "const res = $input.first().json;\nconst spreadsheetId = res.spreadsheetId;\nconst spreadsheetUrl = res.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;\nconst title = res.properties ? res.properties.title : 'Reddit Freelance Leads - Web Development';\n\nreturn [{\n  json: {\n    status: \"SUCCESS_SHEET_CREATED\",\n    title,\n    spreadsheetId,\n    spreadsheetUrl,\n    message: `\ud83c\udf89 Google Sheet '${title}' successfully created with all 12 columns!`\n  }\n}];"
+        }
+      },
+      {
+        "id": "node-respond-webhook",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          864,
+          -96
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Google Sheet successfully created with all 12 column headers!\",\n  \"spreadsheetId\": \"{{ $json.spreadsheetId }}\",\n  \"spreadsheetUrl\": \"{{ $json.spreadsheetUrl }}\"\n}",
+          "options": {}
+        }
+      },
+      {
+        "id": "node-schedule-trigger",
+        "name": "Check Reddit Every 15 Mins",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          160,
+          288
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 15
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "node-manual-trigger",
+        "name": "Manual Test Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          160,
+          464
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "node-feed-sources",
+        "name": "Expanded Subreddits List",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          384,
+          368
+        ],
+        "parameters": {
+          "jsCode": "return [\n  {\n    json: {\n      url: \"https://www.reddit.com/r/forhire+hiring+jobbit+hireaprogrammer+remotejobs+freelance_forhire+webdev+DesignJobs/new.rss\"\n    }\n  }\n];"
+        }
+      },
+      {
+        "id": "node-fetch-feed",
+        "name": "Fetch Reddit RSS Feed",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 3000,
+        "continueOnFail": true,
+        "position": [
+          608,
+          368
+        ],
+        "parameters": {
+          "url": "={{ $json.url }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+              },
+              {
+                "name": "Accept",
+                "value": "application/atom+xml,application/xml,text/xml"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        }
+      },
+      {
+        "id": "node-parse-xml",
+        "name": "Parse Reddit Posts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          832,
+          368
+        ],
+        "parameters": {
+          "jsCode": "const rawXml = $input.first().json.data || $input.first().json.body || (typeof $input.first().json === 'string' ? $input.first().json : JSON.stringify($input.first().json));\nconst entries = [];\nconst entryRegex = /<entry>([\\s\\S]*?)<\\/entry>/gi;\nlet match;\n\nwhile ((match = entryRegex.exec(rawXml)) !== null) {\n  const block = match[1];\n  const id = (block.match(/<id>([^<]+)<\\/id>/i) || [])[1] || '';\n  const rawTitle = (block.match(/<title>([^<]+)<\\/title>/i) || [])[1] || '';\n  const linkMatch = block.match(/<link[^>]+href=[\"']([^\"']+)[\"']/i);\n  const link = linkMatch ? linkMatch[1] : '';\n  const author = (block.match(/<author>[\\s\\S]*?<name>([^<]+)<\\/name>/i) || [])[1] || '';\n  const published = (block.match(/<published>([^<]+)<\\/published>/i) || [])[1] || '';\n  const rawContent = (block.match(/<content[^>]*>([\\s\\S]*?)<\\/content>/i) || [])[1] || '';\n  const catMatch = block.match(/<category[^>]+term=\"([^\"]+)\"/i);\n  const subreddit = catMatch ? 'r/' + catMatch[1] : 'r/forhire';\n\n  const cleanContent = rawContent\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  const title = rawTitle\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .trim();\n\n  if (id && title) {\n    entries.push({\n      json: {\n        id,\n        title,\n        link,\n        author,\n        subreddit,\n        published,\n        content: cleanContent\n      }\n    });\n  }\n}\n\nreturn entries;"
+        }
+      },
+      {
+        "id": "node-filter-webdev-hiring",
+        "name": "Filter: [HIRING] + WebDev + Budget + Today Only",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1040,
+          368
+        ],
+        "parameters": {
+          "jsCode": "// UNIFIED FILTER FOR REDDIT + REMOTEOK / WEWORKREMOTELY\nconst items = $input.all();\nconst results = [];\nconst now = new Date();\n\n// Tech & Web Dev Keywords\nconst webDevRegex = /\\b(web|website|web\\s*app|frontend|front\\s*end|backend|back\\s*end|fullstack|full\\s*stack|developer|software\\s*engineer|react|nextjs|next\\.js|vue|angular|node|nodejs|node\\.js|javascript|typescript|wordpress|shopify|woocommerce|landing\\s*page|tailwind|html|css|php|laravel|django|python|saas|api)\\b/i;\n\n// Budget regex\nconst budgetRegex = /([$\u20ac\u00a3]\\s*[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k\\b|\\/hr|\\/hour|hr|per hour))?)|(\\b[\\d,]+(?:\\.\\d+)?\\s*(?:usd|eur|gbp|cad|aud|\\/hr|per hour)\\b)|(\\bbudget\\s*[:=-]?\\s*[$\u20ac\u00a3]?[\\d,]+(?:\\.\\d+)?(?:\\s*(?:k|usd|eur|gbp))?)|(\\b(?:rate|pay|compensation|fixed)\\s*[:=-]?\\s*[$\u20ac\u00a3]?[\\d,]+(?:\\.\\d+)?)/i;\n\nfor (const item of items) {\n  const title = item.json.title || '';\n  const content = item.json.content || '';\n  const author = item.json.author || '';\n  const combinedText = title + ' ' + content;\n\n  // Exclude bot or spam\n  if (author === '/u/AutoModerator' || author === '[deleted]') continue;\n\n  // Reject [FOR HIRE]\n  if (/\\[for\\s*hire\\]|^for\\s*hire/i.test(title)) continue;\n\n  // Filter 1: Must be web development / engineering\n  const isWebDev = webDevRegex.test(title) || webDevRegex.test(content);\n  if (!isWebDev) continue;\n\n  // Detect budget\n  let detectedBudget = item.json.detectedBudget || '';\n  if (!detectedBudget) {\n    const budgetMatch = combinedText.match(budgetRegex);\n    if (budgetMatch) {\n      detectedBudget = budgetMatch[0].trim();\n    } else if (item.json.subreddit === 'RemoteOK') {\n      detectedBudget = 'Competitive / Market Rate';\n    }\n  }\n\n  // Format time display\n  const publishedDate = new Date(item.json.published || now);\n  const diffHours = (now - publishedDate) / (1000 * 60 * 60);\n  const hoursAgo = isNaN(diffHours) ? 1 : Math.max(0, Math.round(diffHours));\n  const timeAgoStr = hoursAgo === 0 ? 'Just now (Today)' : `${hoursAgo} hr${hoursAgo > 1 ? 's' : ''} ago`;\n\n  results.push({\n    json: {\n      ...item.json,\n      detectedBudget: detectedBudget || '$50 - $100/hr (Estimated)',\n      timeAgoStr\n    }\n  });\n}\n\nreturn results;"
+        }
+      },
+      {
+        "id": "node-deduplicate",
+        "name": "Deduplicate Seen Posts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1264,
+          368
+        ],
+        "parameters": {
+          "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.processedIds = [];\n\nconst items = $input.all();\nconst freshLeads = items.slice(0, 3);\n\nfor (const itm of freshLeads) {\n  staticData.processedIds.push(itm.json.id);\n}\n\nreturn freshLeads;"
+        }
+      },
+      {
+        "id": "node-ai-pitch-generator",
+        "name": "AI Lead Analyzer & Pitch Drafter",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1.4,
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "position": [
+          1504,
+          368
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "=You are an expert Freelance Web Development Client Acquisition Specialist.\n\nAnalyze this Reddit freelance client hiring post and craft a winning response proposal.\n\n=== REDDIT POST ===\nSubreddit: {{ $json.subreddit }}\nTitle: {{ $json.title }}\nAuthor: {{ $json.author }}\nPosted: {{ $json.timeAgoStr }}\nDetected Budget: {{ $json.detectedBudget }}\nFull Post Details:\n{{ $json.content }}\n\n=== OBJECTIVE ===\n1. Confirm this is an actionable website / web app / software freelance gig with a real budget.\n2. Extract estimated budget, required tech stack, and client's core problem.\n3. Write a high-converting, personalized 3-sentence DM proposal ready to send to the client on Reddit.\n\n=== PITCH GUIDELINES ===\n- Zero generic fluff (NO 'I hope this finds you well', NO 'I have 8+ years experience').\n- Sentence 1: Acknowledge their exact goal or pain point directly.\n- Sentence 2: State exactly how you'd execute it and what similar web project you've completed.\n- Sentence 3: Low-friction CTA (e.g., 'Happy to show you a quick live demo or prototype if you have 5 minutes').\n- Tone: Professional, competent, direct.\n\n=== OUTPUT FORMAT (RETURN ONLY VALID JSON) ===\n{\n  \"is_actionable\": true,\n  \"project_type\": \"e.g. Next.js SaaS MVP / WordPress Redesign / Shopify Store / Full-stack Web App\",\n  \"budget\": \"e.g. $1,500 / $45/hr\",\n  \"tech_stack\": \"e.g. React, Next.js, Tailwind, Node.js\",\n  \"urgency\": \"Urgent / Medium / Flexible\",\n  \"client_summary\": \"1-sentence summary of what the client needs\",\n  \"custom_pitch\": \"The exact 3-sentence proposal to DM the client\"\n}"
+        }
+      },
+      {
+        "id": "node-gemini-chat-model",
+        "name": "Google Gemini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          1504,
+          560
+        ],
+        "parameters": {
+          "modelName": "gemini-3.5-flash-lite",
+          "options": {
+            "temperature": 0.2
+          }
+        },
+        "credentials": {
+          "googlePalmApi": {
+            "id": "CjKY06ijITLYe9k4",
+            "name": "Google Gemini(PaLM) Api account"
+          }
+        }
+      },
+      {
+        "id": "node-format-lead-payload",
+        "name": "Format Lead Alert Card",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1744,
+          368
+        ],
+        "parameters": {
+          "jsCode": "// Clean up JSON fences and combine AI analysis with original Reddit post data\nconst items = $input.all();\nconst results = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const rawOutput = items[i].json.text || items[i].json.output || items[i].json.content || '';\n  const cleanJsonStr = rawOutput.replace(/```json|```/gi, '').trim();\n  const original = $('Deduplicate Seen Posts').all()[i].json;\n  \n  let aiData = {};\n  try {\n    aiData = JSON.parse(cleanJsonStr);\n  } catch (err) {\n    aiData = {\n      is_actionable: true,\n      project_type: \"Website Development Project\",\n      budget: original.detectedBudget || \"Specified in post\",\n      tech_stack: \"Web Technologies\",\n      urgency: \"Normal\",\n      client_summary: original.title,\n      custom_pitch: \"Hi, I saw your website development post and have relevant experience with this exact stack. I can help you build this out cleanly.\"\n    };\n  }\n\n  const finalBudget = aiData.budget || original.detectedBudget || 'Specified in post';\n  const authorName = (original.author || '').replace('/u/', '');\n  const cleanPitch = aiData.custom_pitch || '';\n  const dateFormatted = original.published ? new Date(original.published).toISOString().replace('T', ' ').substring(0, 16) : new Date().toISOString().replace('T', ' ').substring(0, 16);\n\n  // Telegram / Discord formatted markdown message\n  const formattedMessage = `\ud83d\udea8 *NEW REDDIT WEB DEV CLIENT FOUND (TODAY)!*\\n\\n` +\n    `\ud83d\udccc *Subreddit:* ${original.subreddit}\\n` +\n    `\ud83c\udff7\ufe0f *Title:* ${original.title}\\n` +\n    `\ud83d\udc64 *Client:* [${original.author}](https://reddit.com/user/${authorName})\\n` +\n    `\ud83d\udcb0 *Budget Mentioned:* *${finalBudget}*\\n` +\n    `\u23f0 *Posted:* ${original.timeAgoStr}\\n` +\n    `\ud83d\udee0\ufe0f *Tech Stack:* ${aiData.tech_stack || 'Web Tech'}\\n` +\n    `\u26a1 *Urgency:* ${aiData.urgency || 'Normal'}\\n\\n` +\n    `\ud83d\udcdd *What They Need:*\\n${aiData.client_summary || original.title}\\n\\n` +\n    `\ud83d\udcac *Recommended DM Pitch (Copy & Send):*\\n\"${cleanPitch}\"\\n\\n` +\n    `\ud83d\udd17 *Direct Link to Apply:*\\n${original.link}`;\n\n  // Sleek HTML Email Dossier for Gmail Alert\n  const emailSubject = `\ud83d\udea8 [Reddit Lead] ${aiData.project_type || 'Web Dev'} (${finalBudget}) - ${original.subreddit}`;\n  const htmlEmailMessage = `\n<div style=\"max-width: 620px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);\">\n  <div style=\"background: linear-gradient(135deg, #ff4500 0%, #ea580c 100%); padding: 24px 28px; color: #ffffff;\">\n    <span style=\"background: rgba(255,255,255,0.22); padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;\">Actionable Freelance Gig</span>\n    <h1 style=\"margin: 12px 0 0; font-size: 20px; font-weight: 700; line-height: 1.3;\">${original.title}</h1>\n  </div>\n  <div style=\"padding: 28px; color: #334155; font-size: 14px; line-height: 1.6;\">\n    <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 14px;\">\n      <tr><td style=\"padding: 6px 0; color: #64748b; width: 140px;\"><strong>\ud83d\udcb0 Budget:</strong></td><td style=\"padding: 6px 0; color: #16a34a; font-weight: 700; font-size: 16px;\">${finalBudget}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>\ud83d\udccc Subreddit:</strong></td><td style=\"padding: 6px 0; color: #0f172a; font-weight: 600;\">${original.subreddit}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>\ud83d\udc64 Client:</strong></td><td style=\"padding: 6px 0;\"><a href=\"https://reddit.com/user/${authorName}\" style=\"color: #2563eb; text-decoration: none; font-weight: 600;\">${original.author}</a></td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>\u23f0 Time:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">${original.timeAgoStr}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>\ud83d\udee0\ufe0f Tech Stack:</strong></td><td style=\"padding: 6px 0; color: #0f172a; font-weight: 600;\">${aiData.tech_stack || 'Web Tech'}</td></tr>\n      <tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>\u26a1 Urgency:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">${aiData.urgency || 'Normal'}</td></tr>\n    </table>\n    <div style=\"background-color: #f8fafc; border-left: 4px solid #ff4500; padding: 14px 18px; margin-bottom: 22px; border-radius: 4px;\">\n      <h3 style=\"margin: 0 0 6px; font-size: 13px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;\">What the Client Needs:</h3>\n      <p style=\"margin: 0; color: #334155;\">${aiData.client_summary || original.title}</p>\n    </div>\n    <div style=\"background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px; margin-bottom: 26px;\">\n      <div style=\"margin-bottom: 8px; font-weight: 700; color: #166534; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;\">\ud83d\udcac Recommended DM Proposal (Copy & Send):</div>\n      <p style=\"margin: 0; color: #14532d; font-style: italic; font-size: 15px; line-height: 1.5;\">\"${cleanPitch}\"</p>\n    </div>\n    <div style=\"text-align: center; margin: 24px 0 10px;\">\n      <a href=\"${original.link}\" style=\"display: inline-block; background-color: #ff4500; color: #ffffff; padding: 13px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(255, 69, 0, 0.25);\">\n        \ud83d\ude80 Open Reddit Post & Apply Now &rarr;\n      </a>\n    </div>\n  </div>\n</div>`;\n\n  results.push({\n    json: {\n      ...original,\n      ...aiData,\n      budget: finalBudget,\n      dateFormatted,\n      status: \"New Lead\",\n      formattedMessage,\n      emailSubject,\n      htmlEmailMessage\n    }\n  });\n}\n\nreturn results;"
+        }
+      },
+      {
+        "id": "node-filter-actionable",
+        "name": "Is Actionable Gig?",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2,
+        "position": [
+          1968,
+          368
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "filter-actionable",
+                "leftValue": "={{ $json.is_actionable }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "node-telegram-alert",
+        "name": "Send Telegram Alert",
+        "webhookId": "8beabd7a-c231-42df-9610-1a78dea4be44",
+        "disabled": true,
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2224,
+          192
+        ],
+        "parameters": {
+          "chatId": "YOUR_TELEGRAM_CHAT_ID",
+          "text": "={{ $json.formattedMessage }}",
+          "additionalFields": {
+            "parse_mode": "Markdown"
+          }
+        }
+      },
+      {
+        "id": "node-discord-alert",
+        "name": "Send Discord Webhook",
+        "disabled": true,
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2224,
+          384
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://discord.com/api/webhooks/YOUR_DISCORD_WEBHOOK_URL",
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "content",
+                "value": "={{ $json.formattedMessage }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "node-gmail-alert",
+        "name": "Send Gmail Alert",
+        "webhookId": "f50ccd61-f131-4491-8b96-f3217e6669ed",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "continueOnFail": true,
+        "position": [
+          2224,
+          592
+        ],
+        "parameters": {
+          "sendTo": "sureshkumar20133151@gmail.com",
+          "subject": "={{ $json.emailSubject }}",
+          "message": "={{ $json.htmlEmailMessage }}",
+          "options": {}
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "cwBPj5LyhtzfYo07",
+            "name": "Gmail account"
+          }
+        }
+      },
+      {
+        "id": "node-google-sheet-record",
+        "name": "Save Lead to Google Sheet",
+        "disabled": false,
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "continueOnFail": true,
+        "position": [
+          2224,
+          784
+        ],
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+            "mode": "id"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "Reddit",
+            "mode": "name"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Date": "={{ $json.dateFormatted }}",
+              "Subreddit": "={{ $json.subreddit }}",
+              "Post Title": "={{ $json.title }}",
+              "Client": "={{ $json.author }}",
+              "Budget": "={{ $json.budget }}",
+              "Project Type": "={{ $json.project_type }}",
+              "Tech Stack": "={{ $json.tech_stack }}",
+              "Urgency": "={{ $json.urgency }}",
+              "Client Problem": "={{ $json.client_summary }}",
+              "Custom Pitch": "={{ $json.custom_pitch }}",
+              "Reddit URL": "={{ $json.link }}",
+              "Status": "={{ $json.status }}"
+            },
+            "schema": [
+              {
+                "id": "Date",
+                "displayName": "Date",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Subreddit",
+                "displayName": "Subreddit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Post Title",
+                "displayName": "Post Title",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Client",
+                "displayName": "Client",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Budget",
+                "displayName": "Budget",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Project Type",
+                "displayName": "Project Type",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Tech Stack",
+                "displayName": "Tech Stack",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Urgency",
+                "displayName": "Urgency",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Client Problem",
+                "displayName": "Client Problem",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Custom Pitch",
+                "displayName": "Custom Pitch",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Reddit URL",
+                "displayName": "Reddit URL",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Status",
+                "displayName": "Status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "XtknJPUddSwDeQRl",
+            "name": "Google Sheets account 2"
+          }
+        }
+      },
+      {
+        "id": "node-webhook-manual-run",
+        "name": "Webhook: Manual Run",
+        "webhookId": "17d4bcc7-a3f2-4cbc-abdb-c11ae79c0cf3",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          160,
+          640
+        ],
+        "parameters": {
+          "httpMethod": "GET",
+          "path": "run-reddit-monitor-now",
+          "responseMode": "onReceived",
+          "responseData": "Workflow execution started! Monitoring 8 subreddits...",
+          "options": {}
+        }
+      },
+      {
+        "id": "node-webhook-reddit-ingest",
+        "name": "Webhook: Local Reddit Ingest",
+        "webhookId": "3a6fb4b5-dab0-41d2-87dd-a3dedd5cf495",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          380,
+          560
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "reddit-lead-ingest",
+          "responseMode": "onReceived",
+          "responseData": "Reddit posts received and queued for AI analysis!",
+          "options": {}
+        }
+      },
+      {
+        "id": "node-unpack-reddit",
+        "name": "Unpack Ingested Reddit Posts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          620,
+          560
+        ],
+        "parameters": {
+          "jsCode": "// Extract array of posts forwarded from local Reddit relay\nconst body = $input.first().json.body || $input.first().json;\nconst posts = Array.isArray(body.posts) ? body.posts : (Array.isArray(body) ? body : [body]);\n\nconst formatted = [];\nfor (const p of posts) {\n  if (p && (p.title || p.content)) {\n    formatted.push({\n      json: {\n        id: p.id || ('reddit_' + Math.random().toString(36).substring(7)),\n        title: p.title || 'Freelance Lead',\n        link: p.link || p.url || 'https://reddit.com',\n        author: p.author || '/u/reddit_client',\n        subreddit: p.subreddit ? (p.subreddit.startsWith('r/') ? p.subreddit : 'r/' + p.subreddit) : 'r/forhire',\n        published: p.published || new Date().toISOString(),\n        content: p.content || p.selftext || p.title || ''\n      }\n    });\n  }\n}\n\nreturn formatted;"
+        }
+      },
+      {
+        "id": "node-fetch-cloud-gigs",
+        "name": "Fetch Cloud Remote Gigs",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          380,
+          260
+        ],
+        "parameters": {
+          "url": "https://remoteok.com/api?tag=dev",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          }
+        }
+      },
+      {
+        "id": "node-parse-cloud-gigs",
+        "name": "Parse Cloud Remote Gigs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          620,
+          260
+        ],
+        "parameters": {
+          "jsCode": "// Parse RemoteOK & WeWorkRemotely high-paying developer leads\nconst items = $input.all();\nconst gigs = [];\n\nfor (const item of items) {\n  // RemoteOK array\n  const list = Array.isArray(item.json) ? item.json : (item.json.data ? item.json.data : [item.json]);\n  for (const job of list) {\n    if (!job || !job.position) continue;\n    \n    // Skip terms/legal item\n    if (job.legal || job.company === 'Remote OK') continue;\n\n    const company = job.company || 'Tech Company';\n    const position = job.position || 'Web Developer';\n    const tags = Array.isArray(job.tags) ? job.tags.join(', ') : (job.tags || 'Web Dev');\n    \n    // Format detected budget/salary\n    let budget = 'Competitive / Market Rate';\n    if (job.salary_min && job.salary_min > 0) {\n      budget = `$${Math.round(job.salary_min/1000)}k - $${Math.round(job.salary_max/1000)}k/yr`;\n    }\n\n    const title = `[HIRING] ${company} is hiring ${position}`;\n    const desc = (job.description || '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n    const snippet = desc.substring(0, 500) + '...';\n\n    gigs.push({\n      json: {\n        id: 'remoteok_' + (job.id || Math.random().toString(36).substring(7)),\n        title: title,\n        link: job.url || 'https://remoteok.com',\n        author: company,\n        subreddit: 'RemoteOK',\n        published: job.date || new Date().toISOString(),\n        content: `Role: ${position}. Company: ${company}. Tech: ${tags}. Compensation: ${budget}. Details: ${snippet}`,\n        detectedBudget: budget\n      }\n    });\n  }\n}\n\n// Ultra-low RAM optimization for free tier: keep top 15 newest gigs\nreturn gigs.slice(0, 15);"
+        }
+      }
+    ],
+    "connections": {
+      "1-Click: Create New Google Sheet": {
+        "main": [
+          [
+            {
+              "node": "Create & Name Google Sheet (API)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook: Create Sheet via URL": {
+        "main": [
+          [
+            {
+              "node": "Create & Name Google Sheet (API)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create & Name Google Sheet (API)": {
+        "main": [
+          [
+            {
+              "node": "Sheet Created Confirmation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sheet Created Confirmation": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Reddit Every 15 Mins": {
+        "main": [
+          [
+            {
+              "node": "Fetch Cloud Remote Gigs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Test Trigger": {
+        "main": [
+          [
+            {
+              "node": "Expanded Subreddits List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Expanded Subreddits List": {
+        "main": [
+          [
+            {
+              "node": "Fetch Reddit RSS Feed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Reddit RSS Feed": {
+        "main": [
+          [
+            {
+              "node": "Parse Reddit Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Reddit Posts": {
+        "main": [
+          [
+            {
+              "node": "Filter: [HIRING] + WebDev + Budget + Today Only",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter: [HIRING] + WebDev + Budget + Today Only": {
+        "main": [
+          [
+            {
+              "node": "Deduplicate Seen Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Deduplicate Seen Posts": {
+        "main": [
+          [
+            {
+              "node": "AI Lead Analyzer & Pitch Drafter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Lead Analyzer & Pitch Drafter",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Lead Analyzer & Pitch Drafter": {
+        "main": [
+          [
+            {
+              "node": "Format Lead Alert Card",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Lead Alert Card": {
+        "main": [
+          [
+            {
+              "node": "Is Actionable Gig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Actionable Gig?": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram Alert",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send Discord Webhook",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send Gmail Alert",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Save Lead to Google Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save Lead to Google Sheet": {
+        "main": [
+          []
+        ]
+      },
+      "Webhook: Manual Run": {
+        "main": [
+          [
+            {
+              "node": "Fetch Cloud Remote Gigs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Cloud Remote Gigs": {
+        "main": [
+          [
+            {
+              "node": "Parse Cloud Remote Gigs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Cloud Remote Gigs": {
+        "main": [
+          [
+            {
+              "node": "Filter: [HIRING] + WebDev + Budget + Today Only",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook: Local Reddit Ingest": {
+        "main": [
+          [
+            {
+              "node": "Unpack Ingested Reddit Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Unpack Ingested Reddit Posts": {
+        "main": [
+          [
+            {
+              "node": "Filter: [HIRING] + WebDev + Budget + Today Only",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "Suresh sureshkumar20133151@gmail.com",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "createdAt": "2026-10-28T03:24:02.338Z",
+    "updatedAt": "2026-10-28T03:24:02.338Z",
+    "workflowPublishHistory": [
+      {
+        "id": 153,
+        "workflowId": "KwSOFWeaCHM9B99C",
+        "versionId": "46fcb68a-206b-4747-a9c1-74a803420948",
+        "event": "activated",
+        "userId": "d9c62929-8193-4557-92cc-4bf380904566",
+        "createdAt": "2026-10-28T03:24:06.232Z"
+      }
+    ]
   }
 }
