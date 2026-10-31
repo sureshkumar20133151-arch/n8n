@@ -1,6 +1,7 @@
 node_modules/
 .n8n/
 cred_data.json
+backups/
 meta_whatsapp_credentials.json
 *.log
 *.tmp
