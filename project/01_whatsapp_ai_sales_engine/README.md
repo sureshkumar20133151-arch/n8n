@@ -36,6 +36,7 @@ flowchart TD
 ## 📁 Folder Contents
 | File | Description |
 | :--- | :--- |
+| [`OPTIMIZED_UNIFIED_WHATSAPP_AI_SALES_ENGINE.json`](./OPTIMIZED_UNIFIED_WHATSAPP_AI_SALES_ENGINE.json) | **⚡ Streamlined 23-node high-performance production workflow** (45% reduction, zero risk of Render restart drops, updated cloud API URLs) |
 | [`MASTER_SALES_ENGINE_WORKFLOW.json`](./MASTER_SALES_ENGINE_WORKFLOW.json) | **Unified 42-node master production workflow** combining Track 0 (Chat) + Tracks 1, 2, 3 (Sales Backend) |
 | [`sheet2_columns_config.json`](./sheet2_columns_config.json) | Field schema mapping 36–41 CRM intelligence columns in Google Sheets (`Sheet2`) |
 | [`sub_workflows/whatsapp_direct_lead_logger_workflow.json`](./sub_workflows/whatsapp_direct_lead_logger_workflow.json) | Standalone version of Track 1 (Lead Logger) |

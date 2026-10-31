@@ -1,0 +1,215 @@
+{
+  "name": "SoloDeveloper - Meta WhatsApp AI Agent (Inbound & Outbound)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "solodev-meta-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ],
+      "id": "node-meta-webhook-verify",
+      "name": "1. Verify Webhook (Meta GET Challenge)"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        100
+      ],
+      "id": "node-respond-meta-challenge",
+      "name": "2. Respond Meta Hub Challenge"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "solodev-meta-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        340
+      ],
+      "id": "node-meta-webhook-receive",
+      "name": "3. Receive Message (Meta POST)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"EVENT_RECEIVED\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        340
+      ],
+      "id": "node-respond-meta-ack",
+      "name": "4. Immediate Ack (200 OK)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst entry = (body.entry && body.entry[0]) || {};\nconst change = (entry.changes && entry.changes[0]) || {};\nconst val = change.value || {};\nconst messages = val.messages || [];\n\n// If there are no messages, it is a delivery receipt (sent/delivered/read) - ignore\nif (!messages || messages.length === 0) {\n  return [];\n}\n\nconst msg = messages[0];\nconst contact = (val.contacts && val.contacts[0]) || {};\nconst senderName = contact.profile ? contact.profile.name : 'Client';\nconst senderPhone = msg.from;\nconst messageText = msg.text ? msg.text.body : '';\n\nif (!messageText || !senderPhone) {\n  return [];\n}\n\nreturn [{\n  json: {\n    senderPhone,\n    senderName,\n    messageText,\n    messageId: msg.id,\n    timestamp: msg.timestamp,\n    receivedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        340
+      ],
+      "id": "node-filter-parse-message",
+      "name": "5. Filter & Parse Inbound Message"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"role\": \"user\",\n      \"parts\": [\n        {\n          \"text\": \"You are Suresh Kumar's AI Client Consultation Assistant for SoloDeveloper (https://solodeveloper.pro).\\n\\nAbout Suresh Kumar & SoloDeveloper:\\n- Role: Full-Stack Developer & Autonomous AI Automation Architect\\n- Location: Madurai, Tamil Nadu, India\\n- Website / Portfolio: https://solodeveloper.pro\\n- Core Services:\\n  1. Custom Web Applications (Next.js 15+, React, TypeScript, Node.js)\\n  2. Autonomous AI Agents & WhatsApp Chatbots (Meta Cloud API, Gemini, n8n)\\n  3. Business Workflow Automation (n8n, CRM pipelines, Sheets, automated outreach)\\n- Key Differentiators: 7-day fast sprints, 100% fixed transparent pricing, 30-day post-launch support, zero recurring platform lock-in.\\n\\nClient Name: {{ $json.senderName }}\\nClient Phone: +{{ $json.senderPhone }}\\nClient Message: \\\"{{ $json.messageText }}\\\"\\n\\nInstructions:\\n1. Greet warmly and address their specific inquiry directly.\\n2. Explain concisely how Suresh can build or automate this for them.\\n3. Provide a clear call to action: suggest booking a quick 10-minute strategy call with Suresh or visiting https://solodeveloper.pro to see live case studies.\\n4. Keep the message structured, clear, and WhatsApp-friendly (use bullet points and emojis where helpful). Stay under 150 words.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        340
+      ],
+      "id": "node-gemini-ai-consultant",
+      "name": "6. SoloDeveloper Gemini AI Engine"
+    },
+    {
+      "parameters": {
+        "jsCode": "const geminiData = $input.first().json;\nconst candidate = geminiData.candidates && geminiData.candidates[0];\nconst part = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0];\nlet reply = part ? part.text : '';\n\nif (!reply) {\n  reply = \"Hi! Thank you for contacting Suresh Kumar at SoloDeveloper (https://solodeveloper.pro). I received your message and will review your requirements and get back to you shortly!\";\n}\n\nreturn [{\n  json: {\n    senderPhone: $('5. Filter & Parse Inbound Message').item.json.senderPhone,\n    senderName: $('5. Filter & Parse Inbound Message').item.json.senderName,\n    replyText: reply.trim()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        340
+      ],
+      "id": "node-format-reply",
+      "name": "7. Format WhatsApp Reply"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v21.0/1322577024282400/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAATpWZC9xMr4BSxdU25npZCVZCKhHnIK76GVkNZAbexuZCdJbF7pwIZA11eAwZBZCssEFbjBZBbZCcdraTCpa1GAASFhqdxXO97poV4t9kin8hiSI8NbpVcE12giQ0xAHLy7zlh3DzwdpvG0KYaw78ZCz68NecLjqTyXZBj7rMZAciTOLIruCUZBDfUvxPBejvxICTZCFiNwWo6C3k2cuETZCRuzbiFFdKZCs8CvGz36wwKqeYTogZBs8WU6jL9O2Yu6MzgJMAXSwUgBnFjEpmwVs0InqRZAs41I31PgQZDZD"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.senderPhone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.replyText }}\"\n  }\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        340
+      ],
+      "id": "node-send-meta-whatsapp-reply",
+      "name": "8. Send Meta WhatsApp Reply"
+    }
+  ],
+  "connections": {
+    "1. Verify Webhook (Meta GET Challenge)": {
+      "main": [
+        [
+          {
+            "node": "2. Respond Meta Hub Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Receive Message (Meta POST)": {
+      "main": [
+        [
+          {
+            "node": "4. Immediate Ack (200 OK)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "5. Filter & Parse Inbound Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Filter & Parse Inbound Message": {
+      "main": [
+        [
+          {
+            "node": "6. SoloDeveloper Gemini AI Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. SoloDeveloper Gemini AI Engine": {
+      "main": [
+        [
+          {
+            "node": "7. Format WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Format WhatsApp Reply": {
+      "main": [
+        [
+          {
+            "node": "8. Send Meta WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

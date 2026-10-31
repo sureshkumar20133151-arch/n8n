@@ -556,7 +556,7 @@ class GeminiService {
   /**
    * Execute a single function call triggered by Gemini AI
    */
-  async executeToolCall(fnCall, chatId, cleanId) {
+  async executeToolCall(fnCall, chatId, cleanId, isOwner = false) {
     const fnName = fnCall.name;
     const args = fnCall.args || {};
     const mode = personaManager.getActiveMode();
@@ -579,7 +579,21 @@ class GeminiService {
         websiteStatus: args.websiteStatus,
         email: args.email,
         painPoint: args.painPoint,
-        dreamOutcome: args.dreamOutcome
+        dreamOutcome: args.dreamOutcome,
+        discovery: {
+          primary_need: args.dreamOutcome || args.primaryGoal || null,
+          bottleneck: args.painPoint || null,
+          website_required: args.websiteStatus ? !args.websiteStatus.toLowerCase().includes('already') : null
+        },
+        sales: {
+          urgency: args.urgency || null,
+          timeline: args.timeline || null,
+          budget: args.budget || null
+        },
+        memory: {
+          summary: args.transformationStatement || `${args.name || 'Prospect'} runs ${args.company || args.industry || 'a business'} facing ${args.painPoint || 'challenges'}.`,
+          last_topic: args.industry || 'inquiry'
+        }
       });
 
       const calculatedMetrics = calculateSalesManagerMetrics(args);
@@ -626,6 +640,13 @@ class GeminiService {
     }
 
     if (fnName === 'saveBossDirective') {
+      if (!isOwner) {
+        console.warn(`🔒 [Security Guard] Unauthorized attempt to save boss directive from chatId=${chatId}`);
+        return {
+          status: 'error',
+          error: 'Unauthorized: Only verified owner (Suresh Kumar) can update business directives.'
+        };
+      }
       console.log(`👑 [Boss Directive Saved via Tool]:`, args);
       const directive = args.directive || '';
       if (directive) {
@@ -926,7 +947,7 @@ class GeminiService {
         const toolResults = [];
         for (const fnCall of currentCalls) {
           console.log(`  ↪ Executing tool: ${fnCall.name}`);
-          const result = await this.executeToolCall(fnCall, chatId, cleanId);
+          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner);
           toolResults.push({ fnCall, result });
         }
 

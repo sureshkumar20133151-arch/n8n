@@ -1,0 +1,149 @@
+{
+  "name": "Cold Outreach & Newsletter Dispatcher (Resend)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "When clicking ‘Execute Workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      recipient_name: \"Suresh (Test)\",\n      recipient_email: \"sureshkumar20133151@gmail.com\",\n      company_name: \"My Tech Co\",\n      subject: \"Quick question regarding custom AI & automation workflows\",\n      personalized_message: \"Hi Suresh,\\n\\nI noticed you are exploring automation and custom development workflows. I specialize in building custom n8n pipelines and AI assistants.\\n\\nWould you be open to a quick 5-minute chat next week to see if we can streamline your processes?\\n\\nBest regards,\\nSuresh Kumar\\nSoloDeveloper.pro\"\n    }\n  }\n];"
+      },
+      "id": "2",
+      "name": "Lead / Contact List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3",
+      "name": "Loop Over Leads",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer re_REPLACE_WITH_RESEND_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": \"Suresh <suresh@solodeveloper.pro>\",\n  \"to\": [\"{{ $json.recipient_email }}\"],\n  \"reply_to\": \"sureshkumar20133151@gmail.com\",\n  \"subject\": \"{{ $json.subject }}\",\n  \"text\": \"{{ $json.personalized_message }}\"\n}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "Send via Resend API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "5",
+      "name": "Wait (Rate Limiting Delay)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1080,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute Workflow’": {
+      "main": [
+        [
+          {
+            "node": "Lead / Contact List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead / Contact List": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Leads": {
+      "main": [
+        [
+          {
+            "node": "Send via Resend API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send via Resend API": {
+      "main": [
+        [
+          {
+            "node": "Wait (Rate Limiting Delay)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Rate Limiting Delay)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
