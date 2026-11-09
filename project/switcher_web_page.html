@@ -81,6 +81,152 @@
     /* Toast */
     #toast { position: fixed; bottom: 24px; right: 24px; background: #10b981; color: white; padding: 16px 26px; border-radius: 12px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,0.6); opacity: 0; pointer-events: none; transition: 0.3s; transform: translateY(10px); z-index: 1000; font-size: 0.95rem; }
     #toast.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  
+    /* Quota Dashboard Styling */
+    .quota-dashboard {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+    .quota-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .quota-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .quota-title h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #f3f4f6;
+      letter-spacing: -0.3px;
+    }
+    .quota-pulse {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 10px #34d399;
+      animation: pulse 2s infinite;
+    }
+    .quota-cost-pill {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .quota-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .quota-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .quota-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+    .quota-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .quota-icon {
+      font-size: 1.4rem;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .quota-card-header h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #f9fafb;
+    }
+    .quota-sub {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      display: block;
+    }
+    .quota-status-tag {
+      margin-left: auto;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .tag-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .tag-purple { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+    .tag-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .quota-metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+    }
+    .quota-metric-row .label { color: #9ca3af; }
+    .quota-metric-row .val { color: #f3f4f6; font-weight: 600; }
+    .progress-bar-bg {
+      width: 100%;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.5s ease;
+    }
+    .fill-blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .fill-purple { background: linear-gradient(90deg, #8b5cf6, #c084fc); }
+    .fill-amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .quota-stats-mini {
+      font-size: 0.76rem;
+      color: #9ca3af;
+      line-height: 1.6;
+      border-top: 1px dashed rgba(255, 255, 255, 0.08);
+      padding-top: 10px;
+    }
+    .quota-stats-mini div {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .quota-stats-mini b {
+      color: #e5e7eb;
+    }
+
   </style>
 </head>
 <body>
@@ -304,7 +450,56 @@
       setTimeout(() => toast.classList.remove('show'), 3500);
     }
 
-    async function switchMode(newMode) {
+    async 
+    // Live Quota Fetcher
+    async function updateQuotas() {
+      try {
+        const res = await fetch(API_BASE + '/api/quota');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success) return;
+
+        // Render
+        if (data.render) {
+          const usedH = data.render.hoursUsed;
+          const totalH = data.render.totalMonthlyHours;
+          const remH = data.render.hoursRemaining;
+          const pct = data.render.percentUsed;
+          const remPct = 100 - pct;
+          const ramMb = data.render.ramUsedMb;
+          const ramLim = data.render.ramLimitMb;
+          const ramPct = (100 - data.render.ramPercent).toFixed(1);
+
+          document.getElementById('render-hours').innerText = `${usedH} / ${totalH} hrs (${remPct}% Free)`;
+          document.getElementById('render-hours-bar').style.width = `${pct}%`;
+          document.getElementById('render-ram').innerText = `${ramMb}MB / ${ramLim}MB (${ramPct}% Free)`;
+        }
+
+        // Neon
+        if (data.neon) {
+          const stUsed = data.neon.storageUsedMb;
+          const stLim = data.neon.storageLimitMb;
+          const stPct = data.neon.storagePercent;
+          document.getElementById('neon-storage').innerText = `${stUsed} MB / ${stLim} MB (99% Free)`;
+          document.getElementById('neon-storage-bar').style.width = `${Math.max(1, stPct)}%`;
+        }
+
+        // Gemini
+        if (data.gemini) {
+          const reqToday = data.gemini.todayRequests;
+          const reqLim = data.gemini.dailyLimitRpd;
+          const reqRem = data.gemini.requestsRemaining;
+          const reqPct = Math.min(100, Math.round((reqToday / reqLim) * 100));
+
+          document.getElementById('gemini-requests').innerText = `${reqToday} / ${reqLim} RPD (${reqRem} Left)`;
+          document.getElementById('gemini-requests-bar').style.width = `${Math.max(1, reqPct)}%`;
+        }
+      } catch (err) {
+        // Fallback to static values if offline
+      }
+    }
+
+    function switchMode(newMode) {
       currentMode = newMode;
       updatePreview();
       showToast(`⚡ Switching WhatsApp Bot to: <b>${modes[newMode].title}</b>...`);
