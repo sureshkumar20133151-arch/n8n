@@ -280,7 +280,7 @@ function isModelQuotaExhausted(modelName) {
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
     this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '5', 10);
     this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
@@ -832,13 +832,12 @@ class GeminiService {
         }
       }
 
-      // Active models in order of verified quota availability and speed (<1.5s)
+      // Ultra-fast active models (<1.1s latency)
       const modelsToTry = [
-        'gemini-3.5-flash-lite',
         'gemini-flash-lite-latest',
-        'gemini-3.1-flash-lite',
-        'gemini-3-flash-preview',
-        'gemini-3.5-flash'
+        'gemini-2.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-flash-latest'
       ].filter((m, i, arr) => arr.indexOf(m) === i);
 
       let response = null;

@@ -24,6 +24,7 @@ const personaManager = require('./personaManager');
 const wholesaleInventory = require('./wholesaleInventoryService');
 const restaurantMenu = require('./restaurantMenuService');
 const restaurantCart = require('./restaurantCartService');
+const sessionPersistence = require('./sessionPersistence');
 
 const gemini = new GeminiService();
 
@@ -201,6 +202,9 @@ async function connectToWhatsApp() {
       sock = null;
     }
 
+    // Auto-restore session from Neon/PostgreSQL or SESSION_DATA env var before useMultiFileAuthState runs
+    await sessionPersistence.restoreSession();
+
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
     const { version, isLatest } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307], isLatest: true }));
 
@@ -218,7 +222,10 @@ async function connectToWhatsApp() {
       connectTimeoutMs: 60000
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on('creds.update', async () => {
+      await saveCreds();
+      sessionPersistence.backupSession().catch(() => {});
+    });
 
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -1044,7 +1051,20 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ success: true, message: 'Auth session reset. Generating fresh QR code...' }));
   }
 
-    // Dynamic QR Code API for the Switcher Dashboard
+    // Persistent Session Backup API (for Render Auto-Reconnect & Neon Sync)
+  if (req.url === '/api/session' || req.url === '/session') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(JSON.stringify({
+      hasSession: fs.existsSync(path.join(authDir, 'creds.json')),
+      hasDatabase: !!process.env.DATABASE_URL,
+      sessionData: sessionPersistence.getSessionBase64() || null
+    }));
+  }
+
+  // Dynamic QR Code API for the Switcher Dashboard
   if (req.url === '/api/qr-data' || req.url === '/qr-data') {
     res.writeHead(200, {
       'Content-Type': 'application/json',
