@@ -12,6 +12,7 @@ const personaManager = require('./personaManager');
 const { WHOLESALE_TOOLS, buildWholesaleSystemPrompt, executeWholesaleToolCall } = require('./wholesalePersona');
 const { RESTAURANT_TOOLS, buildRestaurantSystemPrompt, executeRestaurantToolCall } = require('./restaurantPersona');
 const { BUILDER_TOOLS, buildBuilderSystemPrompt, executeBuilderToolCall } = require('./builderPersona');
+const builderCustomerMemory = require('./builderCustomerMemory');
 
 const LEAD_TOOLS = [{
   functionDeclarations: [{
@@ -281,7 +282,7 @@ class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.modelName = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
-    this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '5', 10);
+    this.maxHistory = parseInt(process.env.MAX_HISTORY_TURNS || '15', 10);
     this.ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
     
     // In-memory cache of conversation turns
@@ -756,6 +757,10 @@ class GeminiService {
           } else {
             contextualText = `[Taj Hotel Madurai Biryani Parcel Inquiry. Welcome warmly with food emojis. Highlight Seeraga Samba Dum Biryani (Chicken ₹190, Mutton ₹290, Fish ₹270). Suggest Mutton Sukka or Rose Milk. When confirmed, call bookRestaurantOrder to generate Token #TAJ-XXX for 10-second counter pickup]: ${contextualText}`;
           }
+        } else if (mode === 'builder') {
+          // Dedicated Builder & House Construction mode (Danam Holdings - Er. Dhilip Kumar)
+          const builderContext = builderCustomerMemory.buildContextInjection(chatId, userText);
+          contextualText = `${builderContext}\n[CUSTOMER INCOMING MESSAGE]: ${userText.trim()}`;
         } else {
           // Dev mode (SoloDeveloper)
           const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
