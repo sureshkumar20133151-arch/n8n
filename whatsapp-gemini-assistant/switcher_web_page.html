@@ -249,17 +249,29 @@
       </div>
     </header>
 
-    <!-- QR Code Section (Only shown if WhatsApp needs linking) -->
-    <div class="qr-banner" id="qr-banner" style="display: none;">
-      <h3 style="color:#25d366;font-size:1.15rem;">📱 WhatsApp Not Linked Yet</h3>
-      <p style="color:#9ca3af;font-size:0.85rem;margin:6px 0;">Scan this QR code with WhatsApp on your phone (<b>Settings ➔ Linked Devices ➔ Link a Device</b>):</p>
-      <div class="qr-box">
-        <img id="qr-image" src="" alt="Scan WhatsApp QR Code">
+        <!-- QR Code Section (Only shown if WhatsApp needs linking) -->
+    <div class="qr-banner" id="qr-banner" style="display: none; background: #1a2234; border: 2px solid #25d366; border-radius: 16px; padding: 24px; margin-bottom: 24px; text-align: center; box-shadow: 0 10px 30px rgba(37, 211, 102, 0.2);">
+      <h3 style="color:#25d366;font-size:1.25rem;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <span>📱 WhatsApp Login Required (Disconnected)</span>
+      </h3>
+      <p id="qr-instruction" style="color:#e5e7eb;font-size:0.95rem;margin:10px 0;">
+        Open WhatsApp on your phone ➔ <b>Settings</b> ➔ <b>Linked Devices</b> ➔ <b>Link a Device</b>, then scan this QR code:
+      </p>
+      <div class="qr-box" style="background:#ffffff;padding:14px;border-radius:14px;display:inline-block;margin:12px 0;box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+        <img id="qr-image" src="" alt="WhatsApp QR Code" style="display:block;width:240px;height:240px;">
+        <div id="qr-spinner" style="display:none;width:240px;height:240px;align-items:center;justify-content:center;color:#111827;font-weight:600;font-size:0.9rem;text-align:center;padding:20px;">
+          ⏳ Generating fresh QR Code...<br><span style="font-size:0.75rem;color:#6b7280;font-weight:normal;">Connecting to WhatsApp Baileys socket...</span>
+        </div>
       </div>
-      <p style="color:#6b7280;font-size:0.75rem;">Page auto-refreshes to keep QR code live.</p>
+      <div>
+        <button id="btn-force-refresh-qr" onclick="forceRestartSession()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;padding:8px 18px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;margin-top:6px;transition:0.2s;">
+          🔄 Reset Session & Generate Fresh QR Code
+        </button>
+      </div>
+      <p style="color:#9ca3af;font-size:0.78rem;margin-top:10px;">⚡ Auto-refreshing every 4 seconds. Once scanned, WhatsApp reconnects instantly!</p>
     </div>
 
-        <!-- ⚡ 100% Free-Tier Cloud & API Quota Radar -->
+    <!-- ⚡ 100% Free-Tier Cloud & API Quota Radar -->
     <div class="quota-dashboard">
       <div class="quota-header">
         <div class="quota-title">
@@ -482,7 +494,7 @@
 
   <div id="toast">✅ Mode Switched Successfully!</div>
 
-  <script>
+    <script>
     const API_BASE = window.location.origin;
 
     const modes = {
@@ -528,9 +540,18 @@
       `;
       document.getElementById('chat-preview').innerHTML = chatHtml;
 
-      ['dev', 'wholesale', 'restaurant'].forEach(m => {
+      const modeLabels = {
+        wholesale: 'Wholesale',
+        restaurant: 'Restaurant',
+        builder: 'Builder',
+        dev: 'Developer'
+      };
+
+      ['dev', 'wholesale', 'restaurant', 'builder'].forEach(m => {
+        if (!modes[m]) return;
         const card = document.getElementById(modes[m].cardId);
         const btn = document.getElementById(modes[m].btnId);
+        if (!card || !btn) return;
         if (m === currentMode) {
           card.classList.add('active');
           btn.className = 'btn btn-active';
@@ -538,7 +559,7 @@
         } else {
           card.classList.remove('active');
           btn.className = 'btn btn-primary';
-          btn.innerText = `⚡ Switch to ${m === 'wholesale' ? 'Wholesale' : m === 'restaurant' ? 'Restaurant' : 'Developer'} Mode`;
+          btn.innerText = `⚡ Switch to ${modeLabels[m] || m} Mode`;
         }
       });
     }
@@ -550,7 +571,6 @@
       setTimeout(() => toast.classList.remove('show'), 3500);
     }
 
-    async 
     // Live Quota Fetcher
     async function updateQuotas() {
       try {
@@ -562,10 +582,8 @@
         // Render
         if (data.render) {
           const usedH = data.render.hoursUsed;
-          const totalH = data.render.totalMonthlyHours;
           const remH = data.render.hoursRemaining;
           const pct = data.render.percentUsed;
-          const remPct = 100 - pct;
           const ramMb = data.render.ramUsedMb;
           const ramLim = data.render.ramLimitMb;
           const ramPct = (100 - data.render.ramPercent).toFixed(1);
@@ -600,7 +618,7 @@
       }
     }
 
-    function switchMode(newMode) {
+    async function switchMode(newMode) {
       currentMode = newMode;
       updatePreview();
       showToast(`⚡ Switching WhatsApp Bot to: <b>${modes[newMode].title}</b>...`);
@@ -623,15 +641,22 @@
       }
     }
 
+    let qrPollingActive = false;
+
     async function checkHealthAndQR() {
+      if (qrPollingActive) return;
+      qrPollingActive = true;
       try {
-        const res = await fetch(`${API_BASE}/health`);
+        const res = await fetch(`${API_BASE}/api/qr-data`);
+        const dot = document.getElementById('wa-dot');
+        const text = document.getElementById('wa-status-text');
+        const qrBanner = document.getElementById('qr-banner');
+        const qrImage = document.getElementById('qr-image');
+        const qrSpinner = document.getElementById('qr-spinner');
+        const qrInst = document.getElementById('qr-instruction');
+
         if (res.ok) {
           const data = await res.json();
-          const dot = document.getElementById('wa-dot');
-          const text = document.getElementById('wa-status-text');
-          const qrBanner = document.getElementById('qr-banner');
-
           if (data.ready) {
             dot.style.background = '#10b981';
             dot.style.boxShadow = '0 0 10px #10b981';
@@ -641,21 +666,60 @@
             dot.style.background = '#f59e0b';
             dot.style.boxShadow = '0 0 10px #f59e0b';
             text.innerText = 'WhatsApp Awaiting QR Scan';
-            
-            // Fetch live QR code if not linked
-            fetch(`${API_BASE}/api/qr-data`)
-              .then(r => r.json())
-              .then(qr => {
-                if (qr && qr.qrDataUrl) {
-                  document.getElementById('qr-image').src = qr.qrDataUrl;
-                  qrBanner.style.display = 'block';
-                }
-              }).catch(() => {});
+            qrBanner.style.display = 'block';
+
+            if (data.qrDataUrl) {
+              qrImage.src = data.qrDataUrl;
+              qrImage.style.display = 'block';
+              if (qrSpinner) qrSpinner.style.display = 'none';
+              if (qrInst) qrInst.innerHTML = 'Open WhatsApp on your phone ➔ <b>Settings</b> ➔ <b>Linked Devices</b> ➔ <b>Link a Device</b>, then scan this QR code:';
+            } else {
+              qrImage.style.display = 'none';
+              if (qrSpinner) qrSpinner.style.display = 'flex';
+              if (qrInst) qrInst.innerHTML = '⏳ <b>Initializing WhatsApp connection...</b> Generating fresh QR code in a few seconds...';
+            }
+          }
+        } else {
+          // Fallback to /health
+          const hRes = await fetch(`${API_BASE}/health`);
+          if (hRes.ok) {
+            const hData = await hRes.json();
+            if (hData.ready) {
+              dot.style.background = '#10b981';
+              dot.style.boxShadow = '0 0 10px #10b981';
+              text.innerText = 'WhatsApp Connected & Active';
+              qrBanner.style.display = 'none';
+            }
           }
         }
       } catch (e) {
         console.log('Health check notice:', e.message);
+      } finally {
+        qrPollingActive = false;
       }
+    }
+
+    async function forceRestartSession() {
+      const btn = document.getElementById('btn-force-refresh-qr');
+      if (btn) {
+        btn.innerText = '⏳ Resetting Session & Generating QR...';
+        btn.style.opacity = '0.6';
+        btn.disabled = true;
+      }
+      showToast('🔄 Resetting WhatsApp session... Generating a fresh QR code...');
+      try {
+        await fetch(`${API_BASE}/api/restart`, { method: 'POST' });
+      } catch (e) {
+        try { await fetch(`${API_BASE}/restart`); } catch (_) {}
+      }
+      setTimeout(() => {
+        if (btn) {
+          btn.innerText = '🔄 Reset Session & Generate Fresh QR Code';
+          btn.style.opacity = '1';
+          btn.disabled = false;
+        }
+        checkHealthAndQR();
+      }, 1800);
     }
 
     async function fetchLiveModeFromServer() {
@@ -676,8 +740,10 @@
     // Init
     updatePreview();
     fetchLiveModeFromServer();
+    updateQuotas();
     checkHealthAndQR();
-    setInterval(checkHealthAndQR, 10000);
+    setInterval(checkHealthAndQR, 4000);
+    setInterval(updateQuotas, 30000);
   </script>
 </body>
 </html>
