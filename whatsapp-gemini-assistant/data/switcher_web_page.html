@@ -163,6 +163,27 @@
         <button class="btn btn-primary" id="btn-restaurant" onclick="switchMode('restaurant')">⚡ Switch to Restaurant Mode</button>
       </div>
 
+      <!-- Card 4: Danam Holdings Builder -->
+      <div class="card" id="card-builder">
+        <div>
+          <span class="card-badge" style="background:rgba(16,185,129,0.2);color:#34d399;">Civil Construction Mode</span>
+          <h2>🏗️ Danam Holdings Builder</h2>
+          <div class="card-meta">
+            <b>Proprietor:</b> Er. Dhilip Kumar (Turnkey Civil EPC)<br>
+            <b>Location:</b> Madurai & South Tamil Nadu<br>
+            <b>Specialty:</b> Turnkey Residential Houses, Duplex & Luxury Villas
+          </div>
+          <ul class="feature-list">
+            <li>Standard (₹1,950/sq.ft), Premium (₹2,350), Luxury (₹2,850)</li>
+            <li>Instant BOQ Material & Construction Cost Calculator</li>
+            <li>Real 3D Portfolios (Ocean Peacock Villa, Vinoth BJV)</li>
+            <li>Free Site & Soil Plot Inspection Booking</li>
+            <li>Direct n8n Webhook & Hot Lead WhatsApp Alert</li>
+          </ul>
+        </div>
+        <button class="btn btn-primary" id="btn-builder" onclick="switchMode('builder')">⚡ Switch to Builder Mode</button>
+      </div>
+
       <!-- Card 3: SoloDeveloper.pro -->
       <div class="card" id="card-dev">
         <div>
@@ -203,6 +224,7 @@
           <tbody>
             <tr><td><code>switch to oil store</code></td><td>Activates <b>Annamaliyar Oil Store</b></td></tr>
             <tr><td><code>switch to restaurant</code></td><td>Activates <b>Taj Hotel Madurai</b></td></tr>
+            <tr><td><code>switch to builder</code></td><td>Activates <b>Danam Holdings Builder</b></td></tr>
             <tr><td><code>switch to dev</code></td><td>Activates <b>SoloDeveloper.pro</b></td></tr>
             <tr><td><code>switch</code> / <code>!mode</code></td><td>Replies with current active mode</td></tr>
           </tbody>
@@ -231,6 +253,13 @@
         btnId: "btn-restaurant",
         sampleUser: "2 Chicken Biryani & 1 Mutton Biryani parcel ready pannunga",
         sampleBot: "வணக்கம்! மதுரை தாஜ் ஹோட்டல் 🍗<br>• 2x சிக்கன் பிரியாணி = ₹380<br>• 1x மட்டன் பிரியாணி = ₹290<br><b>மொத்தம்: ₹670</b>. UPI: tajhotelmadurai@upi<br>🎟️ <b>உங்க Token எண்: #TAJ-205</b> (10 நிமிடங்களில் ரெடி! நேராக வந்து டோக்கன் காட்டி பார்சல் வாங்கலாம்! ⚡)"
+      },
+      builder: {
+        title: "Danam Holdings — House Construction & Civil EPC (Madurai)",
+        cardId: "card-builder",
+        btnId: "btn-builder",
+        sampleUser: "Madurai Selvapuram la 1500 sq.ft plot irukku. G+1 duplex build panna evlo cost aagum?",
+        sampleBot: "வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡<br>• 1,500 Sq.Ft G+1 Duplex (Premium Package @ ₹2,350/sq.ft): <b>தோராயமாக ₹33.8 – ₹35.3 லட்சம்</b> ஆகும்.<br>• இதில் Fe550D TMT கம்பிகள், M25 கான்கிரீட், 4x2 மார்பிள் பினிஷ் டைல்ஸ் & தேக்கு மர கதவுகள் அனைத்தும் அடங்கும்!<br>எங்கள் சீஃப் இன்ஜினியர் <b>Er. திலீப் குமார்</b> இலவச Plot Measurement & Soil Inspection செய்ய வரட்டுமா சார்? 📐"
       },
       dev: {
         title: "SoloDeveloper.pro Web & Automation Sales",

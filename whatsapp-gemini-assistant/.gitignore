@@ -7,3 +7,6 @@ scan-qr.html
 *.log
 wholesale_orders.json
 restaurant_orders.json
+construction_enquiries.json
+construction_site_visits.json
+pending_n8n_orders.json

@@ -25,6 +25,16 @@ const PERSONAS = {
     icon: '🍗',
     switchMessage: '✅ *Switched!* Mode is now active: 🍗 *Taj Hotel Madurai Biryani Assistant*.\n• Menu browsing, UPI payment string, & Digital Token generator active.\n• Instant counter skip-the-line pickup ready!'
   },
+  builder: {
+    id: 'builder',
+    name: 'Danam Holdings House Construction AI Assistant',
+    client: 'Danam Holdings Civil Engineering & Turnkey EPC, Madurai',
+    proprietor: 'Er. Dhilip Kumar',
+    tagline: 'Turnkey House Construction • 3D Architectural Walkthroughs • Free Site & Soil Inspection',
+    badge: 'Construction Builder Mode',
+    icon: '🏗️',
+    switchMessage: '✅ *Switched!* Mode is now active: 🏗️ *Danam Holdings House Construction Assistant* (Madurai).\n• House packages (₹1,950 – ₹2,850/sq.ft), 3D floor plans & cost calculator active.\n• Automated BOQ qualification & Er. Dhilip site inspection booking ready!'
+  },
   dev: {
     id: 'dev',
     name: 'SoloDeveloper.pro Sales OS',
@@ -108,6 +118,8 @@ class PersonaManager {
       selectedKey = 'wholesale';
     } else if (normalized === 'restaurant' || normalized === 'food' || normalized === 'biryani' || normalized === 'taj' || normalized === 'hotel') {
       selectedKey = 'restaurant';
+    } else if (normalized === 'builder' || normalized === 'construction' || normalized === 'danam' || normalized === 'civil' || normalized === 'house') {
+      selectedKey = 'builder';
     } else if (normalized === 'dev' || normalized === 'developer' || normalized === 'sales' || normalized === 'suresh' || normalized === 'solodeveloper') {
       selectedKey = 'dev';
     }
@@ -115,7 +127,7 @@ class PersonaManager {
     if (!selectedKey || !PERSONAS[selectedKey]) {
       return {
         success: false,
-        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, dev.`
+        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev.`
       };
     }
 

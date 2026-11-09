@@ -141,7 +141,16 @@ function detectModeSwitchIntent(rawText) {
     return { target: 'restaurant' };
   }
 
-  // 4. Dev / SoloDeveloper triggers
+    // 4. Builder / Danam Holdings House Construction triggers
+  if (
+    /\b(builder|construction|danam|civil|house construction|builder mode|civil mode)\b/i.test(cleaned) ||
+    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:builder|construction|danam|house|civil)/i.test(cleaned) ||
+    /(?:builder|construction|danam|civil)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
+  ) {
+    return { target: 'builder' };
+  }
+
+  // 5. Dev / SoloDeveloper triggers
   // Handles: "switch to dev", "switch dev", "dev mode", "developer mode", "dev ku mathu", "sales os", "solodeveloper"
   if (
     /\b(dev|developer|solodeveloper|sales os|dev mode|developer mode)\b/i.test(cleaned) ||

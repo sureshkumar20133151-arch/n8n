@@ -1,0 +1,131 @@
+{
+  "name": "House Construction Builder - WhatsApp AI Lead & BOQ Enquiry System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "construction-enquiry",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook_construction_lead",
+      "name": "Webhook: /webhook/construction-enquiry",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.data || $input.first().json;\n\nconst area = Number(payload.builtUpAreaSqFt) || 1200;\nconst pkg = (payload.preferredPackage || 'premium').toLowerCase();\nconst hasPlot = payload.hasPlot !== false;\nconst timeline = (payload.startingTimeline || '').toLowerCase();\n\n// 1. BOQ & Material Estimator Engine\n// Rule of Thumb engineering ratios per sq.ft built-up area in South India:\n// Cement: ~0.4 bags/sq.ft\n// Steel (Fe550D): ~3.8 kg/sq.ft\n// Coarse Aggregate (Jelly): ~0.65 cu.ft/sq.ft\n// M-Sand: ~1.2 cu.ft/sq.ft\n// Bricks / Blocks: ~18 bricks/sq.ft\n\nconst cementBags = Math.round(area * 0.42);\nconst steelTonnes = ((area * 3.8) / 1000).toFixed(2);\nconst brickCount = Math.round(area * 18);\n\n// Pricing calculation\nlet ratePerSqFt = 2350;\nlet pkgLabel = 'Premium Luxury (₹2,350/sq.ft)';\nif (pkg.includes('standard') || pkg.includes('budget')) {\n  ratePerSqFt = 1950;\n  pkgLabel = 'Standard Package (₹1,950/sq.ft)';\n} else if (pkg.includes('luxury') || pkg.includes('elite')) {\n  ratePerSqFt = 2850;\n  pkgLabel = 'Elite Royal Villa (₹2,850/sq.ft)';\n}\n\nconst minCostLakhs = ((area * (ratePerSqFt - 100)) / 100000).toFixed(2);\nconst maxCostLakhs = ((area * ratePerSqFt) / 100000).toFixed(2);\n\n// Lead Qualification Scoring\nlet leadScore = 'WARM';\nlet priorityRank = 'P2 - Normal Followup (Within 4 hrs)';\nif (hasPlot && (timeline.includes('immediate') || timeline.includes('1 month') || timeline.includes('this month') || timeline.includes('next month'))) {\n  leadScore = 'HOT 🔥';\n  priorityRank = 'P1 - VIP Urgent (Call within 15 mins)';\n} else if (!hasPlot) {\n  leadScore = 'COLD / EXPLORING';\n  priorityRank = 'P3 - Nurture with Floor Plans';\n}\n\n// WhatsApp Alert message for the Builder (Er. Dhilip Kumar)\nconst builderAlertText = `🏗️ *NEW HOUSE CONSTRUCTION ENQUIRY!*\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `👤 *Client:* ${payload.customerName || 'Prospect'}\\n` +\n  `📱 *Phone:* ${payload.customerPhone || 'Not provided'}\\n` +\n  `📍 *Site Location:* ${payload.siteLocation || 'Madurai'}\\n` +\n  `📐 *Plot Status:* ${hasPlot ? 'Owns Plot (' + (payload.plotDimensions || 'Standard') + ')' : 'Looking for Plot'}\\n` +\n  `🏠 *Planned Area:* ${area} Sq.Ft (${payload.floors || 'G+1'}, ${payload.bedrooms || '3 BHK'})\\n` +\n  `📦 *Selected Package:* ${pkgLabel}\\n` +\n  `💰 *Budget Range:* ₹${minCostLakhs}L – ₹${maxCostLakhs}L\\n` +\n  `⏳ *Start Timeline:* ${payload.startingTimeline || 'Next 1-2 months'}\\n` +\n  `📝 *Special Notes:* ${payload.specialRequirements || 'None'}\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `📊 *Lead Priority:* ${leadScore} (${priorityRank})\\n` +\n  `🧱 *BOQ Preview:* ~${cementBags} Cement bags | ${steelTonnes} Tonnes TMT Steel | ~${brickCount} Bricks\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `📞 *Quick Call:* https://wa.me/${(payload.customerPhone || '').replace(/[^0-9]/g, '')}`;\n\n// WhatsApp Confirmation message for Homeowner\nconst clientReplyText = `வணக்கம் ${payload.customerName || 'சார்'}! 🏡✨\\n\\n` +\n  `Thank you for reaching out to *Danam Holdings Civil Engineering & Turnkey EPC*.\\n\\n` +\n  `📋 *Your Project Summary (ID: #${payload.enquiryId || 'NEW'}):*\\n` +\n  `• *Site:* ${payload.siteLocation || 'Madurai'}\\n` +\n  `• *Built-up Area:* ${area} Sq.Ft (${payload.floors || 'G+1'})\\n` +\n  `• *Package:* ${pkgLabel}\\n` +\n  `• *Estimated Cost:* ₹${minCostLakhs} – ₹${maxCostLakhs} Lakhs\\n\\n` +\n  `Our Chief Engineer *Er. Dhilip Kumar* will review your plot dimensions and reach out to arrange a *Free Site & Soil Inspection*.\\n\\n` +\n  `Meanwhile, explore our completed projects and 360° virtual tours: https://danamholdings.com`;\n\nreturn [{\n  json: {\n    ...payload,\n    builtUpAreaSqFt: area,\n    packageLabel: pkgLabel,\n    ratePerSqFt,\n    estimatedMinLakhs: minCostLakhs,\n    estimatedMaxLakhs: maxCostLakhs,\n    leadScore,\n    priorityRank,\n    cementBagsEstimated: cementBags,\n    steelTonnesEstimated: steelTonnes,\n    brickCountEstimated: brickCount,\n    builderAlertMessage: builderAlertText,\n    clientReplyMessage: clientReplyText,\n    processedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code_boq_and_qualification",
+      "name": "BOQ & Lead Qualification Engine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "value": "Construction_Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Enquiry_ID": "={{ $json.enquiryId }}",
+            "Timestamp": "={{ $json.processedAt }}",
+            "Customer_Name": "={{ $json.customerName }}",
+            "Customer_Phone": "={{ $json.customerPhone }}",
+            "Site_Location": "={{ $json.siteLocation }}",
+            "Has_Plot": "={{ $json.hasPlot }}",
+            "Plot_Dimensions": "={{ $json.plotDimensions }}",
+            "Built_Up_Area": "={{ $json.builtUpAreaSqFt }}",
+            "Floors": "={{ $json.floors }}",
+            "Bedrooms": "={{ $json.bedrooms }}",
+            "Package": "={{ $json.packageLabel }}",
+            "Estimated_Budget": "={{ $json.estimatedMinLakhs }} - {{ $json.estimatedMaxLakhs }} Lakhs",
+            "Starting_Timeline": "={{ $json.startingTimeline }}",
+            "Lead_Score": "={{ $json.leadScore }}",
+            "Cement_Bags_BOQ": "={{ $json.cementBagsEstimated }}",
+            "Steel_Tonnes_BOQ": "={{ $json.steelTonnesEstimated }}",
+            "Special_Requirements": "={{ $json.specialRequirements }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets_append_lead",
+      "name": "Google Sheets: Append Construction Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [640, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/send-whatsapp-alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": \"+919361599097\",\n  \"message\": {{ JSON.stringify($json.builderAlertMessage) }}\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "notify_builder_whatsapp",
+      "name": "Notify Builder WhatsApp (Hot Lead Alert)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"enquiryId\": {{ JSON.stringify($json.enquiryId) }},\n  \"customerName\": {{ JSON.stringify($json.customerName) }},\n  \"leadScore\": {{ JSON.stringify($json.leadScore) }},\n  \"estimatedBudget\": \"₹{{ $json.estimatedMinLakhs }} - ₹{{ $json.estimatedMaxLakhs }} Lakhs\",\n  \"materialsEstimate\": {\n    \"cementBags\": {{ $json.cementBagsEstimated }},\n    \"steelTonnes\": {{ $json.steelTonnesEstimated }},\n    \"brickCount\": {{ $json.brickCountEstimated }}\n  },\n  \"status\": \"DISPATCHED_TO_BUILDER_CRM\"\n}",
+        "options": {}
+      },
+      "id": "respond_to_webhook",
+      "name": "Respond to Webhook (Immediate Acknowledgment)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: /webhook/construction-enquiry": {
+      "main": [
+        [
+          {
+            "node": "BOQ & Lead Qualification Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BOQ & Lead Qualification Engine": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Append Construction Lead",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Builder WhatsApp (Hot Lead Alert)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to Webhook (Immediate Acknowledgment)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

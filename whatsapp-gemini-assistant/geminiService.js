@@ -11,6 +11,7 @@ const { calculateSalesManagerMetrics } = require('./offerEngine');
 const personaManager = require('./personaManager');
 const { WHOLESALE_TOOLS, buildWholesaleSystemPrompt, executeWholesaleToolCall } = require('./wholesalePersona');
 const { RESTAURANT_TOOLS, buildRestaurantSystemPrompt, executeRestaurantToolCall } = require('./restaurantPersona');
+const { BUILDER_TOOLS, buildBuilderSystemPrompt, executeBuilderToolCall } = require('./builderPersona');
 
 const LEAD_TOOLS = [{
   functionDeclarations: [{
@@ -304,6 +305,9 @@ class GeminiService {
     if (mode === 'restaurant') {
       return buildRestaurantSystemPrompt(chatId);
     }
+    if (mode === 'builder') {
+      return buildBuilderSystemPrompt();
+    }
     const base = buildSystemPrompt();
     const liveRules = adminRules.formatPromptExtension();
     return liveRules ? `${base}\n\n${liveRules}` : base;
@@ -316,6 +320,9 @@ class GeminiService {
     }
     if (mode === 'restaurant') {
       return RESTAURANT_TOOLS;
+    }
+    if (mode === 'builder') {
+      return BUILDER_TOOLS;
     }
     return isOwner ? OWNER_TOOLS : LEAD_TOOLS;
   }
@@ -567,6 +574,10 @@ class GeminiService {
 
     if (mode === 'restaurant') {
       return await executeRestaurantToolCall(fnCall, chatId);
+    }
+
+    if (mode === 'builder') {
+      return await executeBuilderToolCall(fnCall, chatId);
     }
 
     if (fnName === 'saveLeadDetails') {

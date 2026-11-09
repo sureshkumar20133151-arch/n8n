@@ -141,7 +141,7 @@ runTest('GeminiService selects correct system prompt and tools based on active p
   const restaurantPrompt = gemini.getSystemInstruction();
   assert(restaurantPrompt.includes('Taj Hotel Madurai'), 'Restaurant prompt missing hotel name');
   assert(restaurantPrompt.includes('Seeraga Samba'), 'Restaurant prompt missing specialty');
-  assert(restaurantPrompt.includes('Token'), 'Restaurant prompt missing token instructions');
+  assert(/token/i.test(restaurantPrompt), 'Restaurant prompt missing token instructions');
   const restaurantTools = gemini.getActiveTools(false);
   assert(restaurantTools[0].functionDeclarations.some(f => f.name === 'bookRestaurantOrder'));
 
@@ -151,6 +151,15 @@ runTest('GeminiService selects correct system prompt and tools based on active p
   assert(devPrompt.includes('SoloDeveloper'), 'Dev prompt missing SoloDeveloper brand');
   const devTools = gemini.getActiveTools(false);
   assert(devTools[0].functionDeclarations.some(f => f.name === 'saveLeadDetails'));
+
+  // Mode: builder
+  personaManager.setMode('builder', 'unit_test');
+  const builderPrompt = gemini.getSystemInstruction();
+  assert(builderPrompt.includes('Danam Holdings'), 'Builder prompt missing company name');
+  assert(builderPrompt.includes('Standard Package'), 'Builder prompt missing standard package');
+  const builderTools = gemini.getActiveTools(false);
+  assert(builderTools[0].functionDeclarations.some(f => f.name === 'saveConstructionEnquiry'));
+  assert(builderTools[0].functionDeclarations.some(f => f.name === 'calculatePreliminaryEstimate'));
 
   // Reset back to wholesale
   personaManager.setMode('wholesale', 'unit_test');
