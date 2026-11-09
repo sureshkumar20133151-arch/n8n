@@ -470,7 +470,8 @@
           const ramLim = data.render.ramLimitMb;
           const ramPct = (100 - data.render.ramPercent).toFixed(1);
 
-          document.getElementById('render-hours').innerText = `${usedH} / ${totalH} hrs (${remPct}% Free)`;
+          const freeDays = (remH / 24).toFixed(1);
+          document.getElementById('render-hours').innerText = `${remH} hrs (${freeDays} Days Free)`;
           document.getElementById('render-hours-bar').style.width = `${pct}%`;
           document.getElementById('render-ram').innerText = `${ramMb}MB / ${ramLim}MB (${ramPct}% Free)`;
         }
