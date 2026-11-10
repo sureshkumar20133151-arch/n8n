@@ -43,7 +43,7 @@ class BuilderCustomerMemory {
       this.profiles[phone] = {
         phone,
         customer_name: null,
-        preferred_language: null, // 'Tamil', 'English', 'Tanglish'
+        preferred_language: 'English', // ALWAYS START FIRST CHAT IN ENGLISH BY DEFAULT!
         plot_owned: null,
         plot_size: null,
         location: null,
@@ -67,24 +67,38 @@ class BuilderCustomerMemory {
     const lower = text.toLowerCase();
     let updated = false;
 
-    // 1. STRICT LANGUAGE DETECTION & LOCKING
-    const hasTamilScript = /[\u0B80-\u0BFF]/.test(text);
-    const asksTamil = /\b(tamil|தமிழ்|thamil|thamizh)\b/i.test(text) || lower.includes('speak tamil') || lower.includes('chat tamil') || lower.includes('want tamil') || lower.includes('in tamil');
-    const asksEnglish = /\b(english|ஆங்கிலம்)\b/i.test(text) || lower.includes('speak english') || lower.includes('in english');
-    const asksTanglish = /\b(tanglish)\b/i.test(text);
+    // 1. STRICT LANGUAGE DETECTION & LOCKING:
+    // ALWAYS start in English. Switch language ONLY when the customer explicitly requests it, then lock it!
+    const asksTamil = /\b(tamil|தமிழ்|thamil|thamizh)\b/i.test(text) || 
+                      lower.includes('speak tamil') || 
+                      lower.includes('chat tamil') || 
+                      lower.includes('in tamil') || 
+                      lower.includes('want tamil') || 
+                      lower.includes('reply in tamil') || 
+                      lower.includes('reply me in tamil') || 
+                      lower.includes('tamil la') || 
+                      lower.includes('tamil theriyuma');
+    const asksEnglish = /\b(english|ஆங்கிலம்)\b/i.test(text) || lower.includes('speak english') || lower.includes('in english') || lower.includes('reply in english');
+    const asksTanglish = /\b(tanglish)\b/i.test(text) || lower.includes('speak tanglish') || lower.includes('in tanglish');
 
-    if (hasTamilScript || asksTamil) {
+    if (asksTamil) {
       if (profile.preferred_language !== 'Tamil') {
         profile.preferred_language = 'Tamil';
         updated = true;
-        console.log(`🔒 [Language Locked] ${profile.phone} ➔ TAMIL (Strict Mode)`);
+        console.log(`🔒 [Language Switched & Locked] ${profile.phone} ➔ TAMIL`);
       }
     } else if (asksEnglish) {
-      profile.preferred_language = 'English';
-      updated = true;
+      if (profile.preferred_language !== 'English') {
+        profile.preferred_language = 'English';
+        updated = true;
+        console.log(`🔒 [Language Switched & Locked] ${profile.phone} ➔ ENGLISH`);
+      }
     } else if (asksTanglish) {
-      profile.preferred_language = 'Tanglish';
-      updated = true;
+      if (profile.preferred_language !== 'Tanglish') {
+        profile.preferred_language = 'Tanglish';
+        updated = true;
+        console.log(`🔒 [Language Switched & Locked] ${profile.phone} ➔ TANGLISH`);
+      }
     }
 
     // 2. PLOT OWNERSHIP & SIZE DETECTION
@@ -210,8 +224,10 @@ class BuilderCustomerMemory {
 - NEVER write Latin Tanglish (no English spelling of Tamil words).
 - Keep only technical civil terms in English script where customary (e.g., G+1, 3D Elevation, Sq.Ft, Danam Holdings, Er. Dhilip Kumar).`
       : profile.preferred_language === 'Tanglish'
-      ? `The customer prefers Tanglish. Reply naturally in Tanglish with polite civil engineering warmth.`
-      : `Reply in clear, professional, consultative English. If the customer speaks Tamil, immediately switch and lock to Tamil.`;
+      ? `🚨 STRICT TANGLISH LANGUAGE LOCK: The customer requested Tanglish. Reply naturally in Tanglish with polite civil engineering warmth.`
+      : `🌟 DEFAULT ENGLISH MODE: You MUST reply in clear, professional, consultative English.
+- Always conduct the initial/first chat in English by default.
+- Only switch to Tamil or Tanglish if the customer explicitly requests to change language (e.g. "Can you speak Tamil", "Reply in Tamil", etc.).`;
 
     const knownSummary = [];
     if (profile.plot_size) knownSummary.push(`Plot Size: ${profile.plot_size} (ALREADY KNOWN - NEVER ASK AGAIN)`);
