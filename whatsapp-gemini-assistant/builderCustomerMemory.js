@@ -3,6 +3,7 @@ const path = require('path');
 
 const DATA_DIR = path.resolve(__dirname, 'data');
 const PROFILES_FILE = path.join(DATA_DIR, 'builder_customer_profiles.json');
+const BOT_PHONE = '919361599097';
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -37,12 +38,31 @@ class BuilderCustomerMemory {
     return String(chatId).replace(/\D/g, '');
   }
 
+  getVerifiedCustomerPhone(chatId = '', profile = null) {
+    if (profile && profile.customer_phone) {
+      return profile.customer_phone;
+    }
+    const str = String(chatId);
+    if (str.endsWith('@lid') || str.includes('lid:')) {
+      return null; // WhatsApp Linked Device privacy ID, NOT a phone number!
+    }
+    const digits = str.replace(/\D/g, '');
+    if (digits === BOT_PHONE || digits === '9361599097') {
+      return null; // This is the BOT's own phone number!
+    }
+    if (digits.length >= 10 && digits.length <= 13) {
+      return `+${digits}`;
+    }
+    return null;
+  }
+
   getProfile(chatId = '') {
     const phone = this.getCleanPhone(chatId);
     if (!this.profiles[phone]) {
       this.profiles[phone] = {
         phone,
         customer_name: null,
+        customer_phone: null,
         preferred_language: 'English', // ALWAYS START FIRST CHAT IN ENGLISH BY DEFAULT!
         plot_owned: null,
         plot_size: null,
@@ -193,7 +213,17 @@ class BuilderCustomerMemory {
       }
     }
 
-    // 10. UPDATE CONVERSATION STAGE
+    // 10. CUSTOMER EXPLICIT MOBILE NUMBER DETECTION
+    const explicitPhoneMatch = text.match(/(?:\+91[\s-]?)?([6-9]\d{9})\b/);
+    if (explicitPhoneMatch) {
+      const num = explicitPhoneMatch[1];
+      if (num !== '9361599097') {
+        profile.customer_phone = `+91 ${num}`;
+        updated = true;
+      }
+    }
+
+    // 11. UPDATE CONVERSATION STAGE
     if (profile.plot_size && profile.location && profile.house_type) {
       profile.conversation_stage = 'Floor plan & built-up area estimation';
     } else if (profile.plot_size || profile.location) {
@@ -286,9 +316,18 @@ class BuilderCustomerMemory {
       }
     }
 
+    const customerPhone = this.getVerifiedCustomerPhone(chatId, profile);
+    const customerPhoneSummary = customerPhone 
+      ? `• Customer's Verified Mobile Number: ${customerPhone}`
+      : `• Customer's Mobile Number: Not explicitly shared yet (Chatting via WhatsApp). DO NOT state the bot's number (+91 93615 99097) as the customer's number!`;
+
+    const phoneDirective = customerPhone
+      ? `State ONLY their actual Mobile Number: ${customerPhone}.`
+      : `Do NOT guess or invent any number (and NEVER make up a phone number or format WhatsApp device IDs). State politely: "நீங்கள் தற்போது என்னுடன் வாட்ஸ்அப்பில் தொடர்பு கொண்டுள்ளீர்கள் சார். இந்த WhatsApp Chat மூலமாகவே எங்கள் தலைமைப் பொறியாளர் Er. Dhilip Kumar உங்களைத் தொடர்புகொள்வார். தேவைப்பட்டால் உங்கள் நேரடி Mobile Number-ஐப் பகிரலாம்!"`;
+
     return `
 ======================================================================
-[CRITICAL MEMORY & CONVERSATION STATE - SENDER: +${profile.phone}]
+[CRITICAL MEMORY & CONVERSATION STATE - CHAT: ${chatId}]
 Language Lock: ${profile.preferred_language || 'Auto-detect'}
 ${langInstruction}
 
@@ -296,9 +335,9 @@ KNOWN CUSTOMER DETAILS (VERIFIED FROM MEMORY):
 ${knownSummary.length > 0 ? knownSummary.map(k => `• ${k}`).join('\n') : '• No previous details recorded yet.'}
 ${feasibilityWarning}
 
-VERIFIED CONTACT NUMBERS (NEVER HALLUCINATE OR GUESS):
-• Customer's Verified WhatsApp Number: +${profile.phone}
-• Danam Holdings / Er. Dhilip Kumar Official Phone: +91 93615 99097
+VERIFIED PHONE NUMBERS (STRICT INTEGRITY):
+• BOT / Danam Holdings Official Business Line: +91 93615 99097 (THIS IS OUR BOT'S NUMBER! NEVER say this is the customer's phone number!)
+${customerPhoneSummary}
 
 NEXT MISSING ACTION:
 ${nextStep}
@@ -306,8 +345,13 @@ ${nextStep}
 CRITICAL OPERATIONAL RULES FOR THIS TURN:
 1. DO NOT re-ask any detail listed above as ALREADY KNOWN.
 2. PHONE NUMBER INTEGRITY:
-   - If the customer asks "What is my number?" or "Intha number sollu / check my number": State ONLY their real WhatsApp number (+${profile.phone}). NEVER guess, hallucinate, or format a fake number!
-   - If the customer asks for Er. Dhilip Kumar's direct number or contact: Share ONLY the official business number: +91 93615 99097. NEVER invent any fake number like +91 98421 82955!
+   - NEVER tell the customer "Your mobile number is +91 93615 99097"! That is OUR company's WhatsApp bot number.
+   - If the customer asks "What is my number?" or "Intha number sollu / check my number":
+     ${phoneDirective}
+   - If the customer asks for Er. Dhilip Kumar's direct number or company contact:
+     Share ONLY the official business number: +91 93615 99097. NEVER invent any fake number like +91 98421 82955!
+   - When coordinating a Site Visit, do NOT demand a phone number:
+     Say: "இந்த WhatsApp Chat மூலமாகவே உங்களைத் தொடர்புகொள்ளலாமா, அல்லது மாற்று Mobile Number ஏதும் உள்ளதா சார்?"
 3. SITE VISIT CONFIRMATION:
    - A site visit is NEVER confirmed automatically simply because the customer gave a day/time.
    - Always state: "உங்கள் Site Visit கோரிக்கையைப் பதிவு செய்துள்ளேன். எங்கள் பொறியாளர் குழுவின் Availability-ஐ உறுதி செய்துவிட்டு உங்களுக்குத் தெரிவிக்கிறேன் சார்."
