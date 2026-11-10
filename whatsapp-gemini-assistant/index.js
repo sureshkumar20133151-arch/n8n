@@ -106,57 +106,51 @@ function detectModeSwitchIntent(rawText) {
   if (!rawText) return null;
   const cleaned = rawText.toLowerCase().trim();
 
-  // 1. Direct query commands: !mode, /mode, mode, switch, !switch, /switch, which mode
+  // 1. Direct query commands: !mode, /mode, !switch, /switch, which mode, current mode
   if (
-    cleaned === '!mode' || cleaned === '/mode' || cleaned === 'mode' ||
-    cleaned === '!switch' || cleaned === '/switch' || cleaned === 'switch' ||
-    cleaned === 'switch mode' || cleaned === 'change mode' ||
+    cleaned === '!mode' || cleaned === '/mode' ||
+    cleaned === '!switch' || cleaned === '/switch' ||
     /^(which|what|check|show|current|active)\s+mode/i.test(cleaned)
   ) {
     return { isQuery: true };
   }
 
-  // Parameterized commands: !mode wholesale, /switch dev, !setmode restaurant, etc.
-  if (/^(!|\/)(mode|switch|setmode)\s+/i.test(cleaned)) {
-    const target = cleaned.replace(/^(!|\/)(mode|switch|setmode)\s+/, '').trim();
+  // 2. Explicit prefixed commands: !mode wholesale, /switch dev, !setmode restaurant, mode: builder
+  if (/^(!|\/)(mode|switch|setmode)\s+/i.test(cleaned) || /^mode:\s*/i.test(cleaned)) {
+    const target = cleaned.replace(/^(!|\/)(mode|switch|setmode)\s+|^mode:\s*/i, '').trim();
     return { target };
   }
 
-  // 2. Wholesale / Oil Store triggers
-  // Handles: "switch to oil store", "switch oil", "oil store", "wholesale mode", "oil store ku mathu", "wholesale", "annamaliyar"
+  // 3. Explicit switch phrases (MUST contain switch/change/activate/mathu + target):
+  // Handles: "switch to oil store", "switch to wholesale", "oil mode ku mathu", "switch mode to restaurant"
   if (
-    /\b(oil store|oil shop|wholesale|annamaliyar|oil mode|wholesale mode)\b/i.test(cleaned) ||
-    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:oil|wholesale|annamaliyar|shop|store)/i.test(cleaned) ||
-    /(?:oil|wholesale|annamaliyar|shop|store)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:oil|wholesale|annamaliyar)/i.test(cleaned) ||
+    /(?:oil|wholesale|annamaliyar)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(wholesale\s*mode|oil\s*mode)$/i.test(cleaned)
   ) {
     return { target: 'wholesale' };
   }
 
-  // 3. Restaurant / Taj Hotel Biryani triggers
-  // Handles: "switch to restaurant", "switch restaurant", "biryani mode", "taj hotel", "restaurant ku mathu", "biryani"
   if (
-    /\b(restaurant|biryani|taj hotel|taj|food mode|restaurant mode|biryani mode)\b/i.test(cleaned) ||
-    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:restaurant|biryani|taj|hotel|food)/i.test(cleaned) ||
-    /(?:restaurant|biryani|taj|hotel|food)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:restaurant|biryani|taj hotel|taj|food)/i.test(cleaned) ||
+    /(?:restaurant|biryani|taj|food)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(restaurant\s*mode|biryani\s*mode|food\s*mode)$/i.test(cleaned)
   ) {
     return { target: 'restaurant' };
   }
 
-    // 4. Builder / Danam Holdings House Construction triggers
   if (
-    /\b(builder|construction|danam|civil|house construction|builder mode|civil mode)\b/i.test(cleaned) ||
-    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:builder|construction|danam|house|civil)/i.test(cleaned) ||
-    /(?:builder|construction|danam|civil)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:builder|danam|construction|civil)/i.test(cleaned) ||
+    /(?:builder|danam|construction|civil)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(builder\s*mode|civil\s*mode|construction\s*mode)$/i.test(cleaned)
   ) {
     return { target: 'builder' };
   }
 
-  // 5. Dev / SoloDeveloper triggers
-  // Handles: "switch to dev", "switch dev", "dev mode", "developer mode", "dev ku mathu", "sales os", "solodeveloper"
   if (
-    /\b(dev|developer|solodeveloper|sales os|dev mode|developer mode)\b/i.test(cleaned) ||
-    /(?:switch|change|set|activate|turn on|go|mathu|maathu)\s*(?:mode|to|mode to|ku)?\s*(?:dev|developer|sales|suresh)/i.test(cleaned) ||
-    /(?:dev|developer|sales|suresh)\s*(?:ku\s*)?(?:switch|mathu|maathu|mode)/i.test(cleaned)
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:dev|developer|sales os|solodeveloper)/i.test(cleaned) ||
+    /(?:dev|developer|solodeveloper)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(dev\s*mode|developer\s*mode|sales\s*os\s*mode)$/i.test(cleaned)
   ) {
     return { target: 'dev' };
   }
@@ -450,18 +444,7 @@ async function connectToWhatsApp() {
           }
 
           // Handle Boss / Admin Commands from Suresh (e.g. !rule, /rule, !rules, /rules, !delrule, !setslots, !setprice, !help)
-          // Smart Zero-Token Content Intent Routing (Zero LLM Tokens!)
-          const lowerPrompt = prompt.toLowerCase().trim();
-          if (/^(1|one)$/i.test(lowerPrompt)) {
-            personaManager.setMode('wholesale', 'Selection 1');
-            prompt = 'வணக்கம்! அண்ணாமலையார் ஆயில் ஸ்டோர் மொத்த விலை மற்றும் ஸ்டாக் விபரங்களை சொல்லுங்கள்.';
-          } else if (/^(2|two)$/i.test(lowerPrompt)) {
-            personaManager.setMode('restaurant', 'Selection 2');
-            prompt = 'வணக்கம்! தாஜ் ஹோட்டல் பிரியாணி மெனு மற்றும் டோக்கன் ஆர்டர் விபரம் சொல்லுங்கள்.';
-          } else if (/^(3|three)$/i.test(lowerPrompt)) {
-            personaManager.setMode('dev', 'Selection 3');
-            prompt = 'Hello! I am looking for a website and WhatsApp automation solutions for my business.';
-          }
+          // [Fixed] Removed dangerous 1,2,3 global mode hijack - 1,2,3 are valid customer answers (e.g. 3 BHK)
 
           if (isOwner && (prompt.startsWith('!') || prompt.startsWith('/'))) {
             const adminReply = adminRules.handleAdminCommand(prompt);
