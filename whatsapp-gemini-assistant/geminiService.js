@@ -1094,7 +1094,11 @@ class GeminiService {
       }
 
       if (mode === 'builder') {
-        return "வணக்கம் சார்! Danam Holdings House Construction & Civil EPC 🏡. உங்கள் வீடு கட்டும் இடம், பிளாட் அளவு அல்லது தேவையான சதுர அடி (Sq.Ft) விபரங்களை பகிருங்கள் சார், உடனே மதிப்பீடு மற்றும் விபரங்களை தருகிறேன்!";
+        const lang = builderCustomerMemory.getProfile(chatId)?.preferred_language || 'English';
+        if (lang === 'Tamil') {
+          return "வணக்கம் சார்! Danam Holdings House Construction & Civil EPC 🏡. உங்கள் வீடு கட்டும் இடம், பிளாட் அளவு அல்லது தேவையான சதுர அடி (Sq.Ft) விபரங்களை பகிருங்கள் சார், உடனே மதிப்பீடு மற்றும் விபரங்களை தருகிறேன்!";
+        }
+        return "Hello and welcome to Danam Holdings Civil Engineering & Turnkey EPC! 🏡 How can we assist you with your dream home construction project today?";
       }
 
       const hasTamilInInput = /[\u0B80-\u0BFF]/.test(userText || '');
