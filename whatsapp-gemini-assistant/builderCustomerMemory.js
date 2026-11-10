@@ -242,7 +242,15 @@ class BuilderCustomerMemory {
 - You MUST reply 100% ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்).
 - STRICTLY FORBIDDEN: NEVER USE MALAYALAM SCRIPT (NO മലയാളം, NO Malayalam letters or words under any circumstance!).
 - NEVER write Latin Tanglish (no English spelling of Tamil words).
-- Keep only technical civil terms in English script where customary (e.g., G+1, 3D Elevation, Sq.Ft, Danam Holdings, Er. Dhilip Kumar).`
+- CRITICAL VOCABULARY RULE (USER DIRECTIVE): ALWAYS write technical and measurement terms in ENGLISH script:
+  • Use "cents" or "Cents" (NEVER write "சென்ட்")
+  • Use "Sq.Ft" or "sq.ft" (NEVER write "சதுர அடி")
+  • Use "Mobile Number" or "Phone Number" (NEVER write "அலைபேசி எண்" or "தொலைபேசி எண்")
+  • Use "Plot" (NEVER write "மனை")
+  • Use "Budget"
+  • Use "Site Visit" (NEVER write "கள ஆய்வு")
+  • Use "Floor Plan" & "3D Elevation"
+  • Use "G+1", "G+2", "Duplex", "BHK", "Car Parking", "Compound Wall", "Borewell", "EB Connection", "Danam Holdings", "Er. Dhilip Kumar".`
       : profile.preferred_language === 'Tanglish'
       ? `🚨 STRICT TANGLISH LANGUAGE LOCK: The customer requested Tanglish. Reply naturally in Tanglish with polite civil engineering warmth.`
       : `🌟 DEFAULT ENGLISH MODE: You MUST reply in clear, professional, consultative English.
@@ -273,7 +281,7 @@ class BuilderCustomerMemory {
 • A G+1 duplex on a ${profile.plot_size} plot can realistically accommodate at most ~2,000 to 2,400 sq.ft built-up area after mandatory setbacks and FSI regulations.
 • 5,000 sq.ft on 4 cents is NOT feasible for a G+1 house (it would require G+3/G+4 with commercial/special planning approvals).
 • YOU MUST POLITELY CLARIFY THIS FEASIBILITY CONSTRAINT:
-  "சார், உங்கள் 4 சென்ட் இடத்தின் மொத்த பரப்பளவு சுமார் 1,742 சதுர அடி. 5,000 சதுர அடி கட்டுமானப் பரப்பளவு G+1 வீட்டிற்கு திட்டமிடுவதற்கு முன்பு, Setback, FSI மற்றும் உள்ளூர் கட்டிட அனுமதி விதிமுறைகளைச் சரிபார்க்க வேண்டும். உங்கள் 5,000 Sq.ft என்பது இரண்டு தளங்களையும் சேர்த்த மொத்த பரப்பளவா சார்?"
+  "சார், உங்கள் 4 Cents Plot-ன் மொத்த பரப்பளவு சுமார் 1,742 Sq.Ft. 5,000 Sq.Ft கட்டுமானப் பரப்பளவு G+1 வீட்டிற்கு திட்டமிடுவதற்கு முன்பு, Setback, FSI மற்றும் உள்ளூர் கட்டிட அனுமதி விதிமுறைகளைச் சரிபார்க்க வேண்டும். உங்கள் 5,000 Sq.Ft என்பது இரண்டு தளங்களையும் சேர்த்த மொத்த பரப்பளவா சார்?"
 • DO NOT quote or approve 5,000 sq.ft without flagging this feasibility constraint!`;
       }
     }
