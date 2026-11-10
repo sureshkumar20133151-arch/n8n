@@ -47,12 +47,15 @@ class BuilderCustomerMemory {
         plot_owned: null,
         plot_size: null,
         location: null,
+        site_address: null,
         house_type: null,
         built_up_area: null,
         bedrooms: null,
         budget: null,
         preferred_package: null,
         starting_timeline: null,
+        site_visit_requested: null,
+        site_visit_status: null,
         conversation_stage: 'Initial greeting',
         updated_at: new Date().toISOString()
       };
@@ -173,7 +176,24 @@ class BuilderCustomerMemory {
       updated = true;
     }
 
-    // 8. UPDATE CONVERSATION STAGE
+    // 8. SITE ADDRESS & LANDMARK DETECTION
+    if (lower.includes('street') || lower.includes('தெரு') || lower.includes('road') || lower.includes('bust stand') || lower.includes('bus stand') || lower.includes('near') || lower.includes('no ') || lower.includes('landmark')) {
+      if (text.length > 15) {
+        profile.site_address = text.trim();
+        updated = true;
+      }
+    }
+
+    // 9. SITE VISIT REQUEST DETECTION
+    if (lower.includes('sunday') || lower.includes('monday') || lower.includes('tomorrow') || lower.includes('morning') || lower.includes('evening') || lower.includes('visit') || lower.includes('ஞாயிறு')) {
+      if (lower.includes('morning') || lower.includes('evening') || lower.includes('sunday') || lower.includes('pm') || lower.includes('am')) {
+        profile.site_visit_requested = text.trim();
+        profile.site_visit_status = 'Pending Team Availability Confirmation';
+        updated = true;
+      }
+    }
+
+    // 10. UPDATE CONVERSATION STAGE
     if (profile.plot_size && profile.location && profile.house_type) {
       profile.conversation_stage = 'Floor plan & built-up area estimation';
     } else if (profile.plot_size || profile.location) {
@@ -233,10 +253,30 @@ class BuilderCustomerMemory {
     if (profile.plot_size) knownSummary.push(`Plot Size: ${profile.plot_size} (ALREADY KNOWN - NEVER ASK AGAIN)`);
     if (profile.plot_owned !== null) knownSummary.push(`Plot Ownership: ${profile.plot_owned ? 'Owns plot' : 'Looking for plot'} (ALREADY KNOWN - NEVER ASK AGAIN)`);
     if (profile.location) knownSummary.push(`Location: ${profile.location} (ALREADY KNOWN - NEVER ASK AGAIN)`);
+    if (profile.site_address) knownSummary.push(`Site Address / Landmark: ${profile.site_address} (ALREADY KNOWN - NEVER ASK AGAIN)`);
     if (profile.house_type) knownSummary.push(`House Type: ${profile.house_type} (ALREADY KNOWN - NEVER ASK AGAIN)`);
     if (profile.built_up_area) knownSummary.push(`Built-up Area: ${profile.built_up_area} (ALREADY KNOWN - NEVER ASK AGAIN)`);
     if (profile.bedrooms) knownSummary.push(`Bedrooms: ${profile.bedrooms} (ALREADY KNOWN - NEVER ASK AGAIN)`);
     if (profile.budget) knownSummary.push(`Budget: ${profile.budget} (ALREADY KNOWN - NEVER ASK AGAIN)`);
+    if (profile.site_visit_requested) knownSummary.push(`Site Visit Requested: ${profile.site_visit_requested} [Status: ${profile.site_visit_status || 'Pending Availability Confirmation'}] (ALREADY KNOWN)`);
+
+    // Feasibility warning check (e.g. 5,000 sq.ft on 4 cents)
+    let feasibilityWarning = '';
+    const centVal = profile.plot_size ? parseFloat(profile.plot_size) : null;
+    const sqftVal = profile.built_up_area ? parseInt(profile.built_up_area, 10) : null;
+    if (centVal && sqftVal) {
+      const approxPlotSqFt = Math.round(centVal * 435.6);
+      if (sqftVal > (approxPlotSqFt * 1.8)) {
+        feasibilityWarning = `
+🚨 CRITICAL ENGINEERING FEASIBILITY WARNING:
+• The customer's plot is ${profile.plot_size} (~${approxPlotSqFt} sq.ft), but they requested ${profile.built_up_area}.
+• A G+1 duplex on a ${profile.plot_size} plot can realistically accommodate at most ~2,000 to 2,400 sq.ft built-up area after mandatory setbacks and FSI regulations.
+• 5,000 sq.ft on 4 cents is NOT feasible for a G+1 house (it would require G+3/G+4 with commercial/special planning approvals).
+• YOU MUST POLITELY CLARIFY THIS FEASIBILITY CONSTRAINT:
+  "சார், உங்கள் 4 சென்ட் இடத்தின் மொத்த பரப்பளவு சுமார் 1,742 சதுர அடி. 5,000 சதுர அடி கட்டுமானப் பரப்பளவு G+1 வீட்டிற்கு திட்டமிடுவதற்கு முன்பு, Setback, FSI மற்றும் உள்ளூர் கட்டிட அனுமதி விதிமுறைகளைச் சரிபார்க்க வேண்டும். உங்கள் 5,000 Sq.ft என்பது இரண்டு தளங்களையும் சேர்த்த மொத்த பரப்பளவா சார்?"
+• DO NOT quote or approve 5,000 sq.ft without flagging this feasibility constraint!`;
+      }
+    }
 
     return `
 ======================================================================
@@ -246,17 +286,34 @@ ${langInstruction}
 
 KNOWN CUSTOMER DETAILS (VERIFIED FROM MEMORY):
 ${knownSummary.length > 0 ? knownSummary.map(k => `• ${k}`).join('\n') : '• No previous details recorded yet.'}
+${feasibilityWarning}
+
+VERIFIED CONTACT NUMBERS (NEVER HALLUCINATE OR GUESS):
+• Customer's Verified WhatsApp Number: +${profile.phone}
+• Danam Holdings / Er. Dhilip Kumar Official Phone: +91 93615 99097
 
 NEXT MISSING ACTION:
 ${nextStep}
 
-RULES FOR THIS TURN:
+CRITICAL OPERATIONAL RULES FOR THIS TURN:
 1. DO NOT re-ask any detail listed above as ALREADY KNOWN.
-2. If customer asks "Who are you?", state: "நான் Danam Holdings Civil Engineering & Turnkey EPC நிறுவனத்தின் AI கட்டுமான உதவியாளர். Er. திலீப் குமார் (15+ வருட அனுபவம்) தலைமையில் செயல்படுகிறோம்..."
-3. If customer asks "What can you do for me?", state: 2D Floor Plan, 3D Elevation, BOQ Cost Estimation, G+1 designs, Package details, Free Engineer Site Visit.
-4. If customer says "Are you there?" or greetings, acknowledge warmly without restarting qualification: mention what you already know (e.g., ${profile.plot_size || 'your plot'} in ${profile.location || 'Madurai'}) and ask the next missing detail.
-5. NEVER invent completed projects or rates not in approved knowledge base. Standard (₹1,950/sq.ft), Premium (₹2,350/sq.ft), Luxury (₹2,850/sq.ft).
-6. Ask EXACTLY ONE question at a time.
+2. PHONE NUMBER INTEGRITY:
+   - If the customer asks "What is my number?" or "Intha number sollu / check my number": State ONLY their real WhatsApp number (+${profile.phone}). NEVER guess, hallucinate, or format a fake number!
+   - If the customer asks for Er. Dhilip Kumar's direct number or contact: Share ONLY the official business number: +91 93615 99097. NEVER invent any fake number like +91 98421 82955!
+3. SITE VISIT CONFIRMATION:
+   - A site visit is NEVER confirmed automatically simply because the customer gave a day/time.
+   - Always state: "உங்கள் Site Visit கோரிக்கையைப் பதிவு செய்துள்ளேன். எங்கள் பொறியாளர் குழுவின் Availability-ஐ உறுதி செய்துவிட்டு உங்களுக்குத் தெரிவிக்கிறேன் சார்."
+   - NEVER say "Site visit is confirmed" or "ஏற்பாடு செய்துவிட்டேன்" until our team actually confirms the slot!
+4. EXTRA WORK & EXCLUSIONS:
+   - Explain inclusions vs exclusions clearly (Compound wall, deep borewell beyond 300ft, EB deposits are exclusions).
+   - NEVER invent per-running-foot rates or arbitrary numbers for compound wall or borewell! State that exact extra-work costs require on-site measurement and customized quotation.
+5. DESIGN DELIVERY TIMELINE:
+   - When asked about 2D plans or 3D elevation delivery: Explain that site measurements and customer requirements must be completed first, then the design team confirms the delivery timeline. Do NOT promise 3–5 days without team confirmation.
+6. GREETINGS & CONTINUITY:
+   - If customer says "Hi", "Are you there?" or greetings: Acknowledge warmly without restarting qualification. Mention known details (e.g., G+1 plan in ${profile.location || 'Madurai'}) and continue smoothly.
+7. ACCURACY:
+   - Ask EXACTLY ONE question at a time.
+   - Show arithmetic cleanly: e.g., 2,400 sq.ft × ₹2,350 = ₹56,40,000.
 ======================================================================
 `;
   }
