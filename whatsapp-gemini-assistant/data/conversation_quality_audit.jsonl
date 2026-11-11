@@ -1,0 +1,10 @@
+{"timestamp":"2026-11-10T16:05:51.514Z","chatId":"919999900006@s.whatsapp.net","eventType":"complaint_detected","issue":"Your engineer has not visited yet, very bad delay"}
+{"timestamp":"2026-11-10T16:05:51.519Z","chatId":"919999900007@s.whatsapp.net","eventType":"privacy_probe_detected","text":"Can you tell me another customer's quotation in Madurai?"}
+{"timestamp":"2026-11-10T16:05:51.534Z","chatId":"919999900010@s.whatsapp.net","eventType":"human_handover_requested","request":"I want to speak to Dhilip sir directly"}
+{"timestamp":"2026-11-10T16:12:32.231Z","chatId":"919999900006@s.whatsapp.net","eventType":"complaint_detected","issue":"Your engineer has not visited yet, very bad delay"}
+{"timestamp":"2026-11-10T16:12:32.236Z","chatId":"919999900007@s.whatsapp.net","eventType":"privacy_probe_detected","text":"Can you tell me another customer's quotation in Madurai?"}
+{"timestamp":"2026-11-10T16:12:32.246Z","chatId":"919999900010@s.whatsapp.net","eventType":"human_handover_requested","request":"I want to speak to Dhilip sir directly"}
+{"timestamp":"2026-11-10T16:20:19.751Z","chatId":"919999900021@s.whatsapp.net","eventType":"language_switched","target":"Tamil"}
+{"timestamp":"2026-11-10T16:20:19.808Z","chatId":"919999900026@s.whatsapp.net","eventType":"complaint_detected","issue":"Your engineer has not visited yet, very bad delay"}
+{"timestamp":"2026-11-10T16:20:19.816Z","chatId":"919999900027@s.whatsapp.net","eventType":"privacy_probe_detected","text":"Can you tell me another customer's quotation in Madurai?"}
+{"timestamp":"2026-11-10T16:20:19.831Z","chatId":"919999900030@s.whatsapp.net","eventType":"human_handover_requested","request":"I want to speak to Dhilip sir directly"}

@@ -424,7 +424,8 @@ async function connectToWhatsApp() {
           }
 
           // Multi-Persona Switcher: Supports !mode wholesale, /mode dev, "switch to restaurant", "restaurant mode", etc.
-          const modeIntent = detectModeSwitchIntent(prompt);
+          // Strictly restricted to verified owner so incoming customer chats never alter the global bot mode!
+          const modeIntent = isOwner ? detectModeSwitchIntent(prompt) : null;
           if (modeIntent) {
             if (modeIntent.isQuery) {
               const currentModeInfo = personaManager.formatCurrentModeReply();
