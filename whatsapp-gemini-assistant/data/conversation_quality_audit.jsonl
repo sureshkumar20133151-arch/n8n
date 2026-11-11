@@ -8,3 +8,6 @@
 {"timestamp":"2026-11-10T16:20:19.808Z","chatId":"919999900026@s.whatsapp.net","eventType":"complaint_detected","issue":"Your engineer has not visited yet, very bad delay"}
 {"timestamp":"2026-11-10T16:20:19.816Z","chatId":"919999900027@s.whatsapp.net","eventType":"privacy_probe_detected","text":"Can you tell me another customer's quotation in Madurai?"}
 {"timestamp":"2026-11-10T16:20:19.831Z","chatId":"919999900030@s.whatsapp.net","eventType":"human_handover_requested","request":"I want to speak to Dhilip sir directly"}
+{"timestamp":"2026-11-11T02:40:15.092Z","chatId":"919999900026@s.whatsapp.net","eventType":"complaint_detected","issue":"Your engineer has not visited yet, very bad delay"}
+{"timestamp":"2026-11-11T02:40:15.109Z","chatId":"919999900027@s.whatsapp.net","eventType":"privacy_probe_detected","text":"Can you tell me another customer's quotation in Madurai?"}
+{"timestamp":"2026-11-11T02:40:15.138Z","chatId":"919999900030@s.whatsapp.net","eventType":"human_handover_requested","request":"I want to speak to Dhilip sir directly"}
