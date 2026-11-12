@@ -1,0 +1,459 @@
+{
+  "name": "Apify Google Maps Builder Outreach Engine (WhatsApp + Email + AI Segmentation)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger_manual",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "apify-gmap-leads",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook_apify",
+      "name": "Apify Scraper Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        160,
+        460
+      ],
+      "webhookId": "apify-gmap-leads-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample fallback / Apify lead normalizer\n// Accepts direct Apify items or provides test mock data\nconst inputData = $input.all();\nlet items = [];\n\nif (inputData && inputData.length > 0 && inputData[0].json && (inputData[0].json.body || inputData[0].json.title || inputData[0].json.companyName)) {\n  // Webhook payload from Apify\n  const raw = inputData[0].json.body || inputData[0].json;\n  items = Array.isArray(raw) ? raw : (raw.items || [raw]);\n} else {\n  // Demo / Test records representing Segment A and Segment B\n  items = [\n    {\n      title: \"Sri Murugan Builders & Contractors\",\n      phone: \"+91 98421 55678\",\n      email: \"info@srimuruganbuilders.com\",\n      website: \"\",\n      city: \"Madurai\",\n      address: \"12 Bye Pass Road, Madurai, Tamil Nadu\",\n      totalScore: 4.8,\n      reviewsCount: 24\n    },\n    {\n      title: \"Apex Turnkey Civil Constructions\",\n      phone: \"919361599097\",\n      email: \"contact@apexconstructions.in\",\n      website: \"http://example-outdated-builder-site.com\",\n      city: \"Coimbatore\",\n      address: \"Avinashi Road, Coimbatore, Tamil Nadu\",\n      totalScore: 4.2,\n      reviewsCount: 16\n    }\n  ];\n}\n\nreturn items.map(item => {\n  // Normalize business name\n  const businessName = (item.title || item.companyName || item.name || 'Valued Builder').trim();\n  \n  // Contact cleanup\n  let rawPhone = (item.phone || item.phoneNumber || '').toString().replace(/[^0-9+]/g, '');\n  if (rawPhone && !rawPhone.startsWith('+')) {\n    if (rawPhone.length === 10) rawPhone = '+91' + rawPhone;\n    else if (rawPhone.length === 12 && rawPhone.startsWith('91')) rawPhone = '+' + rawPhone;\n  }\n  \n  const email = (item.email || '').trim().toLowerCase();\n  let website = (item.website || item.url || '').trim();\n  \n  // Check if website is actually a social directory instead of custom domain\n  const isDirectoryOrSocial = /(facebook\\.com|instagram\\.com|indiamart\\.com|justdial\\.com|linkedin\\.com)/i.test(website);\n  const hasDedicatedWebsite = Boolean(website && website.length > 8 && !isDirectoryOrSocial);\n  \n  return {\n    json: {\n      businessName,\n      phone: rawPhone,\n      email,\n      rawWebsite: website,\n      hasDedicatedWebsite,\n      city: item.city || item.addressLocality || 'your area',\n      address: item.address || '',\n      rating: item.totalScore || item.rating || 0,\n      reviewCount: item.reviewsCount || 0,\n      source: 'Apify Google Maps'\n    }\n  };\n});"
+      },
+      "id": "clean_and_normalize_leads",
+      "name": "Clean & Normalize Apify Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "loop_over_leads",
+      "name": "Loop Over Leads (1 by 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check_website_presence",
+              "leftValue": "={{ $json.hasDedicatedWebsite }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_if_has_website",
+      "name": "Has Dedicated Website?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json;\nconst name = lead.businessName;\nconst location = lead.city || 'your area';\n\n// WhatsApp copy for builders without a website\nconst whatsappMessage = \n  `Hi ${name},\\n\\n` +\n  `I came across your construction business on Google Maps in ${location}. I noticed you do quality structural and house construction work, but couldn't find a dedicated website showcasing your completed projects.\\n\\n` +\n  `Most homeowners compare 3-4 builders online before calling. Without a premium portfolio, many assume you're a smaller sub-contractor rather than a turnkey builder.\\n\\n` +\n  `I help independent house builders launch a complete digital experience — including a modern project showcase, 360° virtual site tours, and a WhatsApp AI agent that pre-qualifies plot details and budget 24/7.\\n\\n` +\n  `Would you be open to seeing a 2-minute concept layout I designed for builders in ${location}?`;\n\n// Email copy for builders without a website\nconst emailSubject = `Dedicated project portfolio & quotation system for ${name}`;\nconst emailBody = \n  `Hi ${name} Team,\\n\\n` +\n  `I was reviewing house builders and contractors in ${location} and noticed your Google Maps profile.\\n\\n` +\n  `While your reviews reflect solid workmanship, you don't currently have a dedicated modern website to showcase your elevation plans, floor layouts, and completed handover walkthroughs.\\n\\n` +\n  `Today's homeowners want to see tangible proof of construction quality before initiating a quotation enquiry. I build custom digital systems for independent contractors that include:\\n` +\n  `1. Premium Portfolio: High-res photos, 3D elevations, and 360° site walkthroughs\\n` +\n  `2. Instant Cost & BOQ Estimator: Filters tire-kickers by collecting plot size & budget upfront\\n` +\n  `3. WhatsApp AI Assistant: Captures homeowner leads and schedules soil tests / site meetings\\n\\n` +\n  `Would you be open to seeing a quick concept tailored for ${name}?\\n\\n` +\n  `Best regards,\\nSuresh Kumar\\nBuilder Digital Experience & Enquiry System™`;\n\nreturn [{\n  json: {\n    ...lead,\n    segment: \"Segment A - No Website\",\n    outreachAngle: \"New Website + Portfolio + WhatsApp AI\",\n    whatsappMessage,\n    emailSubject,\n    emailBody\n  }\n}];"
+      },
+      "id": "generate_copy_segment_a",
+      "name": "Generate Copy: Segment A (No Website)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.rawWebsite }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "timeout": 8000
+        }
+      },
+      "id": "inspect_builder_website",
+      "name": "Inspect Builder Website (HTTP Check)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        220
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Loop Over Leads (1 by 1)').first().json;\nconst httpResult = $input.first().json;\n\nconst isDownOrError = Boolean(httpResult.error || !httpResult);\nconst htmlBody = (typeof httpResult === 'string' ? httpResult : JSON.stringify(httpResult)).toLowerCase();\n\n// Basic heuristics for outdated websites\nconst hasViewport = htmlBody.includes('viewport');\nconst hasWhatsAppWidget = htmlBody.includes('whatsapp') || htmlBody.includes('wa.me');\nconst hasModernFramework = htmlBody.includes('react') || htmlBody.includes('next') || htmlBody.includes('tailwind') || htmlBody.includes('webflow');\n\nlet segmentTag = \"Segment B - Outdated Website / Redesign\";\nlet specificObservation = \"your site is missing modern interactive project showcases and instant WhatsApp quotation enquiry buttons\";\n\nif (isDownOrError) {\n  segmentTag = \"Segment B - Website Inaccessible / Broken\";\n  specificObservation = \"your listed website appears to be down or having domain/SSL errors, which costs you homeowner enquiries daily\";\n} else if (!hasWhatsAppWidget) {\n  specificObservation = \"your website does not have an instant WhatsApp quotation button or BOQ calculator, causing mobile visitors to bounce without inquiring\";\n}\n\nconst name = lead.businessName;\nconst location = lead.city || 'your area';\n\n// WhatsApp copy for website upgrade\nconst whatsappMessage = \n  `Hi ${name},\\n\\n` +\n  `I came across your construction business and checked out your website (${lead.rawWebsite}).\\n\\n` +\n  `You have great construction experience, but I noticed an opportunity: ${specificObservation}.\\n\\n` +\n  `We help independent builders upgrade from a static brochure website to a 24/7 Enquiry Generation System — featuring 3D house visualizers, 360° virtual walkthroughs, and WhatsApp AI lead qualification.\\n\\n` +\n  `Would you mind if I sent over a short 2-minute video showing 3 specific improvements for your site?`;\n\n// Email copy for website upgrade\nconst emailSubject = `3 website & enquiry improvements for ${name}`;\nconst emailBody = \n  `Hi ${name} Team,\\n\\n` +\n  `I came across your business while researching reputable house contractors in ${location} and reviewed your website (${lead.rawWebsite}).\\n\\n` +\n  `Your completed projects show solid construction quality, but your digital journey could be converting significantly more quotation requests. Specifically: ${specificObservation}.\\n\\n` +\n  `Homeowners today want to explore finished projects in 360°, check approximate construction packages per sq.ft, and start a WhatsApp conversation in one click.\\n\\n` +\n  `We build the Builder Digital Experience & Enquiry System™ specifically for independent contractors to turn passive website visits into booked site inspections.\\n\\n` +\n  `Would you be open to a quick 3-point audit showing how to modernize your project presentation?\\n\\n` +\n  `Best regards,\\nSuresh Kumar\\nBuilder Digital Experience & Enquiry System™`;\n\nreturn [{\n  json: {\n    ...lead,\n    segment: segmentTag,\n    outreachAngle: \"Website Upgrade + 3D/360 + WhatsApp Automation\",\n    websiteStatus: isDownOrError ? 'Down/Error' : 'Active',\n    whatsappMessage,\n    emailSubject,\n    emailBody\n  }\n}];"
+      },
+      "id": "generate_copy_segment_b",
+      "name": "Generate Copy: Segment B (Website Upgrade)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check_phone_presence",
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has_whatsapp_phone",
+      "name": "Has Phone / WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.whatsappMessage) }},\n  \"businessName\": \"{{ $json.businessName }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "dispatch_whatsapp_outreach",
+      "name": "Dispatch WhatsApp Outreach",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1860,
+        280
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check_email_presence",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has_email_contact",
+      "name": "Has Email Address?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1860,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer re_REPLACE_WITH_RESEND_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": \"Suresh <suresh@solodeveloper.pro>\",\n  \"to\": [\"{{ $json.email }}\"],\n  \"reply_to\": \"sureshkumar20133151@gmail.com\",\n  \"subject\": \"{{ $json.emailSubject }}\",\n  \"text\": \"{{ $json.emailBody }}\"\n}",
+        "options": {}
+      },
+      "id": "dispatch_cold_email_resend",
+      "name": "Dispatch Cold Email (Resend)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2100,
+        480
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "id": "rate_limiting_wait",
+      "name": "Wait (Anti-Ban & Rate Limit 15s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2340,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Loop Over Leads (1 by 1)').first().json;\nconst whatsappResult = $('Dispatch WhatsApp Outreach').first()?.json || null;\nconst emailResult = $('Dispatch Cold Email (Resend)').first()?.json || null;\n\nreturn [{\n  json: {\n    businessName: lead.businessName,\n    phone: lead.phone,\n    email: lead.email,\n    segment: lead.segment || 'Segment A',\n    whatsappSent: Boolean(whatsappResult && !whatsappResult.error),\n    emailSent: Boolean(emailResult && (emailResult.id || !emailResult.error)),\n    timestamp: new Date().toISOString(),\n    status: \"OUTREACH_DISPATCHED\"\n  }\n}];"
+      },
+      "id": "compile_outreach_log",
+      "name": "Compile Lead Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        360
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Clean & Normalize Apify Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify Scraper Webhook": {
+      "main": [
+        [
+          {
+            "node": "Clean & Normalize Apify Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean & Normalize Apify Leads": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Leads (1 by 1)": {
+      "main": [
+        [
+          {
+            "node": "Compile Lead Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Dedicated Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Dedicated Website?": {
+      "main": [
+        [
+          {
+            "node": "Inspect Builder Website (HTTP Check)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Copy: Segment A (No Website)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspect Builder Website (HTTP Check)": {
+      "main": [
+        [
+          {
+            "node": "Generate Copy: Segment B (Website Upgrade)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Copy: Segment A (No Website)": {
+      "main": [
+        [
+          {
+            "node": "Has Phone / WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Copy: Segment B (Website Upgrade)": {
+      "main": [
+        [
+          {
+            "node": "Has Phone / WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Phone / WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Dispatch WhatsApp Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Email Address?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch WhatsApp Outreach": {
+      "main": [
+        [
+          {
+            "node": "Has Email Address?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email Address?": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Cold Email (Resend)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait (Anti-Ban & Rate Limit 15s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Cold Email (Resend)": {
+      "main": [
+        [
+          {
+            "node": "Wait (Anti-Ban & Rate Limit 15s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Anti-Ban & Rate Limit 15s)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

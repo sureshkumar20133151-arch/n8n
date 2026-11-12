@@ -1,0 +1,548 @@
+{
+  "name": "Daily Google Sheets Builder Outreach (Anti-Ban & Paced WhatsApp + Email)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "trigger_schedule_daily",
+      "name": "Daily 10:00 AM Trigger (Mon-Sat)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "trigger_manual_test",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Ready"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "read_google_sheets_leads",
+      "name": "Fetch 'Ready' Leads from Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        380,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Daily Safe Quota & Normalizer\n// Limits daily outreach to prevent WhatsApp number flag/ban\nconst MAX_DAILY_OUTREACH = 25; // Safe daily limit for outreach\n\nconst rawItems = $input.all();\nif (!rawItems || rawItems.length === 0) {\n  return [];\n}\n\n// Slice to process only up to MAX_DAILY_OUTREACH leads per day\nconst batch = rawItems.slice(0, MAX_DAILY_OUTREACH);\n\nreturn batch.map((item, index) => {\n  const row = item.json;\n  \n  // Extract fields\n  const businessName = (row['Business Name'] || row['Company'] || row['Name'] || 'Valued Builder').trim();\n  const city = (row['City'] || row['Location'] || 'your area').trim();\n  \n  // Clean Phone to E.164\n  let rawPhone = (row['Phone'] || row['WhatsApp'] || row['Mobile'] || '').toString().replace(/[^0-9+]/g, '');\n  if (rawPhone && !rawPhone.startsWith('+')) {\n    if (rawPhone.length === 10) rawPhone = '+91' + rawPhone;\n    else if (rawPhone.length === 12 && rawPhone.startsWith('91')) rawPhone = '+' + rawPhone;\n  }\n  \n  const email = (row['Email'] || '').trim().toLowerCase();\n  const website = (row['Website'] || '').trim();\n  \n  // Check if real custom domain vs directory/social\n  const isDirectoryOrSocial = /(facebook\\.com|instagram\\.com|indiamart\\.com|justdial\\.com|linkedin\\.com)/i.test(website);\n  const hasDedicatedWebsite = Boolean(website && website.length > 8 && !isDirectoryOrSocial);\n  \n  return {\n    json: {\n      rowIndex: index + 1,\n      businessName,\n      city,\n      phone: rawPhone,\n      email,\n      rawWebsite: website,\n      hasDedicatedWebsite,\n      originalRow: row\n    }\n  };\n});"
+      },
+      "id": "quota_and_lead_normalizer",
+      "name": "Daily Quota Cap (Max 25) & Lead Normalizer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "loop_batches",
+      "name": "Loop Over Leads (1 by 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        820,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "eval_website",
+              "leftValue": "={{ $json.hasDedicatedWebsite }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "segment_router",
+      "name": "Has Dedicated Website?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json;\nconst name = lead.businessName;\nconst location = lead.city;\n\n// Spintax / Random variation to prevent identical message hash detection\nconst openers = [\n  `Hi ${name}, came across your construction work in ${location} and noticed you don't have a dedicated website for your completed projects.`,\n  `Hello ${name} Team, was reviewing quality turnkey house builders in ${location}. I couldn't find an official website showcasing your elevations and floor plans.`,\n  `Hi ${name}, hope your current building projects in ${location} are going well! Noticed you showcase work mostly via WhatsApp without a modern web portfolio.`\n];\nconst opener = openers[Math.floor(Math.random() * openers.length)];\n\nconst whatsappMessage = \n  `${opener}\\n\\n` +\n  `Most prospective homeowners compare 3-4 builders online before initiating quotation enquiries. Without an interactive portfolio, they often perceive you as a labor contractor rather than a premium turnkey builder.\\n\\n` +\n  `We help independent builders launch a turnkey digital system — with 3D house visualizers, 360° virtual site tours, and a 24/7 WhatsApp AI qualification assistant.\\n\\n` +\n  `Would you be open to seeing a 2-minute concept design we prepared for builders in ${location}?`;\n\nconst emailSubject = `Project showcase & quotation system for ${name}`;\nconst emailBody = \n  `Hi ${name} Team,\\n\\n` +\n  `I noticed your construction projects in ${location}. Your workmanship is strong, but you currently lack a dedicated modern website to showcase your portfolio, elevation designs, and completed handovers.\\n\\n` +\n  `We build custom digital systems for independent house contractors that include:\\n` +\n  `1. Premium Portfolio: 3D elevations & 360° virtual site walkthroughs\\n` +\n  `2. Smart Cost & BOQ Estimator: Pre-qualifies homeowner budget and plot dimensions\\n` +\n  `3. WhatsApp AI Assistant: Instantly books site inspections 24/7\\n\\n` +\n  `Would you be open to a 2-minute concept walkthrough tailored for ${name}?\\n\\n` +\n  `Best regards,\\nSuresh Kumar\\nBuilder Digital Experience & Enquiry System™`;\n\nreturn [{\n  json: {\n    ...lead,\n    segment: \"Segment A - No Website\",\n    whatsappMessage,\n    emailSubject,\n    emailBody\n  }\n}];"
+      },
+      "id": "build_segment_a_copy",
+      "name": "Copy Generator: Segment A (No Website)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.rawWebsite }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "timeout": 7000
+        }
+      },
+      "id": "probe_builder_site",
+      "name": "Inspect Website (HTTP Probe)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        220
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Loop Over Leads (1 by 1)').first().json;\nconst probe = $input.first().json;\nconst isError = Boolean(probe.error || !probe);\n\nconst name = lead.businessName;\nconst location = lead.city;\n\nlet observation = \"your website does not have an instant WhatsApp quotation button or 360° virtual tour, leading mobile visitors to drop off\";\nif (isError) {\n  observation = \"your website domain appears to be inaccessible or returning errors, resulting in lost homeowner enquiries\";\n}\n\n// Anti-ban randomized variation\nconst openers = [\n  `Hi ${name}, came across your construction projects and checked out your website (${lead.rawWebsite}).`,\n  `Hello ${name} Team, was reviewing your house construction work in ${location} via your website (${lead.rawWebsite}).`\n];\nconst opener = openers[Math.floor(Math.random() * openers.length)];\n\nconst whatsappMessage = \n  `${opener}\\n\\n` +\n  `You have great construction experience, but I noticed an opportunity: ${observation}.\\n\\n` +\n  `We help independent builders upgrade their static websites into active quotation engines — complete with 3D elevations, 360° project walkthroughs, and a 24/7 WhatsApp AI agent that pre-qualifies plot details and budgets.\\n\\n` +\n  `Would you mind if I shared 3 specific improvement concepts for your site?`;\n\nconst emailSubject = `3 website & quotation enquiry improvements for ${name}`;\nconst emailBody = \n  `Hi ${name} Team,\\n\\n` +\n  `I came across your construction business while researching turnkey house contractors in ${location} and reviewed your website (${lead.rawWebsite}).\\n\\n` +\n  `Your completed projects show solid construction quality, but ${observation}.\\n\\n` +\n  `Today's homeowners want to explore completed homes in 360°, check package estimates per sq.ft, and reach out via WhatsApp immediately.\\n\\n` +\n  `Would you be open to a quick 3-point audit showing how to convert more website visitors into booked site consultations?\\n\\n` +\n  `Best regards,\\nSuresh Kumar\\nBuilder Digital Experience & Enquiry System™`;\n\nreturn [{\n  json: {\n    ...lead,\n    segment: isError ? \"Segment B - Site Down/Error\" : \"Segment B - Website Modernization\",\n    whatsappMessage,\n    emailSubject,\n    emailBody\n  }\n}];"
+      },
+      "id": "build_segment_b_copy",
+      "name": "Copy Generator: Segment B (Website Upgrade)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has_phone",
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_has_phone",
+      "name": "Has Phone / WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.whatsappMessage) }},\n  \"leadName\": \"{{ $json.businessName }}\"\n}",
+        "options": {
+          "timeout": 12000
+        }
+      },
+      "id": "dispatch_whatsapp",
+      "name": "Send WhatsApp Outreach",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        280
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has_valid_email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_has_email",
+      "name": "Has Valid Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer re_REPLACE_WITH_RESEND_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": \"Suresh <suresh@solodeveloper.pro>\",\n  \"to\": [\"{{ $json.email }}\"],\n  \"reply_to\": \"sureshkumar20133151@gmail.com\",\n  \"subject\": \"{{ $json.emailSubject }}\",\n  \"text\": \"{{ $json.emailBody }}\"\n}",
+        "options": {}
+      },
+      "id": "dispatch_email_resend",
+      "name": "Send Cold Email (Resend)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        480
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Sent",
+            "Contacted Date": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+            "Segment": "={{ $('Loop Over Leads (1 by 1)').first().json.segment || 'Segment A' }}",
+            "Channel Used": "={{ $('Send WhatsApp Outreach').first()?.json?.error ? 'Email Only' : 'WhatsApp + Email' }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ]
+        },
+        "options": {}
+      },
+      "id": "update_sheet_contacted",
+      "name": "Update Lead Status: 'Sent' in Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2480,
+        360
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Anti-Ban Jitter Generator\n// Randomized delay between 45 to 80 seconds so message intervals look organic and human\nconst minSeconds = 45;\nconst maxSeconds = 80;\nconst jitterDelay = Math.floor(Math.random() * (maxSeconds - minSeconds + 1)) + minSeconds;\n\nreturn [{\n  json: {\n    jitterDelaySeconds: jitterDelay\n  }\n}];"
+      },
+      "id": "calculate_anti_ban_jitter",
+      "name": "Generate Anti-Ban Random Delay (45s - 80s)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.jitterDelaySeconds }}",
+        "unit": "seconds"
+      },
+      "id": "anti_ban_wait_node",
+      "name": "Wait (Anti-Ban Human Delay)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2920,
+        360
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 10:00 AM Trigger (Mon-Sat)": {
+      "main": [
+        [
+          {
+            "node": "Fetch 'Ready' Leads from Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch 'Ready' Leads from Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch 'Ready' Leads from Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Daily Quota Cap (Max 25) & Lead Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Quota Cap (Max 25) & Lead Normalizer": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Leads (1 by 1)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Has Dedicated Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Dedicated Website?": {
+      "main": [
+        [
+          {
+            "node": "Inspect Website (HTTP Probe)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Copy Generator: Segment A (No Website)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspect Website (HTTP Probe)": {
+      "main": [
+        [
+          {
+            "node": "Copy Generator: Segment B (Website Upgrade)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Generator: Segment A (No Website)": {
+      "main": [
+        [
+          {
+            "node": "Has Phone / WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Generator: Segment B (Website Upgrade)": {
+      "main": [
+        [
+          {
+            "node": "Has Phone / WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Phone / WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Valid Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Outreach": {
+      "main": [
+        [
+          {
+            "node": "Has Valid Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Valid Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Cold Email (Resend)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Lead Status: 'Sent' in Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Cold Email (Resend)": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Status: 'Sent' in Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead Status: 'Sent' in Sheets": {
+      "main": [
+        [
+          {
+            "node": "Generate Anti-Ban Random Delay (45s - 80s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Anti-Ban Random Delay (45s - 80s)": {
+      "main": [
+        [
+          {
+            "node": "Wait (Anti-Ban Human Delay)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Anti-Ban Human Delay)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

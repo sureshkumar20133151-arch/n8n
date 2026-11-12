@@ -1,0 +1,536 @@
+{
+  "name": "Production Builder Outreach System (Prospects -> WhatsApp & Gmail)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "schedule_daily_trigger",
+      "name": "Daily 10:00 AM Trigger (Mon-Sat)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "manual_test_trigger",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Prospects",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Ready"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "read_prospects_sheet",
+      "name": "Read 'Ready' Leads from Prospects",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        380,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Daily Safe Batching, Smart Prioritization & Cleaner\n// Priority 1: Builders WITHOUT a website FIRST\n// Priority 2: Lowest Rating & Lowest Reviews FIRST (highest pain/urgency)\nconst MAX_BATCH_PER_DAY = 20; \n\nconst items = $input.all();\nif (!items || items.length === 0) return [];\n\n// 1. Clean and normalize all incoming leads\nconst parsedLeads = items.map(item => {\n  const row = item.json;\n  \n  const businessName = (row['Business'] || row['Business Name'] || 'Valued Builder').trim();\n  const category = (row['Category'] || 'Construction contractor').trim();\n  const address = (row['Address'] || '').trim();\n  const pincode = (row['Pincode'] || '').toString().trim();\n  const rating = parseFloat(row['Rating']) || 0;\n  const reviews = parseInt(row['Reviews']) || 0;\n  const gmapLink = (row['Google Maps link'] || '').trim();\n  const website = (row['Website'] || '').trim();\n  const email = (row['Email'] || '').trim().toLowerCase();\n  \n  // Clean Phone number\n  let rawPhone = (row['Phone'] || '').toString().replace(/[^0-9+]/g, '');\n  if (rawPhone && !rawPhone.startsWith('+')) {\n    if (rawPhone.length === 10) rawPhone = '+91' + rawPhone;\n    else if (rawPhone.length === 12 && rawPhone.startsWith('91')) rawPhone = '+' + rawPhone;\n  }\n  \n  // Determine Website presence (exclude generic social/directories)\n  const isSocialOrDir = /(facebook\\.com|instagram\\.com|indiamart\\.com|justdial\\.com|linkedin\\.com)/i.test(website);\n  const hasDedicatedWebsite = Boolean(website && website.length > 7 && !isSocialOrDir);\n  \n  // Extract Location hint\n  let city = 'Madurai';\n  if (address.toLowerCase().includes('coimbatore')) city = 'Coimbatore';\n  else if (address.toLowerCase().includes('chennai')) city = 'Chennai';\n  else if (address.toLowerCase().includes('trichy')) city = 'Trichy';\n  \n  return {\n    businessName,\n    category,\n    phone: rawPhone,\n    email,\n    website,\n    address,\n    pincode,\n    city,\n    rating,\n    reviews,\n    gmapLink,\n    hasDedicatedWebsite,\n    originalRow: row\n  };\n});\n\n// 2. Sort by User Directive:\n// Rule A: Without Website comes FIRST (hasDedicatedWebsite === false)\n// Rule B: Low Rating comes FIRST (lowest rating/reviews have highest pain)\nparsedLeads.sort((a, b) => {\n  // Priority 1: Without website first\n  if (!a.hasDedicatedWebsite && b.hasDedicatedWebsite) return -1;\n  if (a.hasDedicatedWebsite && !b.hasDedicatedWebsite) return 1;\n  \n  // Priority 2: Lowest Rating first (ascending, e.g. 3.5 before 4.2 before 4.9)\n  if (a.rating !== b.rating) {\n    return a.rating - b.rating;\n  }\n  \n  // Priority 3: Lowest Review count first\n  return a.reviews - b.reviews;\n});\n\n// 3. Slice the prioritized top 20 leads for today\nconst dailyBatch = parsedLeads.slice(0, MAX_BATCH_PER_DAY);\n\nreturn dailyBatch.map(lead => ({ json: lead }));"
+      },
+      "id": "batch_limiter_and_cleaner",
+      "name": "Prioritize (No-Website + Low Rating) & Cap 20",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "split_in_batches_loop",
+      "name": "Loop Over Leads (1 by 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        820,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition_website_check",
+              "leftValue": "={{ $json.hasDedicatedWebsite }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_segment",
+      "name": "Segment: Has Website?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json;\nconst name = lead.businessName;\nconst location = lead.city || 'your area';\nconst ratingStr = lead.rating ? ` (great to see your *${lead.rating}★* rating and *${lead.reviews || 0} reviews*!)` : '';\nconst ratingStrEmail = lead.rating ? ` (great to see your <strong>${lead.rating}★</strong> rating and <strong>${lead.reviews || 0} reviews</strong>!)` : '';\n\n// Upgraded WhatsApp: No clumsy 🏗️ icon, clean ✔ checkmarks, dynamic reviews\nconst whatsappMessage = \n`Hi *${name}*,\n\nI came across *${name}* on Google Maps while researching house builders in *${location}*${ratingStr}.\n\nYour construction craftsmanship looks solid. However, I noticed you don't currently have a dedicated website to showcase your completed projects, floor plans, and elevations.\n\nToday, most homeowners compare 3-4 builders online before requesting a quotation.\n\nWe help independent builders launch a high-trust digital presence:\n\n✔ *Project Portfolio & 3D Tours* — showcases your completed homes online\n✔ *Smart Cost Estimator* — gives clients indicative per sq.ft pricing upfront\n✔ *24/7 WhatsApp AI Assistant* — answers queries and books site visits automatically\n\n*(We also build custom software and mobile apps for construction teams).*\n\nCan I send you a quick 2-minute concept preview designed for *${name}*?`;\n\n// Cold Email Subject: Conversational for 100% Primary Inbox Placement\nconst emailSubject = `${name} — project showcase & inquiry system`;\n\n// Plain-text Fallback with WhatsApp Cross-Reference\nconst emailBody = \n`SoloDeveloper\n\nHi ${name},\n\nI was researching house builders in ${location} today and came across ${name} on Google Maps${ratingStr}. I also sent you a quick message on WhatsApp earlier today.\n\nYour completed construction projects look solid. However, I noticed you don't currently have an official website to showcase your completed elevations, floor layouts, and project walkthroughs.\n\nMost homeowners compare multiple contractors online before reaching out. We help house builders set up a professional digital presence that brings in qualified quotation enquiries:\n✔ Modern Project Portfolio: showcase your elevations and 360° site walkthroughs\n✔ Cost & Budget Calculator: pre-qualifies client budget and plot dimensions\n✔ 24/7 WhatsApp AI Assistant: answers buyer questions and books site visits\n\n(We also build custom web platforms and mobile apps tailored for construction businesses).\n\nWould you be open to checking out a quick 2-minute concept preview designed for ${name}?\n\nBest regards,\n\nSuresh Kumar\nFounder & Lead Engineer • SoloDeveloper.pro\n📱 +91 93615 99097 • 📍 Madurai, Tamil Nadu`;\n\n// 100% Primary-Inbox Optimized 1-on-1 Direct Email with Top Logo & LinkedIn-Framed Natural Avatar\nconst emailHtml = `\n<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; font-size: 15px; line-height: 1.6; max-width: 600px;\">\n  <!-- Top Logo: Untitled design.png from Downloads -->\n  <div style=\"margin-bottom: 20px;\">\n    <img src=\"https://iili.io/nppiUdu.png\" alt=\"SoloDeveloper\" width=\"52\" height=\"52\" style=\"display: block; border-radius: 8px;\" />\n  </div>\n\n  <p>Hi ${name},</p>\n  \n  <p>I was researching house builders in ${location} today and came across <strong>${name}</strong> on Google Maps${ratingStrEmail}. I also sent you a quick message on WhatsApp earlier today.</p>\n  \n  <p>Your completed construction projects look solid. However, I noticed you don't currently have an official website to showcase your completed elevations, floor layouts, and project walkthroughs.</p>\n  \n  <p>Most homeowners compare multiple contractors online before reaching out. We help house builders set up a professional digital presence that brings in qualified quotation enquiries:</p>\n  \n  <div style=\"margin: 14px 0 14px 12px;\">\n    <div style=\"margin-bottom: 6px;\">&#10004; <strong>Modern Project Portfolio:</strong> showcase your elevations and 360&deg; site walkthroughs</div>\n    <div style=\"margin-bottom: 6px;\">&#10004; <strong>Cost &amp; Budget Calculator:</strong> pre-qualifies client budget and plot dimensions</div>\n    <div style=\"margin-bottom: 6px;\">&#10004; <strong>24/7 WhatsApp AI Assistant:</strong> answers buyer questions and books site visits</div>\n  </div>\n  \n  <p style=\"color: #6b7280; font-size: 13px;\"><em>(We also build custom web platforms and mobile apps tailored for construction businesses).</em></p>\n  \n  <p>Would you be open to checking out a quick 2-minute concept preview designed for ${name}?</p>\n  \n  <p style=\"margin-top: 24px; margin-bottom: 12px; color: #111827;\">Best regards,</p>\n  \n  <!-- Signature: Exact LinkedIn-framed circular avatar + Logo -->\n  <table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;\">\n    <tr>\n      <td style=\"vertical-align: middle; padding-right: 14px;\">\n        <img src=\"https://iili.io/npy3kwN.png\" alt=\"Suresh Kumar\" width=\"76\" height=\"76\" style=\"border-radius: 50%; display: block; border: 2px solid #2563eb; object-fit: cover;\" />\n      </td>\n      <td style=\"vertical-align: middle; padding-right: 24px; \">\n        <div style=\"font-size: 15px; font-weight: 700; color: #111827; line-height: 1.2;\">Suresh Kumar</div>\n        <div style=\"font-size: 13px; font-weight: 600; color: #2563eb; margin-top: 3px;\">Founder &amp; Lead Engineer &bull; SoloDeveloper.pro</div>\n        <div style=\"font-size: 12px; color: #6b7280; margin-top: 2px;\">Builder Digital Experience &amp; Enquiry System</div>\n        <div style=\"font-size: 12px; color: #6b7280; margin-top: 2px;\">&#128241; +91 93615 99097 &bull; &#128205; Madurai, Tamil Nadu</div>\n      </td>\n      <td style=\"vertical-align: middle; padding-left: 18px;\">\n        <img src=\"https://iili.io/nppiUdu.png\" alt=\"SoloDeveloper Logo\" width=\"46\" height=\"46\" style=\"display: block; border-radius: 6px;\" />\n      </td>\n    </tr>\n  </table>\n</div>\n`;\n\nreturn [{\n  json: {\n    ...lead,\n    segment: 'Segment A - No Website',\n    whatsappMessage,\n    emailSubject,\n    emailBody,\n    emailHtml\n  }\n}];"
+      },
+      "id": "generate_copy_no_website",
+      "name": "Generate Copy: Segment A (No Website)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json;\nconst name = lead.businessName;\nconst location = lead.city || 'your area';\nconst website = lead.website;\nconst ratingStr = lead.rating ? ` (great to see your *${lead.rating}★* rating and *${lead.reviews || 0} reviews*!)` : '';\nconst ratingStrEmail = lead.rating ? ` (great to see your <strong>${lead.rating}★</strong> rating and <strong>${lead.reviews || 0} reviews</strong>!)` : '';\n\n// Upgraded WhatsApp: No clumsy 🏗️ icon, clean ✔ checkmarks, dynamic reviews\nconst whatsappMessage = \n`Hi *${name}*,\n\nI came across *${name}* on Google Maps${ratingStr} and reviewed your website today (${website}). Your construction work in *${location}* looks great!\n\nI noticed a few opportunities to help you turn more visitors into quotation enquiries — like adding instant WhatsApp buttons, 360° virtual project walkthroughs, and a quick price estimator.\n\nWe upgrade builder websites into active enquiry systems:\n\n✔ *360° Virtual Site Tours* — allows clients to explore finished homes remotely\n✔ *Smart Cost Estimator* — gives estimated price ranges per sq.ft to filter tire-kickers\n✔ *24/7 WhatsApp AI Assistant* — automatically answers inquiries and books site consultations\n\n*(We also build custom software and mobile apps for construction businesses).*\n\nCan I share a quick 3-point website improvement audit we put together for *${name}*?`;\n\n// Cold Email Subject: Conversational for 100% Primary Inbox Placement\nconst emailSubject = `3 website & quotation ideas for ${name}`;\n\n// Plain-text Fallback with WhatsApp Cross-Reference\nconst emailBody = \n`SoloDeveloper\n\nHi ${name},\n\nI came across ${name} on Google Maps${ratingStr} and reviewed your website today (${website}). I also sent you a quick message on WhatsApp earlier today.\n\nYour construction experience is solid. However, your website could be generating significantly more quotation requests with a few modern upgrades — like 360° project tours, an indicative cost estimator, and 24/7 WhatsApp qualification.\n\nWe help independent builders modernize static websites into active quotation engines:\n✔ 360° Virtual Site Tours: Allow clients to explore finished homes remotely\n✔ Smart Construction Calculator: Pre-qualifies client budget upfront\n✔ WhatsApp AI Assistant: Converts mobile visitors into booked site consultations 24/7\n\n(We also build custom web platforms and mobile apps tailored for construction businesses).\n\nWould you be open to reviewing a quick 3-point audit showing how to upgrade your website?\n\nBest regards,\n\nSuresh Kumar\nFounder & Lead Engineer • SoloDeveloper.pro\n📱 +91 93615 99097 • 📍 Madurai, Tamil Nadu`;\n\n// 100% Primary-Inbox Optimized 1-on-1 Direct Email with Top Logo & LinkedIn-Framed Natural Avatar\nconst emailHtml = `\n<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; font-size: 15px; line-height: 1.6; max-width: 600px;\">\n  <!-- Top Logo: Untitled design.png from Downloads -->\n  <div style=\"margin-bottom: 20px;\">\n    <img src=\"https://iili.io/nppiUdu.png\" alt=\"SoloDeveloper\" width=\"52\" height=\"52\" style=\"display: block; border-radius: 8px;\" />\n  </div>\n\n  <p>Hi ${name},</p>\n  \n  <p>I came across <strong>${name}</strong> on Google Maps${ratingStrEmail} and reviewed your website today (<a href=\"${website}\" style=\"color:#2563eb;\">${website}</a>). I also sent you a quick message on WhatsApp earlier today.</p>\n  \n  <p>Your completed projects reflect great construction craftsmanship. However, your website could be generating significantly more quotation enquiries with a few modern upgrades:</p>\n  \n  <div style=\"margin: 14px 0 14px 12px;\">\n    <div style=\"margin-bottom: 6px;\">&#10004; <strong>360&deg; Virtual Site Tours:</strong> allows prospective homeowners to explore finished rooms and layouts remotely</div>\n    <div style=\"margin-bottom: 6px;\">&#10004; <strong>Smart Cost Estimator:</strong> gives prospective clients estimated price ranges per sq.ft to filter tire-kickers</div>\n    <div style=\"margin-bottom: 6px;\">&#10004; <strong>24/7 WhatsApp AI Assistant:</strong> captures homeowner plot details and schedules site visits automatically</div>\n  </div>\n  \n  <p style=\"color: #6b7280; font-size: 13px;\"><em>(We also build custom web platforms and mobile apps tailored for construction businesses).</em></p>\n  \n  <p>Would you be open to a quick 3-point website improvement audit showing how to turn more visitors into quotation enquiries?</p>\n  \n  <p style=\"margin-top: 24px; margin-bottom: 12px; color: #111827;\">Best regards,</p>\n  \n  <!-- Signature: Exact LinkedIn-framed circular avatar + Logo -->\n  <table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;\">\n    <tr>\n      <td style=\"vertical-align: middle; padding-right: 14px;\">\n        <img src=\"https://iili.io/npy3kwN.png\" alt=\"Suresh Kumar\" width=\"76\" height=\"76\" style=\"border-radius: 50%; display: block; border: 2px solid #2563eb; object-fit: cover;\" />\n      </td>\n      <td style=\"vertical-align: middle; padding-right: 24px; \">\n        <div style=\"font-size: 15px; font-weight: 700; color: #111827; line-height: 1.2;\">Suresh Kumar</div>\n        <div style=\"font-size: 13px; font-weight: 600; color: #2563eb; margin-top: 3px;\">Founder &amp; Lead Engineer &bull; SoloDeveloper.pro</div>\n        <div style=\"font-size: 12px; color: #6b7280; margin-top: 2px;\">Builder Digital Experience &amp; Enquiry System</div>\n        <div style=\"font-size: 12px; color: #6b7280; margin-top: 2px;\">&#128241; +91 93615 99097 &bull; &#128205; Madurai, Tamil Nadu</div>\n      </td>\n      <td style=\"vertical-align: middle; padding-left: 18px;\">\n        <img src=\"https://iili.io/nppiUdu.png\" alt=\"SoloDeveloper Logo\" width=\"46\" height=\"46\" style=\"display: block; border-radius: 6px;\" />\n      </td>\n    </tr>\n  </table>\n</div>\n`;\n\nreturn [{\n  json: {\n    ...lead,\n    segment: 'Segment B - Website Upgrade',\n    whatsappMessage,\n    emailSubject,\n    emailBody,\n    emailHtml\n  }\n}];"
+      },
+      "id": "generate_copy_with_website",
+      "name": "Generate Copy: Segment B (Website Upgrade)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition_phone_exists",
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_phone_presence",
+      "name": "Has Phone / WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.whatsappMessage) }}\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send_whatsapp_message",
+      "name": "Send WhatsApp Outreach",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        280
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition_email_valid",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_email_presence",
+      "name": "Has Valid Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_RESEND_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": \"Suresh <suresh@solodeveloper.pro>\",\n  \"to\": [\"{{ $json.email }}\"],\n  \"reply_to\": \"sureshkumar20133151@gmail.com\",\n  \"subject\": \"{{ $json.emailSubject }}\",\n  \"text\": \"{{ $json.emailBody }}\",\n  \"html\": {{ JSON.stringify($json.emailHtml) }}\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "send_email_outreach",
+      "name": "Send Cold Email (Resend/Gmail)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        480
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Prospects",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Sent",
+            "Contacted Date": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+            "Segment": "={{ $('Loop Over Leads (1 by 1)').first().json.segment || 'Segment A' }}",
+            "Channel Used": "={{ $('Send WhatsApp Outreach').first()?.json?.error ? 'Email Only' : 'WhatsApp Outreach' }}"
+          },
+          "matchingColumns": [
+            "Business"
+          ]
+        },
+        "options": {}
+      },
+      "id": "update_prospects_sheet",
+      "name": "Update Prospects Status to 'Sent'",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2240,
+        360
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Random Jitter (15 to 30 seconds) between sends\n// Prevents Render proxy connection drops while maintaining safe human pacing\nconst min = 15;\nconst max = 30;\nconst delaySeconds = Math.floor(Math.random() * (max - min + 1)) + min;\n\nreturn [{\n  json: {\n    delaySeconds\n  }\n}];"
+      },
+      "id": "generate_random_jitter",
+      "name": "Generate Anti-Ban Delay (15-30s)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delaySeconds }}",
+        "unit": "seconds"
+      },
+      "id": "anti_ban_pacing_wait",
+      "name": "Wait (Anti-Ban Human Pacing)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2680,
+        360
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 10:00 AM Trigger (Mon-Sat)": {
+      "main": [
+        [
+          {
+            "node": "Read 'Ready' Leads from Prospects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read 'Ready' Leads from Prospects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read 'Ready' Leads from Prospects": {
+      "main": [
+        [
+          {
+            "node": "Prioritize (No-Website + Low Rating) & Cap 20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Leads (1 by 1)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Segment: Has Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Segment: Has Website?": {
+      "main": [
+        [
+          {
+            "node": "Generate Copy: Segment B (Website Upgrade)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Copy: Segment A (No Website)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Copy: Segment A (No Website)": {
+      "main": [
+        [
+          {
+            "node": "Has Phone / WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Copy: Segment B (Website Upgrade)": {
+      "main": [
+        [
+          {
+            "node": "Has Phone / WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Phone / WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Valid Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Outreach": {
+      "main": [
+        [
+          {
+            "node": "Has Valid Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Valid Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Cold Email (Resend/Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Prospects Status to 'Sent'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Cold Email (Resend/Gmail)": {
+      "main": [
+        [
+          {
+            "node": "Update Prospects Status to 'Sent'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Prospects Status to 'Sent'": {
+      "main": [
+        [
+          {
+            "node": "Generate Anti-Ban Delay (15-30s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Anti-Ban Human Pacing)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prioritize (No-Website + Low Rating) & Cap 20": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Anti-Ban Delay (15-30s)": {
+      "main": [
+        [
+          {
+            "node": "Wait (Anti-Ban Human Pacing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

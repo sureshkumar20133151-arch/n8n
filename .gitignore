@@ -3,6 +3,7 @@ node_modules/
 cred_data.json
 backups/
 meta_whatsapp_credentials.json
+**/meta_whatsapp_credentials.json
 *.log
 *.tmp
 .env
@@ -11,3 +12,11 @@ meta_whatsapp_credentials.json
 .baileys_auth/
 **/cred_data.json
 
+
+# Temporary image scratch files
+suresh_*.png
+opentowork_*.png
+solodeveloper_*.png
+top_logo_*.png
+right_half.png
+profile_suresh.png

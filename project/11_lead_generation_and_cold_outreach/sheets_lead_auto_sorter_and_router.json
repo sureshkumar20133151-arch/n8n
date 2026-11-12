@@ -1,0 +1,313 @@
+{
+  "name": "Google Sheets Lead Auto-Sorter (Raw Leads -> With Website / Without Website)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger_manual_sort",
+      "name": "Manual Sort Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "trigger_interval_sort",
+      "name": "Check Tab 1 Every 15 Mins",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Sorted",
+              "lookupValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "read_tab1_raw_leads",
+      "name": "Read Unsorted Leads from Tab 1 (Sheet1)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        400,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (!items || items.length === 0) return [];\n\nreturn items.map(item => {\n  const row = item.json;\n  \n  const businessName = (row['Business Name'] || row['Company'] || row['Name'] || '').trim();\n  const city = (row['City'] || row['Location'] || '').trim();\n  \n  // Normalize phone to E.164\n  let rawPhone = (row['Phone'] || row['Mobile'] || row['WhatsApp'] || '').toString().replace(/[^0-9+]/g, '');\n  if (rawPhone && !rawPhone.startsWith('+')) {\n    if (rawPhone.length === 10) rawPhone = '+91' + rawPhone;\n    else if (rawPhone.length === 12 && rawPhone.startsWith('91')) rawPhone = '+' + rawPhone;\n  }\n  \n  const email = (row['Email'] || '').trim().toLowerCase();\n  const website = (row['Website'] || row['Url'] || '').trim();\n  \n  // Check if real custom website or social directory\n  const isSocialOrDirectory = /(facebook\\.com|instagram\\.com|indiamart\\.com|justdial\\.com|linkedin\\.com)/i.test(website);\n  const hasValidWebsite = Boolean(website && website.length > 8 && !isSocialOrDirectory);\n  \n  return {\n    json: {\n      businessName,\n      city,\n      phone: rawPhone,\n      email,\n      website,\n      hasValidWebsite,\n      status: 'Ready',\n      sortedTimestamp: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "id": "classify_lead_tabs",
+      "name": "Classify: With Website vs Without Website",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition_website",
+              "leftValue": "={{ $json.hasValidWebsite }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if_has_website",
+      "name": "Has Valid Website?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "value": "With_Website",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Business Name": "={{ $json.businessName }}",
+            "City": "={{ $json.city }}",
+            "Phone": "={{ $json.phone }}",
+            "Email": "={{ $json.email }}",
+            "Website": "={{ $json.website }}",
+            "Status": "={{ $json.status }}",
+            "Added Date": "={{ $json.sortedTimestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "append_to_tab2",
+      "name": "Append to Tab 2: 'With_Website'",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "value": "Without_Website",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Business Name": "={{ $json.businessName }}",
+            "City": "={{ $json.city }}",
+            "Phone": "={{ $json.phone }}",
+            "Email": "={{ $json.email }}",
+            "Website": "={{ $json.website || 'No Website' }}",
+            "Status": "={{ $json.status }}",
+            "Added Date": "={{ $json.sortedTimestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "append_to_tab3",
+      "name": "Append to Tab 3: 'Without_Website'",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sorted": "Yes"
+          },
+          "matchingColumns": [
+            "Phone"
+          ]
+        },
+        "options": {}
+      },
+      "id": "mark_tab1_sorted_with_web",
+      "name": "Mark 'Sorted = Yes' on Tab 1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1360,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sorted": "Yes"
+          },
+          "matchingColumns": [
+            "Phone"
+          ]
+        },
+        "options": {}
+      },
+      "id": "mark_tab1_sorted_no_web",
+      "name": "Mark 'Sorted = Yes' on Tab 1 (No Web)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1360,
+        480
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Sort Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Unsorted Leads from Tab 1 (Sheet1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Tab 1 Every 15 Mins": {
+      "main": [
+        [
+          {
+            "node": "Read Unsorted Leads from Tab 1 (Sheet1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Unsorted Leads from Tab 1 (Sheet1)": {
+      "main": [
+        [
+          {
+            "node": "Classify: With Website vs Without Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify: With Website vs Without Website": {
+      "main": [
+        [
+          {
+            "node": "Has Valid Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Valid Website?": {
+      "main": [
+        [
+          {
+            "node": "Append to Tab 2: 'With_Website'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append to Tab 3: 'Without_Website'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Tab 2: 'With_Website'": {
+      "main": [
+        [
+          {
+            "node": "Mark 'Sorted = Yes' on Tab 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Tab 3: 'Without_Website'": {
+      "main": [
+        [
+          {
+            "node": "Mark 'Sorted = Yes' on Tab 1 (No Web)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
