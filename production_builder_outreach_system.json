@@ -62,7 +62,13 @@
       "position": [
         380,
         360
-      ]
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XtknJPUddSwDeQRl",
+          "name": "Google Sheets account 2"
+        }
+      }
     },
     {
       "parameters": {
@@ -313,7 +319,13 @@
         2240,
         360
       ],
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XtknJPUddSwDeQRl",
+          "name": "Google Sheets account 2"
+        }
+      }
     },
     {
       "parameters": {
