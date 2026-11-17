@@ -321,8 +321,8 @@ class GeminiService {
     return clean;
   }
 
-  getSystemInstruction(chatId = '') {
-    const mode = personaManager.getActiveMode();
+  getSystemInstruction(chatId = '', overrideMode = null) {
+    const mode = overrideMode || personaManager.getActiveMode();
     if (mode === 'wholesale') {
       return buildWholesaleSystemPrompt();
     }
@@ -337,8 +337,8 @@ class GeminiService {
     return liveRules ? `${base}\n\n${liveRules}` : base;
   }
 
-  getActiveTools(isOwner) {
-    const mode = personaManager.getActiveMode();
+  getActiveTools(isOwner, overrideMode = null) {
+    const mode = overrideMode || personaManager.getActiveMode();
     if (mode === 'wholesale') {
       return WHOLESALE_TOOLS;
     }
@@ -587,10 +587,10 @@ class GeminiService {
   /**
    * Execute a single function call triggered by Gemini AI
    */
-  async executeToolCall(fnCall, chatId, cleanId, isOwner = false) {
+  async executeToolCall(fnCall, chatId, cleanId, isOwner = false, overrideMode = null) {
     const fnName = fnCall.name;
     const args = fnCall.args || {};
-    const mode = personaManager.getActiveMode();
+    const mode = overrideMode || personaManager.getActiveMode();
 
     if (mode === 'wholesale') {
       return await executeWholesaleToolCall(fnCall, chatId);
@@ -733,7 +733,7 @@ class GeminiService {
     const isOwnerByPhone = cleanDigits === this.ownerPhone;
     const isOwner = Boolean(options.isOwner || isOwnerByPhone);
     const cleanId = (chatId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const mode = personaManager.getActiveMode();
+    const mode = options.overrideMode || personaManager.getActiveMode();
 
     // Update owner status in profile store
     if (isOwner) {
@@ -742,7 +742,7 @@ class GeminiService {
 
     try {
       const history = this.getOrCreateHistory(chatId);
-      const systemInstruction = this.getSystemInstruction(chatId);
+      const systemInstruction = this.getSystemInstruction(chatId, mode);
 
       // Build user parts
       const userParts = [];
@@ -909,7 +909,7 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
       let response = null;
       let lastErr = null;
       let chosenModel = this.modelName;
-      const activeTools = this.getActiveTools(isOwner);
+      const activeTools = this.getActiveTools(isOwner, mode);
 
       for (const m of modelsToTry) {
         // Skip quota-exhausted models immediately (saves 1.5s failed network round-trip)
@@ -1023,7 +1023,7 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
         const toolResults = [];
         for (const fnCall of currentCalls) {
           console.log(`  ↪ Executing tool: ${fnCall.name}`);
-          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner);
+          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner, mode);
           toolResults.push({ fnCall, result });
         }
 

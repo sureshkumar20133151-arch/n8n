@@ -227,6 +227,117 @@
       color: #e5e7eb;
     }
 
+    /* Omnichannel Toggle Control Center */
+    .channel-control-panel {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(225, 48, 108, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    }
+    .channel-control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .channel-control-header h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #f9fafb;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .channel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+    }
+    .channel-tile {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.2s ease;
+    }
+    .channel-tile:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .channel-tile-info h4 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #f3f4f6;
+      margin-bottom: 3px;
+    }
+    .channel-tile-info span {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #374151;
+      transition: 0.25s;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #ffffff;
+      transition: 0.25s;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .toggle-switch input:checked + .toggle-slider.wa-slider {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+    }
+    .toggle-switch input:checked + .toggle-slider.ig-slider {
+      background: linear-gradient(135deg, #e1306c, #833ab4);
+      box-shadow: 0 0 12px rgba(225, 48, 108, 0.5);
+    }
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+    .ig-persona-select {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      color: #f3f4f6;
+      border: 1px solid rgba(225, 48, 108, 0.45);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
   </style>
 </head>
 <body>
@@ -370,6 +481,65 @@
             <div><span>Reset Schedule:</span> <b>Daily at 12:00 AM Midnight PT</b></div>
             <div><span>Monthly Bill:</span> <b style="color:#34d399;">₹0.00 (Zero Cost Guaranteed)</b></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🎛️ Omnichannel Live Toggle Control Center (WhatsApp & Instagram) -->
+    <div class="channel-control-panel">
+      <div class="channel-control-header">
+        <h3>🎛️ Live Channel Controls (WhatsApp & Instagram ON / OFF)</h3>
+        <span style="font-size: 0.78rem; color: #9ca3af;">Pause or switch any channel instantly without restarting the server</span>
+      </div>
+      <div class="channel-grid">
+        <!-- Toggle 1: WhatsApp AI -->
+        <div class="channel-tile">
+          <div class="channel-tile-info">
+            <h4>💬 WhatsApp AI Auto-Reply</h4>
+            <span id="label-wa-toggle">🟢 Active & Replying</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-wa-enabled" checked onchange="updateChannelControl({ whatsappEnabled: this.checked })">
+            <span class="toggle-slider wa-slider"></span>
+          </label>
+        </div>
+
+        <!-- Toggle 2: Instagram DM AI -->
+        <div class="channel-tile">
+          <div class="channel-tile-info">
+            <h4>📩 Instagram DM AI</h4>
+            <span id="label-ig-dm-toggle">🟢 Active on @solodeveloper.pro</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-ig-dm-enabled" checked onchange="updateChannelControl({ instagramDmEnabled: this.checked })">
+            <span class="toggle-slider ig-slider"></span>
+          </label>
+        </div>
+
+        <!-- Toggle 3: Instagram Reel Comments -->
+        <div class="channel-tile">
+          <div class="channel-tile-info">
+            <h4>🗣️ Insta Reel Comment-to-DM</h4>
+            <span id="label-ig-cmt-toggle">🟢 Auto-Reply Active</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-ig-cmt-enabled" checked onchange="updateChannelControl({ instagramCommentEnabled: this.checked })">
+            <span class="toggle-slider ig-slider"></span>
+          </label>
+        </div>
+
+        <!-- Control 4: Instagram Independent Persona Selector -->
+        <div class="channel-tile" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="channel-tile-info">
+            <h4>📸 Instagram Agent Mode</h4>
+          </div>
+          <select id="select-ig-persona" class="ig-persona-select" onchange="updateChannelControl({ instagramPersona: this.value })">
+            <option value="sync">🔗 Sync with WhatsApp Mode (Auto)</option>
+            <option value="builder">🏗️ Always Danam Holdings Builder</option>
+            <option value="dev">💻 Always SoloDeveloper.pro</option>
+            <option value="restaurant">🍗 Always Taj Hotel Madurai</option>
+            <option value="wholesale">📦 Always Annamaliyar Oil Store</option>
+          </select>
         </div>
       </div>
     </div>
@@ -855,15 +1025,67 @@
       }
     }
 
+    function renderChannelControls(ch) {
+      if (!ch) return;
+      const waChk = document.getElementById('toggle-wa-enabled');
+      const igDmChk = document.getElementById('toggle-ig-dm-enabled');
+      const igCmtChk = document.getElementById('toggle-ig-cmt-enabled');
+      const igSel = document.getElementById('select-ig-persona');
+
+      if (waChk) waChk.checked = ch.whatsappEnabled !== false;
+      if (igDmChk) igDmChk.checked = ch.instagramDmEnabled !== false;
+      if (igCmtChk) igCmtChk.checked = ch.instagramCommentEnabled !== false;
+      if (igSel) igSel.value = ch.syncPersonas !== false ? 'sync' : (ch.instagramPersona || 'builder');
+
+      const waLbl = document.getElementById('label-wa-toggle');
+      const igDmLbl = document.getElementById('label-ig-dm-toggle');
+      const igCmtLbl = document.getElementById('label-ig-cmt-toggle');
+
+      if (waLbl) waLbl.innerHTML = ch.whatsappEnabled !== false ? '<span style="color:#34d399;">🟢 Active & Replying</span>' : '<span style="color:#f87171;">⏸️ Paused (Manual Mode)</span>';
+      if (igDmLbl) igDmLbl.innerHTML = ch.instagramDmEnabled !== false ? `<span style="color:#34d399;">🟢 Active (${ch.effectiveInstagramPersona || 'sync'})</span>` : '<span style="color:#f87171;">⏸️ Paused (DMs Off)</span>';
+      if (igCmtLbl) igCmtLbl.innerHTML = ch.instagramCommentEnabled !== false ? '<span style="color:#34d399;">🟢 Reel Auto-Reply ON</span>' : '<span style="color:#f87171;">⏸️ Paused (Comments Off)</span>';
+    }
+
+    async function fetchChannelControls() {
+      try {
+        const res = await fetch(`${API_BASE}/api/channels`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.channels) renderChannelControls(data.channels);
+        }
+      } catch (e) {}
+    }
+
+    async function updateChannelControl(patch) {
+      try {
+        const res = await fetch(`${API_BASE}/api/channels`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...patch, updatedBy: 'Switcher Dashboard Toggle' })
+        });
+        const data = await res.json();
+        if (data.success && data.channels) {
+          renderChannelControls(data.channels);
+          showToast('🎛️ Live Channel Settings Updated Instantly!');
+        } else {
+          showToast('⚠️ Could not update toggle: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        showToast('❌ Connection error while saving toggle');
+      }
+    }
+
     // Init
     updatePreview();
     fetchLiveModeFromServer();
+    fetchChannelControls();
     updateQuotas();
     checkHealthAndQR();
     fetchInstagramStatus();
     setInterval(checkHealthAndQR, 4000);
     setInterval(updateQuotas, 30000);
     setInterval(fetchInstagramStatus, 15000);
+    setInterval(fetchChannelControls, 15000);
   </script>
 </body>
 </html>

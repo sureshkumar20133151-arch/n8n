@@ -26,6 +26,7 @@ const restaurantMenu = require('./restaurantMenuService');
 const restaurantCart = require('./restaurantCartService');
 const sessionPersistence = require('./sessionPersistence');
 const instagramService = require('./instagramService');
+const channelControls = require('./channelControls');
 
 const gemini = new GeminiService();
 
@@ -479,6 +480,11 @@ async function connectToWhatsApp() {
             if (!enableGroups && !modeIntentEarly) continue;
             if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly) continue;
           } else {
+            // Live Dashboard Toggle: Pause WhatsApp AI Auto-Reply when turned OFF (owner mode switch still allowed)
+            if (!modeIntentEarly && !channelControls.isWhatsappEnabled()) {
+              console.log(`⏸️ [WhatsApp AI PAUSED via Toggle] Ignored DM from ${remoteJid}`);
+              continue;
+            }
             // Mode switch commands and autoReplyDM allow processing
             if (!modeIntentEarly && !autoReplyDM && !body.toLowerCase().startsWith(triggerPrefix)) continue;
           }
@@ -674,8 +680,47 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({
       success: true,
       ...instagramService.getStatus(),
+      channels: channelControls.getState(),
       timestamp: new Date().toISOString()
     }));
+  }
+
+  // 3b. Omnichannel Live Toggle Controls (WhatsApp & Instagram ON/OFF + Independent Persona)
+  if (req.method === 'GET' && req.url === '/api/channels') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(JSON.stringify({
+      success: true,
+      channels: channelControls.getState()
+    }));
+  }
+
+  if (req.method === 'POST' && req.url === '/api/channels') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const patch = JSON.parse(body || '{}');
+        const updated = channelControls.update(patch, patch.updatedBy || 'Switcher Dashboard Toggle');
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify({
+          success: true,
+          channels: updated
+        }));
+      } catch (err) {
+        res.writeHead(400, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
   }
 
   // 4. Developer Test Simulation: Reel Comment

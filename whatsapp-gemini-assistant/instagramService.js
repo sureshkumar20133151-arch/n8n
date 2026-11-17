@@ -13,6 +13,7 @@ const fs = require('fs');
 const GeminiService = require('./geminiService');
 const builderCustomerMemory = require('./builderCustomerMemory');
 const personaManager = require('./personaManager');
+const channelControls = require('./channelControls');
 
 // Environment configuration
 const INSTA_PAGE_ACCESS_TOKEN = process.env.INSTA_PAGE_ACCESS_TOKEN || '';
@@ -216,7 +217,7 @@ const PERSONA_COMMENT_TEMPLATES = {
 const INSTA_BUSINESS_ACCOUNT_ID = process.env.INSTA_BUSINESS_ACCOUNT_ID || '17841471872515616';
 const INSTA_OWN_USERNAME = (process.env.INSTA_OWN_USERNAME || 'solodeveloper.pro').toLowerCase();
 
-async function handleReelComment(commentData, sock = null) {
+async function handleReelComment(commentData, sock = null, options = {}) {
   const commentId = commentData.id;
   const commentText = commentData.text || '';
   const fromId = String(commentData.from?.id || '');
@@ -228,7 +229,13 @@ async function handleReelComment(commentData, sock = null) {
     return { skipped: true, reason: 'self_comment_guard' };
   }
 
-  const activeMode = personaManager.getActiveMode() || 'dev';
+  // Channel ON/OFF Toggle Check
+  if (!options.bypassToggle && !channelControls.isInstagramCommentEnabled()) {
+    console.log(`⏸️ [Instagram Comment Auto-Reply PAUSED] Skipped comment from @${fromUser} (Toggle is OFF)`);
+    return { paused: true, activeMode: channelControls.getInstagramPersona(), message: 'Instagram Reel Comment Auto-Reply is currently PAUSED (Toggle is OFF).' };
+  }
+
+  const activeMode = channelControls.getInstagramPersona() || 'dev';
   const template = PERSONA_COMMENT_TEMPLATES[activeMode] || PERSONA_COMMENT_TEMPLATES.dev;
 
   recordProcessedComment(commentId);
@@ -266,8 +273,15 @@ async function handleReelComment(commentData, sock = null) {
 // ---------------------------------------------------------------------------
 // 4. INCOMING DIRECT MESSAGE (DM) PROCESSING WITH GEMINI
 // ---------------------------------------------------------------------------
-async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null) {
-  const activeMode = personaManager.getActiveMode() || 'builder';
+async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null, options = {}) {
+  const activeMode = channelControls.getInstagramPersona() || 'builder';
+
+  // Channel ON/OFF Toggle Check
+  if (!options.bypassToggle && !channelControls.isInstagramDmEnabled()) {
+    console.log(`⏸️ [Instagram DM AI PAUSED] Skipped DM from ${senderId} (Toggle is OFF)`);
+    return { paused: true, activeMode, replyText: '⏸️ Instagram DM AI is currently PAUSED (Toggle is OFF on Dashboard).' };
+  }
+
   // Scope chatId per persona so switching modes in live demos starts a clean, unmixed conversation!
   const chatId = `insta_${activeMode}_${senderId}`;
   console.log(`📩 [Instagram DM from ${senderId}] (Active Mode: ${activeMode}): "${userText}"`);
@@ -299,14 +313,15 @@ async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null
     }, sock);
   }
 
-  // 3. Generate response using Gemini Engine (automatically uses activeMode from personaManager!)
+  // 3. Generate response using Gemini Engine (using activeMode from channelControls!)
   const gemini = getGemini();
   let replyText = '';
 
   try {
     replyText = await gemini.generateResponse(chatId, userText, null, {
       platform: 'instagram',
-      senderId: senderId
+      senderId: senderId,
+      overrideMode: activeMode
     });
   } catch (err) {
     console.error('❌ [Gemini Error on Instagram DM]:', err.message);
