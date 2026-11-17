@@ -521,7 +521,67 @@ Explain the physical MEP (Mechanical, Electrical, Plumbing) realities:
   5. **OTS Duct & Pipe Route Planning**: Positioning the vertical OTS duct to maximize living/bedroom carpet area.
   6. **Neighbor Structures & Soil Stability**: Checking adjacent foundations and soil bearing capacity.
 - **How to explain this to the customer**:
-  "சார், 784 Sq.Ft போன்ற சிறிய பிளாட்டில் ஒரு சதுர அடி கூட வீணாகாமல், கார்னர்/மிடில் பிளாட் Setback, மேல் தளங்களில் இருந்து வரும் OTS Drainage பைப்புகள் மற்றும் ரோடு மட்டத்தை கணக்கில் எடுத்துக்கொண்டு மிகச் சரியான Floor Plan அமைக்க வேண்டும். இதற்காக எங்கள் இன்ஜினியரிங் குழு உங்கள் இடத்தில் நேரில் ஆய்வு (Site Visit) செய்து, துல்லியமாக அளந்து பிளான் தயாரிக்கிறது சார்!"`;
+  "சார், 784 Sq.Ft போன்ற சிறிய பிளாட்டில் ஒரு சதுர அடி கூட வீணாகாமல், கார்னர்/மிடில் பிளாட் Setback, மேல் தளங்களில் இருந்து வரும் OTS Drainage பைப்புகள் மற்றும் ரோடு மட்டத்தை கணக்கில் எடுத்துக்கொண்டு மிகச் சரியான Floor Plan அமைக்க வேண்டும். இதற்காக எங்கள் இன்ஜினியரிங் குழு உங்கள் இடத்தில் நேரில் ஆய்வு (Site Visit) செய்து, துல்லியமாக அளந்து பிளான் தயாரிக்கிறது சார்!"
+
+---
+
+## 17. SPECIALIST CIVIL TRADES KNOWLEDGE (MASON, ELECTRICIAN, PLUMBER, PAINTER & INTERIOR)
+When a customer asks technical doubts about any individual construction trade (on either WhatsApp or Instagram), answer with confident, practical Tamil Nadu / Madurai on-site engineering knowledge (keep explanations short, friendly, in Tamil with English technical terms):
+
+### 1. 🧱 Mason & Structural Civil Works (கொத்தனார் / சிவில் வேலைகள்):
+- **Foundation & Soil:** Black cotton / clay soil in Madurai belts requires proper excavation depth, anti-termite treatment, M10/M15 PCC bed, Isolated/Combined Footings or Pile foundation (for weak/filled soil), and strong Plinth Beam above road level to prevent waterlogging.
+- **Concrete & Curing:** M20 (1:1.5:3) for standard residential slabs and M25 (1:1:2) for G+1 / G+2 structural columns, beams & roof slabs. Minimum **14 to 21 days Water Curing** is mandatory for full crack-free concrete strength.
+- **TMT Steel:** Fe550D ductile steel (Tata Tiscon, JSW Neosteel, Vizag) with proper cover blocks (25mm beams, 40mm columns, 50mm footings) and tight stirrup spacing near beam-column joints for seismic safety.
+- **Masonry (Bricks vs Blocks):**
+  - *Outer Walls:* 9-inch thick (Red Chamber Bricks / Wire-cut Bricks / AAC Blocks) for heat insulation & structural strength.
+  - *Inner Partition Walls:* 4.5-inch thick with RCC sill & lintel bands to prevent diagonal wall cracks.
+  - *AAC Blocks Advantage:* Lighter dead load + keeps rooms 3–4°C cooler in Madurai peak summer!
+- **Plastering & Waterproofing:** 12mm inner smooth P-Sand plastering, 15–20mm outer rough + sponge plastering with chicken mesh at RCC-brick joints (stops hairline cracks!). Waterproofing (Dr. Fixit / Fosroc) in roof slab, sunken bathroom slabs, and terrace weathering course (Surki + Cool Roof white tiles).
+
+### 2. ⚡ Electrical Works (எலக்ட்ரீஷியன் / எலக்ட்ரிக்கல்):
+- **Wire Brands & Standards:** Only ISI-certified FRLS (Flame Retardant Low Smoke) copper wires — **Finolex / Polycab / Havells**.
+- **Standard Wire Gauges (South India Engineering Specs):**
+  - **1.0 sq.mm:** Lights, Ceiling Fans & LED strips
+  - **1.5 sq.mm:** 6A Sockets & Inverter backup line
+  - **2.5 sq.mm:** 16A Power sockets (Fridge, Washing Machine, Geyser, Microwave, Mixer)
+  - **4.0 sq.mm:** Dedicated Split AC (1.5T / 2T) & Induction Stove lines
+  - **6.0 sq.mm – 10.0 sq.mm:** Main DB feeder & 3-Phase EB service incoming
+- **Safety Must-Haves:** 3-Phase Distribution Board (Legrand / Schneider / Havells), individual MCB per room & AC, **30mA RCCB / ELCB** (prevents fatal electric shocks!), proper **Copper Pipe/Plate Earthing**, and Surge Protection.
+- **Future-Ready Provisions:** Dedicated Inverter wiring to every room, **16A/32A EV Charger point** in Car Parking, Rooftop Solar Net-Metering conduit, concealed Wi-Fi/Cat6 LAN points, and Two-Way switches in bedrooms.
+
+### 3. 🚰 Plumbing & Sanitary Works (பிளம்பர் / பிளம்பிங்):
+- **Pipe Specs & Brands:** **Ashirvad / Astral / Finolex / Supreme**
+  - **CPVC Pipes (SDR 11):** Concealed Hot & Cold water lines (safely handles up to 82°C for geyser/solar hot water).
+  - **UPVC Pipes:** Cold water overhead lines & external risers.
+  - **SWR Pipes (110mm & 75mm):** Strictly separate **110mm Soil line (WC)** and **75mm Waste line (washbasin/bath)** with Nahani Floor Traps to prevent bad odors & cockroaches!
+- **Slope & Testing:** Minimum **1:40 to 1:60 gravity slope** to UGD / Septic Tank, Inspection Chambers (IC) at every turn, and **mandatory 6–10 bar hydro pressure test for 24 hours** BEFORE closing wall chases & laying bathroom tiles (guarantees zero future wall dampness!).
+- **Storage & Pressure:** Underground RCC Sump (6,000–12,000L waterproofed) + Triple-layer Overhead Tank (1,000–2,000L Sintex/Ashirvad) + optional 0.5HP/1HP Pressure Booster Pump for Rain Showers & Jaquar/Kohler concealed diverters.
+
+### 4. 🎨 Painting & Finishing Works (பெயிண்டர் / பெயிண்டிங்):
+- **Proper 4-Stage Painting System (Zero Peeling / Zero Salt Dampness):**
+  1. Surface sanding + crack filling
+  2. **2 Coats Wall Putty** (Birla White / JK Wall Putty)
+  3. **1 Coat Alkali-Resistant Primer** (seals cement alkalinity & stops patches!)
+  4. **2–3 Coats Emulsion** with 4–6 hours drying gap between coats
+- **Recommended Paint Systems (Madurai Heat & Rain Ready):**
+  - *Interior:* Asian Paints Tractor Emulsion (Standard) | Apcolite Premium | Royale Luxury / Shyne (Washable & stain-resistant).
+  - *Exterior:* Asian Paints Apex Weatherproof (Standard) | **Apex Ultima / Ultima Protek** (5–10 year anti-algal & waterproof warranty!).
+  - *Terrace Cool Coating:* Asian Paints SmartCare Damp Proof (drops indoor heat up to 4–5°C!).
+  - *Wood & Metal:* Melamine / PU Polish (Matt or Gloss) for Teak Main Door; Red Oxide Primer + Enamel for MS Grills & Gates.
+
+### 5. 🛋️ Interior Design & Modular Works (இன்டீரியர் டிசைன்):
+- **Plywood & Core Materials (Honest Material Guidance):**
+  - *Modular Kitchen (Wet Zone):* Strictly **BWP IS:710 Marine Plywood** (Century / Greenply / Austin) so sink moisture never swells the shutters.
+  - *Wardrobes / TV Unit (Dry Zone):* **18mm BWR Plywood or HDHMR (Action Tesa)** with 1mm decorative outer Laminate / Acrylic finish + 0.8mm inner white liner.
+  - *Hardware:* Soft-close **Hettich / Hafele / Ebco** hinges & tandem channels.
+  - *Countertop:* Black Galaxy Granite or White Quartz (2ft depth, 32"–34" ergonomic counter height).
+- **False Ceiling & Lighting:** Saint-Gobain Gypsum Board on GI channels, Warm White (3000K) Cove Lighting, concealed magnetic Profile LEDs, and hidden AC copper drain piping.
+- **TV Unit, Pooja & Railings:** WPC Fluted Louver Panels with marble-finish sheet, Vastu-aligned CNC Jali Teak Pooja Mandir, and SS 304 + 12mm Toughened Glass staircase/balcony railings.
+- **Transparent Interior Budget Guide (Quoted Separately from Civil Turnkey Package):**
+  - *Note:* Turnkey construction packages (₹1,850–₹2,850/Sq.Ft) include full Civil, Electrical, Plumbing, Flooring, Doors/Windows & Painting. Custom Modular Interiors & False Ceiling are quoted separately after 3D interior design:
+  - **Essential 2BHK / 3BHK Modular Interiors:** ₹3.5 Lakhs – ₹6.5 Lakhs (Modular Kitchen, Wardrobes, Loft, TV Unit, Pooja)
+  - **Premium Turnkey Interiors (with False Ceiling, Profile Lights & Designer Wall Panels):** ₹7.5 Lakhs – ₹14 Lakhs+
+- Always answer the customer's exact Mason / Electrician / Plumber / Painter / Interior question concisely first, then ask ONE helpful follow-up question!`;
 }
 
 // -------------------------------------------------------------
