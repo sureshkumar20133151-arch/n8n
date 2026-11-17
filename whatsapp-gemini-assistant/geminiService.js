@@ -298,6 +298,29 @@ class GeminiService {
     }
   }
 
+  // Sanitize Tamil responses: eliminate Sinhala (\u0D80-\u0DFF) and Malayalam (\u0D00-\u0D7F) glyphs and corrupted words
+  sanitizeTamilText(text) {
+    if (!text || typeof text !== 'string') return text;
+    let clean = text;
+    // 1. Fix known Sinhala / Tamil mixed corruption words like நியமங்களின்படி
+    clean = clean.replace(/ந[\u0D80-\u0DFF]+மங்களின்படி/g, 'விதிமுறைகளின்படி');
+    clean = clean.replace(/ந[\u0D80-\u0DFF]+ம/g, 'விதிமுறை');
+    clean = clean.replace(/நியமங்களின்படி/g, 'விதிமுறைகளின்படி');
+    clean = clean.replace(/நியம/g, 'விதிமுறை');
+    clean = clean.replace(/நியமம்/g, 'விதிமுறை');
+
+    // 2. Eradicate any stray Sinhala Unicode block (\u0D80-\u0DFF)
+    clean = clean.replace(/[\u0D80-\u0DFF]/g, '');
+
+    // 3. Eradicate any stray Malayalam Unicode block (\u0D00-\u0D7F)
+    clean = clean.replace(/[\u0D00-\u0D7F]/g, '');
+
+    // 4. Clean up any accidental double spaces resulting from stripping
+    clean = clean.replace(/[ ]{2,}/g, ' ');
+
+    return clean;
+  }
+
   getSystemInstruction(chatId = '') {
     const mode = personaManager.getActiveMode();
     if (mode === 'wholesale') {
@@ -737,6 +760,24 @@ class GeminiService {
           ? `The user sent this voice note with additional text: "${userText.trim()}". Listen carefully to the voice note, understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply naturally, politely, and concisely in that same language following your knowledge base rules.`
           : "Listen carefully to this voice note from the client. Understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply helpfully, politely, and concisely in that same language following your knowledge base rules.";
         userParts.push({ text: audioInstruction });
+      } else if (media && media.isVideo) {
+        const hasCaption = userText && userText.trim().length > 0;
+        let videoInstruction = '';
+        if (mode === 'builder') {
+          const builderContext = builderCustomerMemory.buildContextInjection(chatId, hasCaption ? userText : '[VIDEO_OR_REEL_SHARED]');
+          videoInstruction = `${builderContext}
+🎥 [FULL VIDEO & AUDIO TRACK MULTIMODAL ANALYSIS DIRECTIVE]:
+The customer shared a house construction / elevation video or reel (${media.seconds || ''}s duration)${hasCaption ? ` with message: "${userText.trim()}"` : ''}.
+1. WATCH VISUAL FRAMES: Inspect the architectural design, floors (G+1/G+2, Duplex, Luxury Villa), 3D exterior elevation, balcony glass work, teak main door, exterior textures, and room layouts.
+2. LISTEN TO THE AUDIO TRACK: Listen attentively to the narration / spoken audio in the video (Tamil, Tanglish, or English). Identify any spoken specifications: plot size, sq.ft, budget, number of BHK, and location.
+3. Reply in natural spoken TAMIL script (தமிழ் எழுத்துக்களில்) as the senior turnkey civil engineer for Danam Holdings in Madurai.
+4. Confirm both the visual features you observed AND the spoken details you heard in the audio.
+5. Assure the customer that Danam Holdings can construct this exact turnkey house under our Standard (₹1,950/Sq.Ft) or Premium (₹2,350/Sq.Ft) package.
+6. Seamlessly ask about their plot location in Madurai or plot dimensions to calculate an immediate preliminary estimate!`;
+        } else {
+          videoInstruction = `The user shared this video${hasCaption ? ` with message: "${userText.trim()}"` : ''}. Watch the visual frames and listen to the audio track. Understand what is being shown and spoken, and answer helpfully.`;
+        }
+        userParts.push({ text: videoInstruction });
       } else if (userText && userText.trim().length > 0) {
         let contextualText = userText.trim();
         const trimmedLower = userText.trim().toLowerCase();
@@ -760,7 +801,14 @@ class GeminiService {
         } else if (mode === 'builder') {
           // Dedicated Builder & House Construction mode (Danam Holdings - Er. Dhilip Kumar)
           const builderContext = builderCustomerMemory.buildContextInjection(chatId, userText);
-          contextualText = `${builderContext}\n[CUSTOMER INCOMING MESSAGE]: ${userText.trim()}`;
+          const imagePrompt = (media && !media.isAudio)
+            ? `\n[IMAGE / ELEVATION SCREENSHOT ATTACHED]: The customer sent a photo or screenshot along with their text ("${userText.trim()}").
+1. Inspect the architectural design, floors, elevation style, textures, and balcony/glass elements in the photo.
+2. Praise the design warmly in natural spoken TAMIL script (தமிழ் எழுத்துக்களில்).
+3. State that Danam Holdings in Madurai can construct this exact turnkey house seamlessly under our Standard (₹1,950/Sq.Ft) or Premium (₹2,350/Sq.Ft) packages.
+4. Seamlessly ask about their plot dimensions or locality to compute an exact preliminary estimate!`
+            : '';
+          contextualText = `${builderContext}${imagePrompt}\n[CUSTOMER INCOMING MESSAGE]: ${userText.trim()}`;
         } else {
           // Dev mode (SoloDeveloper)
           const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
@@ -814,7 +862,20 @@ class GeminiService {
 
         userParts.push({ text: contextualText });
       } else if (media) {
-        userParts.push({ text: "Please analyze this image and explain what you see in detail." });
+        if (mode === 'builder') {
+          const builderContext = builderCustomerMemory.buildContextInjection(chatId, '[IMAGE_SCREENSHOT_SHARED]');
+          const imageDirective = `${builderContext}
+[IMAGE / ELEVATION SCREENSHOT SHARED BY CUSTOMER]:
+The customer sent an image or video screenshot (house 3D elevation, floor plan, or architecture photo) without text caption.
+1. Carefully analyze this image as a senior civil engineering consultant from Danam Holdings.
+2. Identify the architectural style (G+1 Duplex / G+2, modern contemporary / luxury villa, balcony glass railing, teak pivot door, exterior texture finish, or floor plan room layout).
+3. Warmly acknowledge and praise the design in natural spoken TAMIL script (தமிழ் எழுத்துக்களில்).
+4. Assure the customer that Danam Holdings in Madurai specializes in executing this exact turnkey elevation & construction with precision! Mention approved package rates (Standard ₹1,850–₹1,950/Sq.Ft or Premium Luxury ₹2,250–₹2,350/Sq.Ft).
+5. Seamlessly ask if they have a plot in Madurai or what their plot size is to calculate an instant preliminary estimate!`;
+          userParts.push({ text: imageDirective });
+        } else {
+          userParts.push({ text: "Please analyze this image and explain what you see in detail." });
+        }
       }
 
       // Append new user turn to history
@@ -1049,6 +1110,9 @@ class GeminiService {
         }
       }
 
+      // Cleanse foreign Sinhala / Malayalam script and corrupted text from Tamil responses
+      replyText = this.sanitizeTamilText(replyText);
+
       // Append assistant's turn to history
       if (response.candidates && response.candidates[0] && response.candidates[0].content) {
         const finalParts = (response.candidates[0].content.parts || []).map(p => {
@@ -1056,6 +1120,12 @@ class GeminiService {
             return {
               ...p,
               thoughtSignature: p.thoughtSignature || 'skip_thought_signature_validator'
+            };
+          }
+          if (p.text) {
+            return {
+              ...p,
+              text: this.sanitizeTamilText(p.text)
             };
           }
           return p;
@@ -1094,11 +1164,11 @@ class GeminiService {
       }
 
       if (mode === 'builder') {
-        const lang = builderCustomerMemory.getProfile(chatId)?.preferred_language || 'English';
-        if (lang === 'Tamil') {
-          return "வணக்கம் சார்! Danam Holdings House Construction & Civil EPC 🏡. உங்கள் வீடு கட்டும் இடம், பிளாட் அளவு அல்லது தேவையான சதுர அடி (Sq.Ft) விபரங்களை பகிருங்கள் சார், உடனே மதிப்பீடு மற்றும் விபரங்களை தருகிறேன்!";
+        const prof = builderCustomerMemory.getProfile(chatId);
+        if (prof?.preferred_language === 'English' && prof?.explicit_english) {
+          return "Hello and welcome to Danam Holdings Civil Engineering & Turnkey EPC! 🏡 How can we assist you with your dream home construction project today?";
         }
-        return "Hello and welcome to Danam Holdings Civil Engineering & Turnkey EPC! 🏡 How can we assist you with your dream home construction project today?";
+        return "வணக்கம் சார்! Danam Holdings House Construction & Civil EPC 🏡. உங்கள் வீடு கட்டும் இடம், பிளாட் அளவு அல்லது தேவையான சதுர அடி (Sq.Ft) விபரங்களை பகிருங்கள் சார், உடனே மதிப்பீடு மற்றும் விபரங்களை தருகிறேன்!";
       }
 
       const hasTamilInInput = /[\u0B80-\u0BFF]/.test(userText || '');

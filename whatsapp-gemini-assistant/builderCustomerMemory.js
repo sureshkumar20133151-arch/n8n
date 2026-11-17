@@ -6,6 +6,160 @@ const PROFILES_FILE = path.join(DATA_DIR, 'builder_customer_profiles.json');
 const AUDIT_FILE = path.join(DATA_DIR, 'conversation_quality_audit.jsonl');
 const BOT_PHONE = '919361599097';
 
+// Comprehensive Madurai Landmark Validation Map for Local Authority
+const MADURAI_LANDMARK_MAP = {
+  'villapuram': {
+    areaTamil: 'வில்லாபுரம்',
+    landmarks: 'Vetri Theater அல்லது Housing Board Colony',
+    promptSnippet: 'ஆஹா வில்லாபுரம் அருமையான இடம் சார்! Vetri Theater பக்கமா அல்லது Housing Board பக்கமா உங்கள் Site அமைந்திருக்கிறது சார்?'
+  },
+  'goripalayam': {
+    areaTamil: 'கோரிப்பாளையம்',
+    landmarks: 'Thevar Silai அல்லது GH (Government Rajaji Hospital)',
+    promptSnippet: 'ஆஹா கோரிப்பாளையம்! தேவர் சிலை (Thevar Silai) பக்கமா அல்லது GH பக்கமா உங்கள் Plot அமைந்திருக்கிறது சார்?'
+  },
+  'mattuthavani': {
+    areaTamil: 'மாட்டுத்தாவணி',
+    landmarks: 'Omni Bus Stand, Flower Market அல்லது High Court Bench / Apollo Hospital',
+    promptSnippet: 'மாட்டுத்தாவணி பக்கம்னா Omni Bus Stand பக்கமா அல்லது High Court Bench / Apollo Hospital பக்கமா சார்?'
+  },
+  'anna nagar': {
+    areaTamil: 'அண்ணா நகர்',
+    landmarks: 'Ambika Theater, Suguna Store அல்லது 80 Feet Road',
+    promptSnippet: 'அண்ணா நகர்! Ambika Theater / Suguna Store பக்கமா அல்லது 80 Feet Road பக்கமா சார்?'
+  },
+  'kk nagar': {
+    areaTamil: 'கே.கே. நகர்',
+    landmarks: 'Sundaram Park, Court Complex அல்லது Apollo Specialty Hospital',
+    promptSnippet: 'கே.கே. நகர்! Sundaram Park / Court Complex பக்கமா அல்லது Apollo Specialty பக்கமா சார்?'
+  },
+  'k.k. nagar': {
+    areaTamil: 'கே.கே. நகர்',
+    landmarks: 'Sundaram Park, Court Complex அல்லது Apollo Specialty Hospital',
+    promptSnippet: 'கே.கே. நகர்! Sundaram Park / Court Complex பக்கமா அல்லது Apollo Specialty பக்கமா சார்?'
+  },
+  'tirunagar': {
+    areaTamil: 'திருநகர்',
+    landmarks: '1st to 8th Stop, Meetna School அல்லது Sivan Temple / NH',
+    promptSnippet: 'திருநகர்! 1st to 8th Stop பக்கமா அல்லது Sivan Temple / NH பக்கமா சார்?'
+  },
+  'thirunagar': {
+    areaTamil: 'திருநகர்',
+    landmarks: '1st to 8th Stop, Meetna School அல்லது Sivan Temple / NH',
+    promptSnippet: 'திருநகர்! 1st to 8th Stop பக்கமா அல்லது Sivan Temple / NH பக்கமா சார்?'
+  },
+  'thiruparankundram': {
+    areaTamil: 'திருப்பரங்குன்றம்',
+    landmarks: 'முருகன் கோவில் ரத வீதி, TCE காலேஜ் அல்லது சரவண பொய்கை',
+    promptSnippet: 'திருப்பரங்குன்றம்! முருகன் கோவில் ரத வீதியா அல்லது TCE காலேஜ் / பைபாஸ் பக்கமா சார்?'
+  },
+  'tiruparankundram': {
+    areaTamil: 'திருப்பரங்குன்றம்',
+    landmarks: 'முருகன் கோவில் ரத வீதி, TCE காலேஜ் அல்லது சரவண பொய்கை',
+    promptSnippet: 'திருப்பரங்குன்றம்! முருகன் கோவில் ரத வீதியா அல்லது TCE காலேஜ் / பைபாஸ் பக்கமா சார்?'
+  },
+  'k.pudur': {
+    areaTamil: 'கே.புதூர்',
+    landmarks: 'ITI, Karpaga Nagar அல்லது Alagar Kovil Road',
+    promptSnippet: 'கே.புதூர்! ITI / Karpaga Nagar பக்கமா அல்லது Alagar Kovil Road பக்கமா சார்?'
+  },
+  'pudur': {
+    areaTamil: 'கே.புதூர்',
+    landmarks: 'ITI, Karpaga Nagar அல்லது Alagar Kovil Road',
+    promptSnippet: 'கே.புதூர்! ITI / Karpaga Nagar பக்கமா அல்லது Alagar Kovil Road பக்கமா சார்?'
+  },
+  'iyer bungalow': {
+    areaTamil: 'ஐயர் பங்களா',
+    landmarks: 'Yadava College, Reserve Line அல்லது New Natham Flyover',
+    promptSnippet: 'ஐயர் பங்களா! Yadava College ரோடா அல்லது New Natham Flyover பக்கமா சார்?'
+  },
+  'thiruppalai': {
+    areaTamil: 'திருப்பாலை',
+    landmarks: 'Yadava College அல்லது New Natham Road',
+    promptSnippet: 'திருப்பாலை! Yadava College பக்கமா அல்லது New Natham Road பக்கமா சார்?'
+  },
+  'avaniyapuram': {
+    areaTamil: 'அவனியாபுரம்',
+    landmarks: 'ஜல்லிக்கட்டு மைதானம், Airport Road அல்லது Ring Road',
+    promptSnippet: 'அவனியாபுரம்! ஜல்லிக்கட்டு மைதானம் பக்கமா அல்லது Airport Road / Ring Road பக்கமா சார்?'
+  },
+  'sellur': {
+    areaTamil: 'செல்லூர்',
+    landmarks: '50 Feet Road அல்லது Sellur Kanmai',
+    promptSnippet: 'செல்லூர்! 50 Feet Road பக்கமா அல்லது கண்மாய் பக்கமா சார்?'
+  },
+  'arapalayam': {
+    areaTamil: 'ஆரப்பாளையம்',
+    landmarks: 'Arapalayam Bus Stand அல்லது Guru Theater',
+    promptSnippet: 'ஆரப்பாளையம்! Arapalayam Bus Stand பக்கமா அல்லது Guru Theater பக்கமா சார்?'
+  },
+  'ss colony': {
+    areaTamil: 'எஸ்.எஸ். காலனி',
+    landmarks: 'SS Colony Main Road, Bye-Pass Road அல்லது Ponmeni Jalroad',
+    promptSnippet: 'எஸ்.எஸ். காலனி! Bye-Pass Road பக்கமா அல்லது Ponmeni Main Road பக்கமா சார்?'
+  },
+  'ponmeni': {
+    areaTamil: 'பொன்மேனி',
+    landmarks: 'Ponmeni Main Road அல்லது Bye-Pass Road',
+    promptSnippet: 'பொன்மேனி! Bye-Pass Road பக்கமா அல்லது Ponmeni Main Road பக்கமா சார்?'
+  },
+  'theppakulam': {
+    areaTamil: 'தெப்பக்குளம்',
+    landmarks: 'மாரியம்மன் தெப்பக்குளம் அல்லது Anuppanadi / Velammal Hospital',
+    promptSnippet: 'தெப்பக்குளம்! மாரியம்மன் தெப்பக்குளம் பக்கமா அல்லது Velammal Hospital பக்கமா சார்?'
+  },
+  'anuppanadi': {
+    areaTamil: 'அனுப்பானடி',
+    landmarks: 'Velammal Hospital அல்லது Viraganoor Ring Road',
+    promptSnippet: 'அனுப்பானடி! Velammal Hospital பக்கமா அல்லது Viraganoor Ring Road பக்கமா சார்?'
+  },
+  'othakadai': {
+    areaTamil: 'ஒத்தக்கடை',
+    landmarks: 'Yanaimalai அடிவாரம், High Court Bench அல்லது Agri College',
+    promptSnippet: 'ஒத்தக்கடை! Yanaimalai அடிவாரமா அல்லது High Court / Agri College பக்கமா சார்?'
+  },
+  'samayanallur': {
+    areaTamil: 'சமயநல்லூர்',
+    landmarks: 'NH Dindigul Four-way Track அல்லது Paravai Market',
+    promptSnippet: 'சமயநல்லூர் / பரவை! Paravai Market பக்கமா அல்லது Dindigul Four-way Track பக்கமா சார்?'
+  },
+  'paravai': {
+    areaTamil: 'பரவை',
+    landmarks: 'Paravai Market அல்லது NH Track',
+    promptSnippet: 'பரவை! Paravai Market பக்கமா அல்லது NH Track பக்கமா சார்?'
+  },
+  'vagaikulam': {
+    areaTamil: 'வாகைகுளம்',
+    landmarks: 'Ring Road அல்லது Airport / Sipcot Area',
+    promptSnippet: 'வாகைகுளம்! Ring Road பக்கமா அல்லது Airport / Sipcot பகுதி பக்கமா சார்?'
+  },
+  'selvapuram': {
+    areaTamil: 'செல்வாபுரம்',
+    landmarks: 'Villapuram Bypass அல்லது Housing Board',
+    promptSnippet: 'செல்வாபுரம்! Bypass ரோடா அல்லது Housing Board பக்கமா சார்?'
+  },
+  'tallakulam': {
+    areaTamil: 'தல்லாகுளம்',
+    landmarks: 'Perumal Kovil, Tamukkam Ground அல்லது Outpost',
+    promptSnippet: 'தல்லாகுளம்! தமுக்கம் மைதானம் (Tamukkam) பக்கமா அல்லது பெருமாள் கோவில் பக்கமா சார்?'
+  },
+  'pasumalai': {
+    areaTamil: 'பசுமலை',
+    landmarks: 'Harvey Patti, Railway Station அல்லது Bypass',
+    promptSnippet: 'பசுமலை! Harvey Patti பக்கமா அல்லது Main Road பக்கமா சார்?'
+  },
+  'alagar kovil': {
+    areaTamil: 'அழகர் கோவில்',
+    landmarks: 'Kallazhagar Temple ரோடு அல்லது Appan Thirupathi',
+    promptSnippet: 'அழகர் கோவில் ரோடு! Appan Thirupathi பக்கமா அல்லது கோவில் ரத வீதியா சார்?'
+  },
+  'umachikulam': {
+    areaTamil: 'உமச்சிகுளம்',
+    landmarks: 'Natham Road அல்லது Surya Nagar',
+    promptSnippet: 'உமச்சிகுளம்! Natham Main Road பக்கமா சார்?'
+  }
+};
+
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -78,11 +232,16 @@ class BuilderCustomerMemory {
         phone,
         customer_name: null,
         customer_phone: null,
-        preferred_language: 'English', // Initial default until customer requests otherwise
+        preferred_language: 'Tamil', // Default is ALWAYS Tamil for Danam Holdings
+        explicit_english: false,
         plot_owned: null,              // true (owns plot), false (looking to purchase)
         plot_status: 'unknown',        // 'owned', 'looking_to_buy', 'unknown'
         plot_size: null,               // e.g. '2 Cents', '4 Cents'
+        plot_type: 'unknown',          // 'corner_plot', 'middle_plot', 'unknown'
+        setback_inquiry_active: false,
         location: null,
+        landmark_info: null,
+        needs_landmark_validation: false,
         service_area_status: 'approved', // 'approved', 'outside_review_needed'
         site_address: null,
         house_type: null,              // 'G+1 Duplex', 'Ground Floor Only', etc.
@@ -97,6 +256,8 @@ class BuilderCustomerMemory {
         follow_up_consent: 'not_asked',// 'granted', 'declined', 'not_asked'
         complaint: null,               // { active: true, issue: '...', logged_at: '...' }
         human_handover: null,          // { active: true, requested_at: '...', notes: '...' }
+        comment_check_requested: false,
+        social_link_shared: false,
         facts: {
           confirmed: {},
           inferred: {},
@@ -105,6 +266,11 @@ class BuilderCustomerMemory {
         updated_at: new Date().toISOString()
       };
       this.saveProfiles();
+    } else {
+      // If legacy profile had English as unrequested default, upgrade to Tamil
+      if (!this.profiles[phone].explicit_english && this.profiles[phone].preferred_language === 'English') {
+        this.profiles[phone].preferred_language = 'Tamil';
+      }
     }
     return this.profiles[phone];
   }
@@ -130,8 +296,9 @@ class BuilderCustomerMemory {
     const asksTanglish = /\b(tanglish)\b/i.test(text) || lower.includes('speak tanglish') || lower.includes('in tanglish');
 
     if (asksTamil) {
-      if (profile.preferred_language !== 'Tamil') {
+      if (profile.preferred_language !== 'Tamil' || profile.explicit_english) {
         profile.preferred_language = 'Tamil';
+        profile.explicit_english = false;
         updated = true;
         this.logAudit(chatId, 'language_switched', { target: 'Tamil' });
         console.log(`🔒 [Language Switched & Locked] ${profile.phone} ➔ TAMIL`);
@@ -139,6 +306,7 @@ class BuilderCustomerMemory {
     } else if (asksEnglish) {
       if (profile.preferred_language !== 'English') {
         profile.preferred_language = 'English';
+        profile.explicit_english = true;
         updated = true;
         this.logAudit(chatId, 'language_switched', { target: 'English' });
         console.log(`🔒 [Language Switched & Locked] ${profile.phone} ➔ ENGLISH`);
@@ -146,6 +314,7 @@ class BuilderCustomerMemory {
     } else if (asksTanglish) {
       if (profile.preferred_language !== 'Tanglish') {
         profile.preferred_language = 'Tanglish';
+        profile.explicit_english = false;
         updated = true;
         this.logAudit(chatId, 'language_switched', { target: 'Tanglish' });
         console.log(`🔒 [Language Switched & Locked] ${profile.phone} ➔ TANGLISH`);
@@ -199,6 +368,30 @@ class BuilderCustomerMemory {
       updated = true;
     }
 
+    // 5a. SOCIAL MEDIA LINK & COMMENT CHECK DETECTION:
+    const asksCommentCheck = /\b(comment section paru|comment paru|comments paru|check comments?|read comments?|கமெண்ட் பாரு|கமெண்ட்ஸ் பாரு|கமெண்ட் செக்ஷன் பாரு)\b/i.test(text);
+    if (asksCommentCheck) {
+      profile.comment_check_requested = true;
+      updated = true;
+      this.logAudit(chatId, 'comment_check_requested', { text: text.trim() });
+    }
+
+    const hasSocialLink = /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com|fb\.watch|instagram\.com|youtube\.com|youtu\.be)\/[^\s]+/i.test(text);
+    if (hasSocialLink) {
+      profile.social_link_shared = true;
+      updated = true;
+      this.logAudit(chatId, 'social_link_detected', { text: text.trim() });
+    }
+
+    if (text.includes('[IMAGE_SCREENSHOT_SHARED]') || /\b(screenshot|elevation photo|house photo|plan photo|design photo|போட்டோ)\b/i.test(lower)) {
+      profile.screenshot_shared = true;
+      updated = true;
+    }
+    if (text.includes('[VIDEO_OR_REEL_SHARED]')) {
+      profile.video_shared = true;
+      updated = true;
+    }
+
     // 6. PLOT OWNERSHIP & STATUS DETECTION:
     if (
       lower.includes('no i need') || lower.includes('dont have plot') || lower.includes("don't have plot") ||
@@ -247,6 +440,21 @@ class BuilderCustomerMemory {
       updated = true;
     }
 
+    // 7b. PLOT TYPE / ORIENTATION DETECTION (Corner Plot vs Middle Plot)
+    if (/\b(corner\s*plot|corner|கார்னர்|இரண்டு பக்கம் ரோடு|2 side road|2 பக்கம் ரோடு|corner site)\b/i.test(lower) || text.includes('கார்னர்') || text.includes('இரண்டு பக்கம் ரோடு')) {
+      profile.plot_type = 'corner_plot';
+      updated = true;
+    } else if (/\b(middle\s*plot|middle|மிடில்|ஒரு பக்கம் ரோடு|1 side road|1 பக்கம் ரோடு|center plot)\b/i.test(lower) || text.includes('மிடில்') || text.includes('ஒரு பக்கம் ரோடு')) {
+      profile.plot_type = 'middle_plot';
+      updated = true;
+    }
+
+    // 7c. SETBACK / DRAINAGE / OTS / WATER LINE INQUIRY DETECTION
+    if (lower.includes('setback') || lower.includes('இடைவெளி') || lower.includes('drainage') || lower.includes('சாக்கடை') || lower.includes('pipe') || lower.includes('குழாய்') || lower.includes('ots') || lower.includes('open to sky') || lower.includes('water link') || lower.includes('தண்ணீர்') || lower.includes('விதிமுறை') || text.includes('இடம் விட') || lower.includes('784')) {
+      profile.setback_inquiry_active = true;
+      updated = true;
+    }
+
     // 8. HOUSE TYPE DETECTION (G+1, G+2, Ground floor, Duplex, Villa)
     if (/\b(g\+1|g\s*\+\s*1|duplex|டூப்ளக்ஸ்|இரண்டு மாடி|2 floors|two floors)\b/i.test(lower)) {
       profile.house_type = 'G+1 Duplex';
@@ -262,21 +470,21 @@ class BuilderCustomerMemory {
       updated = true;
     }
 
-    // 9. LOCATION & SERVICE AREA FEASIBILITY DETECTION:
-    const maduraiAreas = [
-      'selvapuram', 'vagaikulam', 'theppakulam', 'anna nagar', 'k.k. nagar', 'kk nagar',
-      'mattuthavani', 'om sakthi nagar', 'villapuram', 'tirunagar', 'thirunagar',
-      'alagar kovil', 'samayanallur', 'umachikulam', 'iyer bungalow', 'pasumalai',
-      'avaniyapuram', 'thiruparankundram', 'arapalayam', 'ss colony', 'tallakulam'
-    ];
-    for (const area of maduraiAreas) {
-      if (lower.includes(area)) {
-        profile.location = area.charAt(0).toUpperCase() + area.slice(1) + ', Madurai';
+    // 9. LOCATION & MADURAI REAL-PROOF LANDMARK DETECTION:
+    let matchedLandmark = null;
+    for (const [areaKey, info] of Object.entries(MADURAI_LANDMARK_MAP)) {
+      if (lower.includes(areaKey) || (info.areaTamil && text.includes(info.areaTamil))) {
+        profile.location = areaKey.charAt(0).toUpperCase() + areaKey.slice(1) + ', Madurai';
         profile.service_area_status = 'approved';
+        profile.landmark_info = info;
+        profile.needs_landmark_validation = true;
+        matchedLandmark = info;
         updated = true;
+        console.log(`📍 [Builder Location Matched] ${profile.location} -> Landmark: ${info.landmarks}`);
         break;
       }
     }
+
     if (!profile.location && (lower.includes('madurai') || lower.includes('மதுரை'))) {
       profile.location = 'Madurai';
       profile.service_area_status = 'approved';
@@ -420,6 +628,9 @@ class BuilderCustomerMemory {
     if (!profile.plot_size) {
       return 'Ask for the plot dimensions or size in Cents / Sq.Ft.';
     }
+    if (profile.plot_type === 'unknown' || !profile.plot_type) {
+      return 'Ask whether the plot is a Corner Plot (road on 2 sides) or a Middle Plot (road on 1 side) to calculate setback and road clearances accurately.';
+    }
     if (!profile.house_type) {
       return 'Ask what type of house they plan to build (Ground floor only, G+1 Duplex, or Luxury Villa).';
     }
@@ -429,7 +640,7 @@ class BuilderCustomerMemory {
     if (!profile.budget) {
       return 'Ask what their approximate budget range is for the turnkey civil construction.';
     }
-    return 'Offer a Free Site Visit / Soil Inspection or 3D Architectural consultation with Er. Dhilip Kumar.';
+    return 'Offer a Free Site Visit / Soil & Setback Inspection with Er. Dhilip Kumar, explaining road level, UGD drainage slope, and OTS pipe duct planning.';
   }
 
   // Generate complete context prompt to inject into Gemini turn
@@ -438,12 +649,20 @@ class BuilderCustomerMemory {
     const nextStep = this.getNextMissingDetail(profile);
 
     // Language Directive: Strictly follow locked customer language without conflicting text!
-    const langInstruction = profile.preferred_language === 'Tamil'
-      ? `🚨 ACTIVE LANGUAGE: TAMIL (LOCKED BY CUSTOMER REQUEST)
+    const langInstruction = (profile.preferred_language === 'English' && profile.explicit_english)
+      ? `🌟 ACTIVE LANGUAGE: ENGLISH (EXPLICITLY REQUESTED BY CUSTOMER)
+- The customer explicitly requested English. Communicate in clear, consultative, professional English.`
+      : `🚨 ACTIVE LANGUAGE: TAMIL (MANDATORY DEFAULT FOR DANAM HOLDINGS)
 - You MUST reply 100% ONLY in pure Tamil script (தமிழ் எழுத்துக்களில்).
-- STRICTLY FORBIDDEN: NEVER USE MALAYALAM SCRIPT (NO മലയാളം, NO Malayalam letters or words under any circumstance!).
+- Even if customer inputs short English words like "Hi", "Villapuram", "3bhk", "20lakh", you MUST reply in Tamil!
+- STRICTLY FORBIDDEN: NEVER USE SINHALA SCRIPT (\u0D80-\u0DFF) AND NEVER USE MALAYALAM SCRIPT (\u0D00-\u0D7F).
+- Always use the standard Tamil words "விதிமுறைகளின்படி" or "விதிகளின்படி". NEVER write corrupted words like "நியமங்களின்படி"!
 - NEVER write Latin Tanglish (no English spelling of Tamil words).
 - CRITICAL VOCABULARY RULE: ALWAYS write technical and measurement terms in ENGLISH script:
+  • Use "Corner Plot" & "Middle Plot"
+  • Use "Setback"
+  • Use "OTS Duct" or "OTS (Open to Sky) Duct"
+  • Use "Drainage" & "UGD"
   • Use "cents" or "Cents" (NEVER write "சென்ட்")
   • Use "Sq.Ft" or "sq.ft" (NEVER write "சதுர அடி")
   • Use "Mobile Number" or "Phone Number" (NEVER write "அலைபேசி எண்" or "தொலைபேசி எண்")
@@ -451,12 +670,7 @@ class BuilderCustomerMemory {
   • Use "Budget"
   • Use "Site Visit" (NEVER write "கள ஆய்வு")
   • Use "Floor Plan" & "3D Elevation"
-  • Use "G+1", "G+2", "Duplex", "BHK", "Car Parking", "Compound Wall", "Borewell", "EB Connection", "Danam Holdings", "Er. Dhilip Kumar".`
-      : profile.preferred_language === 'Tanglish'
-      ? `🚨 ACTIVE LANGUAGE: TANGLISH (LOCKED BY CUSTOMER REQUEST)
-- Reply naturally in polite Tanglish with engineering warmth. Keep measurements in English.`
-      : `🌟 ACTIVE LANGUAGE: ENGLISH (DEFAULT)
-- Communicate in clear, consultative, professional English. Keep terminology clear.`;
+  • Use "G+1", "G+2", "Duplex", "BHK", "Car Parking", "Compound Wall", "Borewell", "EB Connection", "Danam Holdings", "Er. Dhilip Kumar".`;
 
     const confirmedFacts = [];
     
@@ -466,8 +680,18 @@ class BuilderCustomerMemory {
       confirmedFacts.push(`STRICT VOCABULARY GUARD: NEVER say "உங்களிடம் உள்ள ${profile.plot_size || ''} Plot" (Your plot). ALWAYS say: "நீங்கள் வாங்கத் திட்டமிட்டுள்ள ${profile.plot_size || ''} Plot" (The plot you are planning to purchase)!`);
     } else if (profile.plot_status === 'owned') {
       confirmedFacts.push(`Plot Ownership: Customer owns a ${profile.plot_size || 'plot'} in ${profile.location || 'Madurai'}. [Status: Confirmed]`);
-    } else if (profile.plot_size) {
+    }
+
+    if (profile.plot_size) {
       confirmedFacts.push(`Plot Size: ${profile.plot_size} [Status: Confirmed]`);
+    }
+
+    if (profile.plot_type === 'corner_plot') {
+      confirmedFacts.push(`Plot Type: Corner Plot (Road on 2 sides). Road setbacks required on both road-facing sides. [Status: Confirmed]`);
+    } else if (profile.plot_type === 'middle_plot') {
+      confirmedFacts.push(`Plot Type: Middle Plot (Road on 1 side). Road setback required on front road side; side & rear need minimal boundary clearances. [Status: Confirmed]`);
+    } else {
+      confirmedFacts.push(`Plot Type: NOT KNOWN YET (Needs check: Corner Plot vs Middle Plot).`);
     }
 
     if (profile.location) confirmedFacts.push(`Location: ${profile.location} [Status: Confirmed]`);
@@ -552,6 +776,58 @@ class BuilderCustomerMemory {
 • State politely: "எங்கள் முதன்மை கட்டுமானப் பணிகள் மதுரை மற்றும் தென் தமிழகத்தில் நடைபெற்று வருகின்றன. உங்கள் பகுதியில் திட்டத்தை மேற்கொள்ள முடியுமா என்பதை எங்கள் பொறியாளர் குழுவுடன் ஆலோசித்துவிட்டுத் தெரிவிக்கிறேன் சார்."`;
     }
 
+    // Landmark Validation Prompt (Triggered when customer shares an area)
+    let landmarkValidationPrompt = '';
+    if (profile.needs_landmark_validation && profile.landmark_info) {
+      landmarkValidationPrompt = `
+📍 MANDATORY LOCAL REAL-PROOF LANDMARK VALIDATION:
+• The customer's plot/site is located in: "${profile.location}".
+• You MUST immediately validate this location with authentic local knowledge before asking about budget or anything else!
+• Validation question to use:
+  "${profile.landmark_info.promptSnippet}"
+• Example: If Villapuram, say "ஆஹா வில்லாபுரம் அருமையான இடம் சார்! Vetri Theater பக்கமா அல்லது Housing Board பக்கமா உங்கள் Site அமைந்திருக்கிறது சார்?"
+• If Goripalayam, say "ஆஹா கோரிப்பாளையம்! தேவர் சிலை (Thevar Silai) பக்கமா அல்லது GH பக்கமா உங்கள் Plot அமைந்திருக்கிறது சார்?"
+• DO NOT just give generic praise like "Villapuram is a fantastic area" — ask the landmark question!`;
+      profile.needs_landmark_validation = false;
+      this.saveProfiles();
+    }
+
+    // Social Media Link / Reel / Comment Query Handling
+    let socialLinkPrompt = '';
+    if (profile.comment_check_requested || profile.social_link_shared || /(?:facebook\.com|instagram\.com|fb\.watch|youtu\.be|youtube\.com)/i.test(userText)) {
+      socialLinkPrompt = `
+🎥 SOCIAL MEDIA LINK / COMMENT SECTION HANDLING DIRECTIVE (STRICT ZERO-HALLUCINATION):
+• Customer shared a video link or asked you to check comments ("Comment section paru").
+• ABSOLUTE RULE: NEVER HALLUCINATE OR CLAIM THAT YOU WATCHED THE VIDEO OR READ COMMENTS ON FACEBOOK/INSTAGRAM!
+• Explain honestly, politely, and helpfully in Tamil:
+  "சார், Facebook/Instagram பாதுகாப்பு விதிமுறைகளின்படி (Login & Privacy Protection), வாட்ஸ்அப் வழியாக AI-யால் அங்குள்ள நேரடி கமெண்ட்களைப் (Comments) படிக்க இயலாது சார்.
+  ஆனால் Danam Holdings சார்பாக அந்த வீடியோவில் நீங்கள் பார்த்த வீடு கட்டும் பிளான், 3D Elevation அல்லது பட்ஜெட் சம்பந்தமான எந்த கேள்விகளுக்கும் நான் உடனடியாக உங்களுக்கு துல்லியமான விளக்கம் மற்றும் மதிப்பீடு தருகிறேன் சார்!
+  இந்த வீடியோவில் உங்களுக்குப் பிடித்த எலிவேஷன் (3D Elevation) அல்லது பிளான் உள்ள பகுதியை ஒரு Screenshot எடுத்து இங்கே வாட்ஸ்அப்பில் பகிருங்கள் சார்! எங்கள் AI உடனே அந்த டிசைனை ஸ்கேன் செய்து, உங்கள் பிளாட்டிற்கு அது பொருந்துமா மற்றும் தோராயமான பட்ஜெட் என்ன ஆகும் என்று உடனடியாகக் கணக்கிட்டுத் தரும்! 🏡"
+• If [LINK PREVIEW METADATA] was extracted in the user message, acknowledge the actual video title/topic respectfully!`;
+    }
+
+    const civilConsultationPrompt = `
+🏛️ CIVIL ENGINEERING CONSULTATION DIRECTIVE (PLOT TYPES, SETBACKS, OTS DUCT & DRAINAGE):
+• 1. CORNER PLOT VS MIDDLE PLOT DISCOVERY:
+  - If plot type is unknown or customer mentions setback/plan: Ask:
+    "சார், உங்கள் இடம் ஒரு Corner Plot-ஆ (இரண்டு பக்கம் ரோடு) அல்லது Middle Plot-ஆ (ஒரு பக்கம் ரோடு) சார்?"
+  - Explain: Corner Plot requires setback on BOTH road-facing sides (முன்புறம் மற்றும் பக்கவாட்டு ரோடு); Middle Plot requires setback on the single front road side, with minimal boundary clearance on the other 3 sides.
+• 2. WATER LINK, DRAINAGE & OTS (OPEN TO SKY) SERVICE DUCT:
+  - Ground floor service space: For drinking water connection, underground drainage (UGD) line, and sewage chamber, dedicated open clearance space must be reserved on at least one side at the Ground Floor level.
+  - Vertical continuation across all floors: This plumbing line clearance continues vertically up to all upper floors (G, G+1, G+2).
+  - OTS (Open to Sky) Duct: A dedicated vertical open shaft/duct inside or along the building must be planned from terrace to ground.
+    * All water pipes, PVC soil/waste lines, and drainage run cleanly inside this OTS duct without cutting structural RCC beams.
+    * Conceals pipes from bedroom/living view and allows easy lifetime maintenance without breaking walls.
+• 3. SITE VISIT JUSTIFICATION (ABSOLUTE PROHIBITION OF ROBOTIC REPETITION):
+  - NEVER repeat "Site Visit ஏற்பாடு செய்யலாமா சார்?" nakedly or mechanically in back-to-back turns!
+  - When discussing floor plans, setback, or site visits, ALWAYS justify the site visit with real civil engineering factors:
+    1. Road width & Corporation setback calculation
+    2. Road level vs plot level (plinth height check to prevent flood water entry)
+    3. Underground Drainage (UGD) chamber depth & gravity slope direction
+    4. Physical boundary check (Corner vs Middle plot dimensions)
+    5. Optimal placement of OTS plumbing/drainage duct so zero space is wasted in rooms
+  - Conclude naturally: Because of these factors, an on-site physical inspection by Er. Dhilip Kumar / engineering team is recommended before finalizing the floor plan to make 100% efficient use of every single square foot!`;
+
     const customerPhone = this.getVerifiedCustomerPhone(chatId, profile);
     const customerPhoneSummary = customerPhone 
       ? `• Customer's Verified Mobile Number: ${customerPhone}`
@@ -580,6 +856,9 @@ ${complaintAlert}
 ${humanHandoverAlert}
 ${privacyProbeAlert}
 ${serviceAreaAlert}
+${landmarkValidationPrompt}
+${socialLinkPrompt}
+${civilConsultationPrompt}
 
 VERIFIED PHONE NUMBERS (STRICT INTEGRITY):
 • BOT / Danam Holdings Official Business Line: +91 93615 99097 (THIS IS OUR BOT'S NUMBER! NEVER say this is the customer's phone number!)

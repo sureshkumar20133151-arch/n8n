@@ -66,6 +66,49 @@ function recordProcessedMessageId(msgId) {
   }
 }
 
+function decodeHtmlEntities(str) {
+  if (!str) return '';
+  return str
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'");
+}
+
+async function fetchUrlOpenGraphMetadata(text = '') {
+  const urlMatch = text.match(/https?:\/\/[^\s]+/i);
+  if (!urlMatch) return null;
+  const targetUrl = urlMatch[0];
+
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+      },
+      signal: AbortSignal.timeout(3500),
+      redirect: 'follow'
+    });
+    if (!res.ok && res.status !== 200) return null;
+    const html = await res.text();
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+    const ogDesc = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+
+    const title = decodeHtmlEntities(titleMatch ? titleMatch[1] : (ogTitle ? ogTitle[1] : ''));
+    const desc = decodeHtmlEntities(ogDesc ? ogDesc[1] : '');
+
+    if (title && !title.toLowerCase().includes('log in') && title.toLowerCase() !== 'facebook' && title.toLowerCase() !== 'instagram') {
+      return { title: title.trim(), description: desc ? desc.trim() : null };
+    }
+  } catch (e) {
+    // Non-blocking timeout or network error
+  }
+  return null;
+}
+
 async function sendBotMessage(socket, targetJid, content, options = {}) {
   try {
     const sent = await socket.sendMessage(targetJid, content, options);
@@ -327,7 +370,7 @@ async function connectToWhatsApp() {
           if (innerMsg.documentWithCaptionMessage?.message) innerMsg = innerMsg.documentWithCaptionMessage.message;
 
           // Extract text from various message types
-          const textMessage = innerMsg.conversation ||
+          let textMessage = innerMsg.conversation ||
             innerMsg.extendedTextMessage?.text ||
             innerMsg.imageMessage?.caption ||
             innerMsg.videoMessage?.caption ||
@@ -335,6 +378,27 @@ async function connectToWhatsApp() {
             innerMsg.listResponseMessage?.singleSelectReply?.selectedRowId ||
             innerMsg.templateButtonReplyMessage?.selectedId ||
             '';
+
+          // Extract link preview metadata if present from WhatsApp client
+          const ext = innerMsg.extendedTextMessage;
+          let hasPreview = false;
+          if (ext && (ext.title || ext.description)) {
+            const previewMeta = [];
+            if (ext.title) previewMeta.push(`Preview Title: "${ext.title.trim()}"`);
+            if (ext.description) previewMeta.push(`Preview Description: "${ext.description.trim()}"`);
+            if (previewMeta.length > 0) {
+              textMessage = `${textMessage}\n[LINK PREVIEW METADATA]: ${previewMeta.join(' | ')}`;
+              hasPreview = true;
+            }
+          }
+
+          // If text contains a URL but WhatsApp provided no preview, attempt quick OpenGraph fetch
+          if (!hasPreview && /https?:\/\/[^\s]+/i.test(textMessage)) {
+            const fetched = await fetchUrlOpenGraphMetadata(textMessage);
+            if (fetched && fetched.title) {
+              textMessage = `${textMessage}\n[LINK PREVIEW METADATA]: Preview Title: "${fetched.title}"${fetched.description ? ` | Description: "${fetched.description}"` : ''}`;
+            }
+          }
 
           const body = textMessage.trim();
 
@@ -347,15 +411,17 @@ async function connectToWhatsApp() {
             }
           }
 
-          // Handle Image / Media / Voice Note
+          // Handle Image / Media / Voice Note / Video
           let mediaPayload = null;
           let isAudio = false;
+          let isVideo = false;
           if (msg.message.imageMessage) {
             try {
               const buffer = await downloadMediaMessage(msg, 'buffer', {});
               mediaPayload = {
                 mimetype: msg.message.imageMessage.mimetype || 'image/jpeg',
-                data: buffer.toString('base64')
+                data: buffer.toString('base64'),
+                isImage: true
               };
             } catch (mediaErr) {
               console.error('Failed to download image:', mediaErr.message);
@@ -375,6 +441,33 @@ async function connectToWhatsApp() {
               console.log(`🎙️ [Voice Note Downloaded] ${buffer.length} bytes, MIME: ${cleanMime}`);
             } catch (mediaErr) {
               console.error('Failed to download audio message:', mediaErr.message);
+            }
+          } else if (msg.message.videoMessage) {
+            try {
+              const videoMsg = msg.message.videoMessage;
+              const seconds = videoMsg.seconds || 0;
+              const fileLength = Number(videoMsg.fileLength || 0);
+
+              // Render Free Tier Guard: Max 18MB and max 90 seconds to prevent OOM
+              const MAX_VIDEO_BYTES = 18 * 1024 * 1024;
+              if (fileLength > MAX_VIDEO_BYTES || seconds > 90) {
+                console.warn(`⚠️ [Video Guard] Video too large (${Math.round(fileLength / (1024 * 1024))}MB, ${seconds}s). Skipping to protect server RAM.`);
+              } else {
+                console.log(`🎥 [Incoming Video/Reel] Downloading video stream (${seconds}s, ~${Math.round(fileLength / 1024)}KB) from ${remoteJid}...`);
+                const buffer = await downloadMediaMessage(msg, 'buffer', {});
+                const rawMime = videoMsg.mimetype || 'video/mp4';
+                const cleanMime = rawMime.split(';')[0].trim();
+                mediaPayload = {
+                  mimetype: cleanMime || 'video/mp4',
+                  data: buffer.toString('base64'),
+                  isVideo: true,
+                  seconds: seconds
+                };
+                isVideo = true;
+                console.log(`🎥 [Video Downloaded Successfully] ${buffer.length} bytes, MIME: ${cleanMime}`);
+              }
+            } catch (mediaErr) {
+              console.error('Failed to download video message:', mediaErr.message);
             }
           }
 
