@@ -152,10 +152,11 @@ async function runTests() {
   // -------------------------------------------------------------
   // Test 6: Instagram Service Status
   // -------------------------------------------------------------
-  test('Instagram Service Status Telemetry', () => {
+  test('Instagram Service Status Telemetry (Zero Secret Leakage)', () => {
     const status = instagramService.getStatus();
-    assert.strictEqual(status.engine, 'instagram-graph-api-v19.0');
-    assert.strictEqual(status.verifyToken, 'DANAM_INSTA_VERIFY_TOKEN_2026');
+    assert.strictEqual(status.engine, 'instagram-graph-api-v21.0');
+    assert.strictEqual(status.verifyToken, undefined, 'verifyToken must NEVER be exposed publicly');
+    assert.strictEqual(status.hasVerifyToken, true);
     assert.strictEqual(status.webhookEndpoint, '/webhook/instagram');
     assert.ok(status.processedComments >= 2, 'Should track processed comments');
   });

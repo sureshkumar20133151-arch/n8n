@@ -699,8 +699,21 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/api/channels') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        if (!res.headersSent) {
+          res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+          res.end(JSON.stringify({ error: 'Payload too large (max 100KB)' }));
+        }
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', () => {
+      if (res.headersSent) return;
       try {
         const patch = JSON.parse(body || '{}');
         const updated = channelControls.update(patch, patch.updatedBy || 'Switcher Dashboard Toggle');
@@ -726,8 +739,21 @@ const server = http.createServer((req, res) => {
   // 4. Developer Test Simulation: Reel Comment
   if (req.method === 'POST' && req.url === '/api/instagram/test-comment') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        if (!res.headersSent) {
+          res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+          res.end(JSON.stringify({ error: 'Payload too large (max 100KB)' }));
+        }
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
+      if (res.headersSent) return;
       try {
         const data = JSON.parse(body || '{}');
         const result = await instagramService.handleReelComment({
@@ -754,8 +780,21 @@ const server = http.createServer((req, res) => {
   // 5. Developer Test Simulation: Incoming DM
   if (req.method === 'POST' && req.url === '/api/instagram/test-dm') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        if (!res.headersSent) {
+          res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+          res.end(JSON.stringify({ error: 'Payload too large (max 100KB)' }));
+        }
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', async () => {
+      if (res.headersSent) return;
       try {
         const data = JSON.parse(body || '{}');
         const senderId = data.senderId || `test_user_${Date.now()}`;

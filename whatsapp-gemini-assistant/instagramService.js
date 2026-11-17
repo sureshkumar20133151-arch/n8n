@@ -8,6 +8,7 @@
 
 const https = require('https');
 const http = require('http');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const GeminiService = require('./geminiService');
@@ -95,18 +96,40 @@ function handleVerification(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// 2. INCOMING EVENT DISPATCHER (POST)
+// 2. INCOMING EVENT DISPATCHER (POST) + HMAC-SHA256 SIGNATURE VERIFICATION
 // ---------------------------------------------------------------------------
+function verifyMetaSignature(rawBody, signatureHeader) {
+  const appSecret = process.env.INSTA_APP_SECRET || '';
+  if (!appSecret) return true; // Optional unless INSTA_APP_SECRET is configured
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false;
+
+  const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex');
+  const sigBuf = Buffer.from(signatureHeader, 'utf8');
+  const expBuf = Buffer.from(expectedSig, 'utf8');
+  if (sigBuf.length !== expBuf.length) return false;
+  return crypto.timingSafeEqual(sigBuf, expBuf);
+}
+
 async function handleWebhookEvent(req, res, sock = null) {
   let body = '';
   let bodySize = 0;
+  let aborted = false;
   const MAX_SIZE = 100 * 1024; // 100KB
 
+  req.on('error', (err) => {
+    aborted = true;
+    console.error('❌ [Instagram Webhook Stream Error]:', err.message);
+  });
+
   req.on('data', chunk => {
+    if (aborted) return;
     bodySize += chunk.length;
     if (bodySize > MAX_SIZE) {
-      res.writeHead(413, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Payload too large' }));
+      aborted = true;
+      if (!res.headersSent) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+      }
       req.destroy();
     } else {
       body += chunk;
@@ -114,7 +137,16 @@ async function handleWebhookEvent(req, res, sock = null) {
   });
 
   req.on('end', async () => {
+    if (aborted || res.headersSent) return;
     try {
+      // Verify Meta X-Hub-Signature-256 when INSTA_APP_SECRET is configured
+      const sigHeader = req.headers['x-hub-signature-256'];
+      if (!verifyMetaSignature(body, sigHeader)) {
+        console.warn('🛡️ [Security Alert] Rejected Instagram webhook with invalid X-Hub-Signature-256!');
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Invalid webhook signature' }));
+      }
+
       const payload = JSON.parse(body || '{}');
 
       // Acknowledge Meta immediately with 200 OK to avoid timeout & retries
@@ -543,7 +575,7 @@ function callMetaGraphApi(endpoint, payload, method = 'POST') {
     const options = {
       hostname: apiHost,
       port: 443,
-      path: `/${apiVersion}${endpoint}?access_token=${encodeURIComponent(token)}`,
+      path: `/${apiVersion}${endpoint}`,
       method: method,
       headers: {
         'Content-Type': 'application/json',
@@ -553,6 +585,14 @@ function callMetaGraphApi(endpoint, payload, method = 'POST') {
       timeout: 10000
     };
 
+    let settled = false;
+    const done = (val) => {
+      if (!settled) {
+        settled = true;
+        resolve(val);
+      }
+    };
+
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -560,20 +600,26 @@ function callMetaGraphApi(endpoint, payload, method = 'POST') {
         try {
           const parsed = JSON.parse(data || '{}');
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve({ success: true, data: parsed });
+            done({ success: true, data: parsed });
           } else {
             console.error(`❌ [Meta Graph API Error ${res.statusCode}]:`, parsed);
-            resolve({ success: false, error: parsed, statusCode: res.statusCode });
+            done({ success: false, error: parsed, statusCode: res.statusCode });
           }
         } catch (e) {
-          resolve({ success: false, raw: data });
+          done({ success: false, raw: data });
         }
       });
     });
 
+    req.on('timeout', () => {
+      console.error('❌ [Meta Graph API Timeout] Aborting hung socket after 10s');
+      req.destroy();
+      done({ success: false, error: 'Request timed out' });
+    });
+
     req.on('error', (err) => {
       console.error('❌ [Meta Graph API Network Error]:', err.message);
-      resolve({ success: false, error: err.message });
+      done({ success: false, error: err.message });
     });
 
     req.write(postData);
@@ -582,14 +628,17 @@ function callMetaGraphApi(endpoint, payload, method = 'POST') {
 }
 
 function getStatus() {
+  const token = process.env.INSTA_PAGE_ACCESS_TOKEN || INSTA_PAGE_ACCESS_TOKEN;
+  const hasLiveToken = Boolean(token && !token.includes('your_') && token !== '');
   return {
-    engine: 'instagram-graph-api-v19.0',
-    hasToken: Boolean(INSTA_PAGE_ACCESS_TOKEN && !INSTA_PAGE_ACCESS_TOKEN.includes('your_')),
-    verifyToken: INSTA_VERIFY_TOKEN,
+    engine: 'instagram-graph-api-v21.0',
+    hasToken: hasLiveToken,
+    hasVerifyToken: Boolean(process.env.INSTA_VERIFY_TOKEN || INSTA_VERIFY_TOKEN),
+    signatureVerificationEnabled: Boolean(process.env.INSTA_APP_SECRET),
     webhookEndpoint: '/webhook/instagram',
     processedComments: processedCommentIds.size,
     processedMessages: processedMessageIds.size,
-    simulationMode: !Boolean(INSTA_PAGE_ACCESS_TOKEN && !INSTA_PAGE_ACCESS_TOKEN.includes('your_')),
+    simulationMode: !hasLiveToken,
     costPerMessage: '₹0 (Meta Free Direct Message Tier)'
   };
 }

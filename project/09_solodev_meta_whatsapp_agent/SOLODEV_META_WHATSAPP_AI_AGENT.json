@@ -122,7 +122,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer EAATpWZC9xMr4BSxdU25npZCVZCKhHnIK76GVkNZAbexuZCdJbF7pwIZA11eAwZBZCssEFbjBZBbZCcdraTCpa1GAASFhqdxXO97poV4t9kin8hiSI8NbpVcE12giQ0xAHLy7zlh3DzwdpvG0KYaw78ZCz68NecLjqTyXZBj7rMZAciTOLIruCUZBDfUvxPBejvxICTZCFiNwWo6C3k2cuETZCRuzbiFFdKZCs8CvGz36wwKqeYTogZBs8WU6jL9O2Yu6MzgJMAXSwUgBnFjEpmwVs0InqRZAs41I31PgQZDZD"
+              "value": "=Bearer {{ $env.META_WHATSAPP_ACCESS_TOKEN }}"
             },
             {
               "name": "Content-Type",

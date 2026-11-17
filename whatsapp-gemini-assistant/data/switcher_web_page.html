@@ -761,13 +761,22 @@
       } catch (e) {}
     }
 
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     async function runInstaSim(type) {
       const text = (document.getElementById('insta-test-input').value || '').trim();
       const out = document.getElementById('insta-sim-result');
       if (!text) return showToast('⚠️ Type a message first!');
 
       out.style.display = 'block';
-      out.innerHTML = '⏳ Running live Instagram AI Agent...';
+      out.textContent = '⏳ Running live Instagram AI Agent...';
       const endpoint = type === 'comment' ? '/api/instagram/test-comment' : '/api/instagram/test-dm';
       try {
         const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -778,28 +787,28 @@
         const data = await res.json();
         if (data.success && data.result) {
           if (data.result.paused) {
-            out.innerHTML = `<span style="color:#fbbf24;">⏸️ ${data.result.message || data.result.replyText}</span>`;
+            out.innerHTML = `<span style="color:#fbbf24;">⏸️ ${escapeHtml(data.result.message || data.result.replyText)}</span>`;
           } else if (type === 'comment') {
             out.innerHTML = `
-              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Reel Comment Processed (${getAgentName(data.result.activeMode)})</div>
+              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Reel Comment Processed (${escapeHtml(getAgentName(data.result.activeMode))})</div>
               <div style="margin-bottom:8px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #ec4899;">
-                <b>📢 Public Comment Reply:</b><br>${data.result.publicReply}
+                <b>📢 Public Comment Reply:</b><br>${escapeHtml(data.result.publicReply)}
               </div>
               <div style="padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #8b5cf6;">
-                <b>📩 Auto Private DM:</b><br>${(data.result.privateDm || '').replace(/\n/g, '<br>')}
+                <b>📩 Auto Private DM:</b><br>${escapeHtml(data.result.privateDm).replace(/\n/g, '<br>')}
               </div>`;
           } else {
             out.innerHTML = `
-              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Direct DM Reply (${getAgentName(data.result.activeMode)})</div>
+              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Direct DM Reply (${escapeHtml(getAgentName(data.result.activeMode))})</div>
               <div style="padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #8b5cf6;">
-                ${(data.result.replyText || '').replace(/\n/g, '<br>')}
+                ${escapeHtml(data.result.replyText).replace(/\n/g, '<br>')}
               </div>`;
           }
         } else {
-          out.innerHTML = `<span style="color:#f87171;">❌ ${data.error || 'Error'}</span>`;
+          out.innerHTML = `<span style="color:#f87171;">❌ ${escapeHtml(data.error || 'Error')}</span>`;
         }
       } catch (e) {
-        out.innerHTML = `<span style="color:#f87171;">❌ ${e.message}</span>`;
+        out.innerHTML = `<span style="color:#f87171;">❌ ${escapeHtml(e.message)}</span>`;
       }
     }
 
