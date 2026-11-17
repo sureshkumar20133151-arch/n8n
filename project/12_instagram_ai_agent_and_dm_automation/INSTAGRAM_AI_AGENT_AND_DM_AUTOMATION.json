@@ -1,0 +1,463 @@
+{
+  "name": "Danam Holdings - Instagram AI Agent & Reel Comment-to-DM Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "instagram-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 100],
+      "id": "node-insta-verify",
+      "name": "1. Verify Webhook (Meta GET Challenge)"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [240, 100],
+      "id": "node-respond-insta-challenge",
+      "name": "2. Respond Meta Hub Challenge"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instagram-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 360],
+      "id": "node-insta-receive",
+      "name": "3. Receive Instagram Event (POST)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"EVENT_RECEIVED\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [240, 360],
+      "id": "node-respond-insta-ack",
+      "name": "4. Immediate Ack (200 OK)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json || {};\nconst entry = (body.entry && body.entry[0]) || {};\n\n// 1. Detect Reel or Post Comments\nif (entry.changes && entry.changes[0] && entry.changes[0].field === 'comments') {\n  const cmt = entry.changes[0].value || {};\n  const text = cmt.text || '';\n  const phoneRegex = /(?:(?:\\+?91[\\s-]?)?[6-9]\\d{9})\\b/g;\n  const phoneMatch = text.match(phoneRegex);\n  const cleanPhone = phoneMatch ? phoneMatch[0].replace(/\\D/g, '').slice(-10) : null;\n\n  return [{\n    json: {\n      eventType: 'comment',\n      commentId: cmt.id,\n      text: text,\n      username: (cmt.from && cmt.from.username) || 'Client',\n      phone: cleanPhone,\n      hasPhone: Boolean(cleanPhone),\n      receivedAt: new Date().toISOString()\n    }\n  }];\n}\n\n// 2. Detect Direct Messages (DMs)\nif (entry.messaging && entry.messaging[0]) {\n  const msgObj = entry.messaging[0];\n  if (msgObj.message && !msgObj.message.is_echo && msgObj.message.text) {\n    const text = msgObj.message.text;\n    const phoneRegex = /(?:(?:\\+?91[\\s-]?)?[6-9]\\d{9})\\b/g;\n    const phoneMatch = text.match(phoneRegex);\n    const cleanPhone = phoneMatch ? phoneMatch[0].replace(/\\D/g, '').slice(-10) : null;\n\n    return [{\n      json: {\n        eventType: 'dm',\n        senderId: msgObj.sender.id,\n        messageId: msgObj.message.mid,\n        text: text,\n        phone: cleanPhone,\n        hasPhone: Boolean(cleanPhone),\n        receivedAt: new Date().toISOString()\n      }\n    }];\n  }\n}\n\nreturn [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 360],
+      "id": "node-insta-classifier",
+      "name": "5. Classify & Parse Event"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "rightValue": "comment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.eventType }}",
+                    "rightValue": "dm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [720, 360],
+      "id": "node-switch-event",
+      "name": "6. Route Event (Comment vs DM)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst publicReplies = [\n  'நன்றி சார்! உங்கள் DM-ல் முழு விபரங்களையும் அனுப்பியுள்ளோம், தயவுசெய்து செக் செய்யவும் 📩',\n  'வணக்கம் சார்! இந்த எலிவேஷன் மற்றும் பிளான் விபரங்களை உங்கள் DM-க்கு அனுப்பியுள்ளோம் 🙏',\n  'நன்றி! Danam Holdings சார்பாக உங்கள் DM-ல் முழு விபரங்களைப் பகிர்ந்துள்ளோம் 🏡',\n  'வணக்கம்! உங்கள் கேள்விகளுக்கான முழு பிளான் மற்றும் விலை விபரங்கள் உங்கள் DM-க்கு அனுப்பப்பட்டுள்ளது ✨'\n];\nconst chosenPublicReply = publicReplies[Math.floor(Math.random() * publicReplies.length)];\n\nconst privateDm = `வணக்கம் @${item.username} சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡.\nநீங்கள் எங்கள் இன்ஸ்டா ரீல் பதிவில் கேட்ட வீடு கட்டும் விபரங்கள்:\n• Standard Package: ₹1,850 – ₹1,950 / Sq.Ft\n• Premium Luxury Package: ₹2,250 – ₹2,350 / Sq.Ft\n• Elite Royal Villa: ₹2,750 – ₹2,950 / Sq.Ft\n\nஉங்கள் இடம் மதுரை அல்லது சுற்றியுள்ள எந்தப் பகுதியில் உள்ளது சார்? மற்றும் Plot அளவு (cents / Sq.Ft) என்ன சார்?`;\n\nreturn [{\n  json: {\n    ...item,\n    publicReply: chosenPublicReply,\n    privateDm: privateDm\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 240],
+      "id": "node-prepare-comment-responses",
+      "name": "7. Generate Comment & DM Responses"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.commentId }}/replies?access_token={{ $env.INSTA_PAGE_ACCESS_TOKEN }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"{{ $json.publicReply }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 160],
+      "id": "node-send-public-comment-reply",
+      "name": "8. Send Public Comment Reply"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/me/messages?access_token={{ $env.INSTA_PAGE_ACCESS_TOKEN }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.commentId }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.privateDm }}\"\n  }\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 320],
+      "id": "node-send-private-dm-comment",
+      "name": "9. Send Private DM from Comment"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"role\": \"user\",\n      \"parts\": [\n        {\n          \"text\": \"You are the official AI Construction Consultant for Danam Holdings Civil Engineering & Turnkey EPC (Madurai, Tamil Nadu), led by Chief Consultant Er. Dhilip Kumar.\\n\\nCRITICAL INSTRUCTIONS:\\n1. Language: ALWAYS speak in respectful, professional Tamil script by default (e.g. 'வணக்கம் சார்').\\n2. Technical terms: Keep terms like Sq.Ft, Cents, Plot, G+1, Duplex, Setback, Corner Plot, OTS Duct, Drainage in clean English script.\\n3. Pricing: Standard ₹1,850 - ₹1,950/sq.ft | Premium Luxury ₹2,250 - ₹2,350/sq.ft.\\n4. Madurai Local Validation: Villapuram (Vetri Theater), Goripalayam (Thevar Silai), Mattuthavani (Flower market / Apollo).\\n5. Call-To-Action: If customer requirements (plot size/area) are shared, politely ask for their WhatsApp Mobile Number to send 2D floor plans & 3D elevations.\\n\\nIncoming Instagram DM:\\n\\\"{{ $json.text }}\\\"\\n\\nRespond concisely under 120 words.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 480],
+      "id": "node-gemini-dm-engine",
+      "name": "10. Gemini Civil AI Brain"
+    },
+    {
+      "parameters": {
+        "jsCode": "const geminiData = $input.first().json;\nconst candidate = geminiData.candidates && geminiData.candidates[0];\nconst part = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0];\nlet reply = part ? part.text : '';\n\nif (!reply) {\n  reply = 'வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡. உங்கள் வீட்டுக் கனவிற்கான விபரங்களைப் பெற உங்கள் WhatsApp எண்ணைப் பகிருங்கள் சார், 2D பிளான் மற்றும் விலை விபரங்களை உடனே அனுப்புகிறோம்!';\n}\n\nconst dmData = $('6. Route Event (Comment vs DM)').first().json;\n\nreturn [{\n  json: {\n    ...dmData,\n    replyText: reply.trim()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 480],
+      "id": "node-format-dm-reply",
+      "name": "11. Format Instagram DM Reply"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/me/messages?access_token={{ $env.INSTA_PAGE_ACCESS_TOKEN }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.senderId }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.replyText }}\"\n  }\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 480],
+      "id": "node-send-instagram-dm-reply",
+      "name": "12. Send Instagram DM Reply"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.hasPhone }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 680],
+      "id": "node-if-phone-detected",
+      "name": "13. Did Customer Share Phone?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst phone = item.phone || '';\nconst cleanDigits = phone.startsWith('91') ? phone : '91' + phone;\n\nconst text = item.text || '';\nlet area = 1200;\nconst centMatch = text.match(/(\\d+(?:\\.\\d+)?)\\s*(?:cent|சென்)/i);\nif (centMatch) {\n  area = Math.round(parseFloat(centMatch[1]) * 435.6 * 0.75 * 2);\n}\n\nconst cementBags = Math.round(area * 0.42);\nconst steelTonnes = ((area * 3.8) / 1000).toFixed(2);\nconst bricks = Math.round(area * 18);\n\nconst minLakhs = ((area * 1850) / 100000).toFixed(2);\nconst maxLakhs = ((area * 2350) / 100000).toFixed(2);\n\nconst clientWelcome = `வணக்கம் சார்! 🏡✨\\n` +\n  `Danam Holdings Civil Engineering & Turnkey EPC, மதுரை.\\n\\n` +\n  `நீங்கள் Instagram-ல் கேட்ட வீடு கட்டும் விபரங்கள் மற்றும் 2D Elevation தொகுப்பு:\\n` +\n  `• Standard Package: ₹1,850/sq.ft\\n` +\n  `• Premium Luxury Package: ₹2,250/sq.ft\\n` +\n  `• திட்ட மதிப்பீடு: ₹${minLakhs}L - ₹${maxLakhs}L (~${area} Sq.Ft)\\n\\n` +\n  `எங்கள் தலைமை பொறியாளர் Er. Dhilip Kumar உங்களைத் தொடர்பு கொள்வார்.\\n` +\n  `முழு விபரங்களுக்கு: https://danamholdings.com`;\n\nconst engineerAlert = `🚨 *NEW INSTAGRAM LEAD CAPTURED!* 📸➔💬\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `📱 *Phone:* +${cleanDigits}\\n` +\n  `📝 *Inquiry Text:* \"${text}\"\\n` +\n  `🧱 *BOQ Preview:* ~${cementBags} Cement bags | ${steelTonnes}T Steel | ~${bricks} Bricks\\n` +\n  `💰 *Est. Budget:* ₹${minLakhs}L - ₹${maxLakhs}L\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `👉 *Chat on WhatsApp:* https://wa.me/${cleanDigits}\\n` +\n  `👉 *Call Now:* tel:${cleanDigits}`;\n\nreturn [{\n  json: {\n    ...item,\n    customerPhone: cleanDigits,\n    estimatedArea: area,\n    minLakhs,\n    maxLakhs,\n    cementBags,\n    steelTonnes,\n    bricks,\n    clientWelcomeMessage: clientWelcome,\n    engineerAlertMessage: engineerAlert,\n    processedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 680],
+      "id": "node-boq-funnel-bridge",
+      "name": "14. BOQ & WhatsApp Bridge Builder"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "value": "Construction_Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.processedAt }}",
+            "Platform": "Instagram",
+            "Customer_Phone": "={{ $json.customerPhone }}",
+            "Inquiry_Text": "={{ $json.text }}",
+            "Estimated_Area": "={{ $json.estimatedArea }} Sq.Ft",
+            "Estimated_Budget": "₹{{ $json.minLakhs }}L - ₹{{ $json.maxLakhs }}L",
+            "Status": "NEW_INSTAGRAM_LEAD"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1200, 680],
+      "id": "node-sheets-append-insta",
+      "name": "15. Log Lead to Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XtknJPUddSwDeQRl",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.customerPhone }}\",\n  \"message\": \"{{ $json.clientWelcomeMessage }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 680],
+      "id": "node-dispatch-client-whatsapp",
+      "name": "16. Dispatch Homeowner WhatsApp Welcome"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"919361599097\",\n  \"message\": \"{{ $json.engineerAlertMessage }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1680, 680],
+      "id": "node-dispatch-engineer-alert",
+      "name": "17. Dispatch VIP Chief Engineer Alert"
+    }
+  ],
+  "connections": {
+    "1. Verify Webhook (Meta GET Challenge)": {
+      "main": [
+        [
+          {
+            "node": "2. Respond Meta Hub Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Receive Instagram Event (POST)": {
+      "main": [
+        [
+          {
+            "node": "4. Immediate Ack (200 OK)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "5. Classify & Parse Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Classify & Parse Event": {
+      "main": [
+        [
+          {
+            "node": "6. Route Event (Comment vs DM)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "13. Did Customer Share Phone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Route Event (Comment vs DM)": {
+      "main": [
+        [
+          {
+            "node": "7. Generate Comment & DM Responses",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "10. Gemini Civil AI Brain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Generate Comment & DM Responses": {
+      "main": [
+        [
+          {
+            "node": "8. Send Public Comment Reply",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "9. Send Private DM from Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10. Gemini Civil AI Brain": {
+      "main": [
+        [
+          {
+            "node": "11. Format Instagram DM Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11. Format Instagram DM Reply": {
+      "main": [
+        [
+          {
+            "node": "12. Send Instagram DM Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13. Did Customer Share Phone?": {
+      "main": [
+        [
+          {
+            "node": "14. BOQ & WhatsApp Bridge Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14. BOQ & WhatsApp Bridge Builder": {
+      "main": [
+        [
+          {
+            "node": "15. Log Lead to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15. Log Lead to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "16. Dispatch Homeowner WhatsApp Welcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "16. Dispatch Homeowner WhatsApp Welcome": {
+      "main": [
+        [
+          {
+            "node": "17. Dispatch VIP Chief Engineer Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -242,6 +242,9 @@
         <div class="phone-badge">
           <span>Target Phone: <b>+91 93615 99097</b></span>
         </div>
+        <div class="phone-badge" style="background: rgba(225, 48, 108, 0.15); border: 1px solid rgba(225, 48, 108, 0.35);">
+          <span>📸 Instagram AI: <b id="insta-status-text" style="color: #f472b6;">Graph API v19.0 Ready</b></span>
+        </div>
         <div class="wa-status-badge" id="wa-status-box">
           <div class="pulse-dot" id="wa-dot"></div>
           <span id="wa-status-text">Checking WhatsApp...</span>
@@ -462,6 +465,27 @@
         <button class="btn btn-primary" id="btn-dev" onclick="switchMode('dev')">⚡ Switch to Developer Mode</button>
       </div>
 
+      <!-- Card 5: Instagram AI Agent & Reel Comment-to-DM Engine -->
+      <div class="card" id="card-instagram" style="border-color: rgba(225, 48, 108, 0.35);">
+        <div>
+          <span class="card-badge" style="background:linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);color:#ffffff;">📸 Instagram Reel & DM AI Agent</span>
+          <h2>📸 SoloDeveloper.pro Insta AI</h2>
+          <div class="card-meta">
+            <b>Platform:</b> Official Meta Graph API v19.0 (₹0 Free Tier)<br>
+            <b>Sync Mode:</b> Auto-Syncs with Active Persona above (SoloDev / Builder / Taj / Oil)<br>
+            <b>Capabilities:</b> Reel Public Auto-Reply + Private DM + WhatsApp Lead Bridge
+          </div>
+          <ul class="feature-list">
+            <li>Auto Public Reply to Reel comments in Tamil & English</li>
+            <li>Instant Private DM with active business pricing & offers</li>
+            <li>1-Click Persona Sync: Switch above to change both WhatsApp & Insta!</li>
+            <li>Phone Number Extractor ➔ Automatic WhatsApp Handover</li>
+            <li>VIP Lead Alert directly to +91 93615 99097</li>
+          </ul>
+        </div>
+        <button class="btn btn-primary" style="background:linear-gradient(135deg, #e1306c, #833ab4);color:#ffffff;" onclick="scrollToInstaSimulator()">⚡ Test Instagram AI Reply</button>
+      </div>
+
     </div>
 
     <!-- Live Preview -->
@@ -488,6 +512,27 @@
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- 📸 Instagram Real-Time Simulator Box -->
+    <div class="box" id="insta-simulator-box" style="border: 1px solid rgba(225, 48, 108, 0.4); background: linear-gradient(135deg, rgba(225, 48, 108, 0.08), rgba(131, 58, 180, 0.08)); margin-top: 24px; border-radius: 16px; padding: 22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+        <h3 style="color:#f472b6; font-size:1.2rem; display:flex; align-items:center; gap:8px;">
+          <span>📸 Instagram AI Reel Comment & DM Simulator</span>
+        </h3>
+        <span style="background:rgba(225,48,108,0.2); color:#f472b6; border:1px solid rgba(225,48,108,0.4); padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:700;">
+          Meta Graph API v19.0 Active
+        </span>
+      </div>
+      <p style="color: #d1d5db; font-size: 0.88rem; margin-bottom: 14px;">
+        Simulate real Instagram user interactions! Type any query below to test how the AI replies in public on your Reel and dispatches the private DM:
+      </p>
+      <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+        <input type="text" id="insta-test-input" placeholder="e.g. Rate per sq.ft please? Villapuram site 9876543210" style="flex: 1; min-width: 280px; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(15, 23, 42, 0.8); color: #fff; font-size: 0.95rem;" value="Rate per sq.ft please? Villapuram site 9876543210">
+        <button id="btn-sim-comment" onclick="testInstagramSimulation('comment')" style="background: linear-gradient(135deg, #e1306c, #c13584); color: white; border: none; padding: 12px 22px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s;">💬 Simulate Reel Comment</button>
+        <button id="btn-sim-dm" onclick="testInstagramSimulation('dm')" style="background: linear-gradient(135deg, #833ab4, #5851db); color: white; border: none; padding: 12px 22px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s;">📩 Simulate Direct DM</button>
+      </div>
+      <div id="insta-sim-result" style="display:none; padding: 16px; border-radius: 12px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.15); font-size: 0.9rem; line-height: 1.6;"></div>
     </div>
 
   </div>
@@ -737,13 +782,88 @@
       }
     }
 
+    function scrollToInstaSimulator() {
+      const box = document.getElementById('insta-simulator-box');
+      if (box) {
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById('insta-test-input')?.focus();
+      }
+    }
+
+    async function fetchInstagramStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/api/instagram/status`);
+        if (res.ok) {
+          const data = await res.json();
+          const el = document.getElementById('insta-status-text');
+          if (el) {
+            if (data.hasToken) {
+              el.innerText = `Live Connected (${data.processedComments} Comments)`;
+              el.style.color = '#34d399';
+            } else {
+              el.innerText = `Ready (Simulation Mode)`;
+              el.style.color = '#f472b6';
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function testInstagramSimulation(type) {
+      const inputEl = document.getElementById('insta-test-input');
+      const resultEl = document.getElementById('insta-sim-result');
+      const text = (inputEl ? inputEl.value : '').trim();
+      if (!text) return showToast('⚠️ Please enter a comment or DM message to test!');
+
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '⏳ Running live Instagram AI Engine...';
+
+      const endpoint = type === 'comment' ? '/api/instagram/test-comment' : '/api/instagram/test-dm';
+      try {
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text, username: 'madurai_prospect', senderId: 'demo_user_' + Date.now() })
+        });
+        const data = await res.json();
+        if (data.success && data.result) {
+          if (type === 'comment') {
+            resultEl.innerHTML = `
+              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Reel Comment Processed Successfully!</div>
+              <div style="margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.06); border-radius:8px; border-left:3px solid #f472b6;">
+                <b>📢 Public Comment Reply:</b><br>${data.result.publicReply}
+              </div>
+              <div style="padding:10px; background:rgba(255,255,255,0.06); border-radius:8px; border-left:3px solid #8b5cf6;">
+                <b>📩 Auto Private DM Sent:</b><br>${(data.result.privateDm || '').replace(/\n/g, '<br>')}
+              </div>
+            `;
+          } else {
+            resultEl.innerHTML = `
+              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Instagram Direct Message Processed!</div>
+              <div style="padding:10px; background:rgba(255,255,255,0.06); border-radius:8px; border-left:3px solid #8b5cf6;">
+                <b>🤖 AI Agent DM Reply:</b><br>${(data.result.replyText || '').replace(/\n/g, '<br>')}
+              </div>
+            `;
+          }
+          showToast('📸 Instagram AI Simulation Complete!');
+          fetchInstagramStatus();
+        } else {
+          resultEl.innerHTML = `<span style="color:#f87171;">❌ Error: ${data.error || 'Request failed'}</span>`;
+        }
+      } catch (err) {
+        resultEl.innerHTML = `<span style="color:#f87171;">❌ Connection error: ${err.message}</span>`;
+      }
+    }
+
     // Init
     updatePreview();
     fetchLiveModeFromServer();
     updateQuotas();
     checkHealthAndQR();
+    fetchInstagramStatus();
     setInterval(checkHealthAndQR, 4000);
     setInterval(updateQuotas, 30000);
+    setInterval(fetchInstagramStatus, 15000);
   </script>
 </body>
 </html>

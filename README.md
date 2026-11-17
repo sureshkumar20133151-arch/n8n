@@ -25,6 +25,7 @@ For an exhaustive, file-by-file inventory of every script, configuration, and as
 │   ├── 09_solodev_meta_whatsapp_agent/                 # Official Meta WhatsApp Cloud API Agent
 │   ├── 10_construction_builder_whatsapp_agent/         # Civil Engineering BOQ Estimator (Danam Holdings)
 │   ├── 11_lead_generation_and_cold_outreach/           # Apify Scraper + Lead Auto-Sorter + Anti-Ban Outreach
+│   ├── 12_instagram_ai_agent_and_dm_automation/        # Instagram Reel Comment Auto-Reply, AI DM & WhatsApp Bridge
 │   └── README.md                                       # Master Project Matrix & Import Instructions
 │
 ├── 🤖 whatsapp-gemini-assistant/                       # 🟢 Live Baileys WebSocket Engine (~40MB RAM)
@@ -45,7 +46,7 @@ For an exhaustive, file-by-file inventory of every script, configuration, and as
 
 ---
 
-## 📂 Production Workflows Matrix (01 – 11)
+## 📂 Production Workflows Matrix (01 – 12)
 
 All production workflows are strictly isolated in **[`project/`](./project/)**:
 
@@ -62,6 +63,7 @@ All production workflows are strictly isolated in **[`project/`](./project/)**:
 | [**`09_solodev_meta_whatsapp_agent`**](./project/09_solodev_meta_whatsapp_agent/) | [`SOLODEV_META_WHATSAPP_AI_AGENT.json`](./project/09_solodev_meta_whatsapp_agent/SOLODEV_META_WHATSAPP_AI_AGENT.json) | **Official Meta WhatsApp Cloud API Agent:** Dedicated autonomous conversational agent for SoloDeveloper powered by official Meta Cloud API (`v21.0`) and Gemini. | [Read Docs](./project/09_solodev_meta_whatsapp_agent/README.md) |
 | [**`10_construction_builder_whatsapp_agent`**](./project/10_construction_builder_whatsapp_agent/) | [`construction_builder_whatsapp_agent_workflow.json`](./project/10_construction_builder_whatsapp_agent/construction_builder_whatsapp_agent_workflow.json) | House Construction & Turnkey EPC agent for **Danam Holdings** (Er. Dhilip Kumar). Calculates instant civil engineering BOQ ratios and qualifies leads. | [Read Docs](./project/10_construction_builder_whatsapp_agent/README.md) |
 | [**`11_lead_generation_and_cold_outreach`**](./project/11_lead_generation_and_cold_outreach/) | [`daily_builder_sheets_anti_ban_outreach.json`](./project/11_lead_generation_and_cold_outreach/daily_builder_sheets_anti_ban_outreach.json) | Complete outbound pipeline: Apify Maps scraper, Google Sheets lead auto-sorter (with vs without website), anti-ban paced WhatsApp outreach, and Resend cold email engine. | [Read Docs](./project/11_lead_generation_and_cold_outreach/README.md) |
+| [**`12_instagram_ai_agent_and_dm_automation`**](./project/12_instagram_ai_agent_and_dm_automation/) | [`INSTAGRAM_AI_AGENT_AND_DM_AUTOMATION.json`](./project/12_instagram_ai_agent_and_dm_automation/INSTAGRAM_AI_AGENT_AND_DM_AUTOMATION.json) | **Instagram AI Agent & Reel Comment-to-DM Engine:** Auto-replies in public to Reel comments, triggers instant private DMs with Turnkey packages, qualifies homeowners in Tamil, and bridges leads directly to WhatsApp. | [Read Docs](./project/12_instagram_ai_agent_and_dm_automation/README.md) |
 
 ---
 

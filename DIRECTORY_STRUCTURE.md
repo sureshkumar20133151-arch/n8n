@@ -21,6 +21,7 @@ This document provides a comprehensive, structured map of every directory, workf
 │   ├── 📁 09_solodev_meta_whatsapp_agent/              # Official Meta WhatsApp Cloud API Agent
 │   ├── 📁 10_construction_builder_whatsapp_agent/      # Civil Engineering BOQ Estimator (Danam Holdings)
 │   ├── 📁 11_lead_generation_and_cold_outreach/        # Apify Scraper + Lead Auto-Sorter + Anti-Ban Outreach
+│   ├── 📁 12_instagram_ai_agent_and_dm_automation/     # Instagram Reel Comment Auto-Reply, AI DM & WhatsApp Bridge
 │   ├── 📄 active_persona.json                          # Real-time active persona state descriptor
 │   ├── 📄 MULTI_PERSONA_SWITCHER_PRD.md                # System specification for dynamic multi-business switching
 │   ├── 📄 README.md                                    # Master project directory index
@@ -43,6 +44,8 @@ This document provides a comprehensive, structured map of every directory, workf
 │   ├── 📄 industryKnowledgeBase.js                     # Multi-vertical market facts & pricing rules
 │   ├── 📄 adminRulesManager.js                         # Admin command parser (e.g. #switch, #reset, #status)
 │   ├── 📄 sessionPersistence.js                        # File-backed session state preservation
+│   ├── 📄 instagramService.js                          # Meta Instagram Graph API v19.0 Comment & DM Automation
+│   ├── 🧪 test_instagram_service.js                    # Automated test runner for Instagram DM & comment engine
 │   ├── 🧪 test_builder_persona.js                      # Unit test suite for construction persona
 │   ├── 🧪 test_multi_persona_switcher.js               # Multi-persona toggle integration test
 │   ├── 🧪 test_scenarios_validation.js                 # Edge-case validation runner

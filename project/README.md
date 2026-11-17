@@ -4,7 +4,7 @@ All production n8n workflows for **SoloDeveloper.pro** and affiliated businesses
 
 ---
 
-## 📂 Master Workflow Projects Matrix (01 – 11)
+## 📂 Master Workflow Projects Matrix (01 – 12)
 
 | Project Folder | Primary Workflow JSON | Description | Documentation |
 | :--- | :--- | :--- | :--- |
@@ -19,6 +19,7 @@ All production n8n workflows for **SoloDeveloper.pro** and affiliated businesses
 | [**`09_solodev_meta_whatsapp_agent/`**](./09_solodev_meta_whatsapp_agent/) | [`SOLODEV_META_WHATSAPP_AI_AGENT.json`](./09_solodev_meta_whatsapp_agent/SOLODEV_META_WHATSAPP_AI_AGENT.json) | **Official Meta WhatsApp Cloud API Agent:** Dedicated autonomous conversational agent for SoloDeveloper powered by Meta Cloud API and Gemini. Completely isolated from other personas. | [Read Docs](./09_solodev_meta_whatsapp_agent/README.md) |
 | [**`10_construction_builder_whatsapp_agent/`**](./10_construction_builder_whatsapp_agent/) | [`construction_builder_whatsapp_agent_workflow.json`](./10_construction_builder_whatsapp_agent/construction_builder_whatsapp_agent_workflow.json) | Residential construction BOQ estimator & lead qualification engine for **Danam Holdings Civil Engineering & Turnkey EPC** (Er. Dhilip Kumar). | [Read Docs](./10_construction_builder_whatsapp_agent/README.md) |
 | [**`11_lead_generation_and_cold_outreach/`**](./11_lead_generation_and_cold_outreach/) | [`daily_builder_sheets_anti_ban_outreach.json`](./11_lead_generation_and_cold_outreach/daily_builder_sheets_anti_ban_outreach.json) | Full outbound engine: Apify Google Maps scraping, auto-sorting (with vs without website), anti-ban paced WhatsApp outreach, and Resend cold email campaigns. | [Read Docs](./11_lead_generation_and_cold_outreach/README.md) |
+| [**`12_instagram_ai_agent_and_dm_automation/`**](./12_instagram_ai_agent_and_dm_automation/) | [`INSTAGRAM_AI_AGENT_AND_DM_AUTOMATION.json`](./12_instagram_ai_agent_and_dm_automation/INSTAGRAM_AI_AGENT_AND_DM_AUTOMATION.json) | **Instagram AI Agent & Reel Comment-to-DM Engine:** Auto-replies in public to Reel comments, triggers instant private DMs with Turnkey packages, qualifies homeowners in Tamil, and bridges leads directly to WhatsApp. | [Read Docs](./12_instagram_ai_agent_and_dm_automation/README.md) |
 
 ---
 

@@ -473,7 +473,8 @@ class BuilderCustomerMemory {
     // 9. LOCATION & MADURAI REAL-PROOF LANDMARK DETECTION:
     let matchedLandmark = null;
     for (const [areaKey, info] of Object.entries(MADURAI_LANDMARK_MAP)) {
-      if (lower.includes(areaKey) || (info.areaTamil && text.includes(info.areaTamil))) {
+      const tamilStem = info.areaTamil ? info.areaTamil.replace(/ம்$/, '') : '';
+      if (lower.includes(areaKey) || (info.areaTamil && (text.includes(info.areaTamil) || (tamilStem && text.includes(tamilStem))))) {
         profile.location = areaKey.charAt(0).toUpperCase() + areaKey.slice(1) + ', Madurai';
         profile.service_area_status = 'approved';
         profile.landmark_info = info;

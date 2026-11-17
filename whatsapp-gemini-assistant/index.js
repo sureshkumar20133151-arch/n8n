@@ -25,6 +25,7 @@ const wholesaleInventory = require('./wholesaleInventoryService');
 const restaurantMenu = require('./restaurantMenuService');
 const restaurantCart = require('./restaurantCartService');
 const sessionPersistence = require('./sessionPersistence');
+const instagramService = require('./instagramService');
 
 const gemini = new GeminiService();
 
@@ -649,6 +650,86 @@ const server = http.createServer((req, res) => {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     return res.end();
+  }
+
+  // ============================================================
+  // OFFICIAL META INSTAGRAM GRAPH API WEBHOOKS & AUTOMATION
+  // ============================================================
+  // 1. Meta Webhook Verification Endpoint (GET /webhook/instagram)
+  if (req.method === 'GET' && req.url.startsWith('/webhook/instagram')) {
+    return instagramService.handleVerification(req, res);
+  }
+
+  // 2. Meta Webhook Event Dispatcher (POST /webhook/instagram)
+  if (req.method === 'POST' && req.url.startsWith('/webhook/instagram')) {
+    return instagramService.handleWebhookEvent(req, res, sock);
+  }
+
+  // 3. Instagram Service Status Endpoint
+  if (req.method === 'GET' && req.url === '/api/instagram/status') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(JSON.stringify({
+      success: true,
+      ...instagramService.getStatus(),
+      timestamp: new Date().toISOString()
+    }));
+  }
+
+  // 4. Developer Test Simulation: Reel Comment
+  if (req.method === 'POST' && req.url === '/api/instagram/test-comment') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const result = await instagramService.handleReelComment({
+          id: data.id || `test_cmt_${Date.now()}`,
+          text: data.text || 'Price details please? Madurai Villapuram',
+          from: { username: data.username || 'test_homeowner' }
+        }, sock);
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ success: true, result }));
+      } catch (err) {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // 5. Developer Test Simulation: Incoming DM
+  if (req.method === 'POST' && req.url === '/api/instagram/test-dm') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const senderId = data.senderId || `test_user_${Date.now()}`;
+        const text = data.text || 'வணக்கம், வில்லாபுரத்தில் 3 சென்ட் இடம் உள்ளது. வீடு கட்ட என்ன செலவாகும்?';
+        const result = await instagramService.handleIncomingDM(senderId, text, sock);
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ success: true, result }));
+      } catch (err) {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
   }
 
   // Live Cloud Quota Radar API: Render, Neon PostgreSQL & Gemini API limits
