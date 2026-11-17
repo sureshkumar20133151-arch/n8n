@@ -35,11 +35,76 @@ function getGemini() {
 }
 
 // ---------------------------------------------------------------------------
-// DEDUPLICATION & LOOP GUARDS
+// DEDUPLICATION, CONCURRENCY LOCKS & LOOP GUARDS (MATCHING WHATSAPP AGENT)
 // ---------------------------------------------------------------------------
 const processedCommentIds = new Set();
 const processedMessageIds = new Set();
-const recentCommentReplies = new Map(); // commentId -> timestamp
+const activeInstaLocks = new Set();
+const recentInstaMessages = new Map(); // senderId -> { text, timestamp }
+const optedOutUsers = new Set(); // Users who sent STOP / unsubscribe
+
+function isDummyPhoneNumber(phone = '') {
+  const digits = String(phone).replace(/\D/g, '');
+  if (!digits || digits.length < 10) return true;
+  return /^(91)?(98765\d{5}|12345\d{5}|00000\d{5}|11111\d{5}|99999\d{5}|0{10}|1{10})/.test(digits) ||
+         digits.startsWith('91000000') ||
+         digits === '910000000000' ||
+         digits === '0000000000';
+}
+
+// Zero-Sinhala / Zero-Malayalam Sanitizer + Instagram DM Cleaner (No ugly raw Markdown)
+function sanitizeAndFormatForInstagram(text = '') {
+  if (!text) return '';
+  let clean = String(text)
+    // Strip any accidental Sinhala (\u0D80-\u0DFF) or Malayalam (\u0D00-\u0D7F) characters
+    .replace(/[\u0D80-\u0DFF\u0D00-\u0D7F]/g, '')
+    // Replace corrupted Tamil word if LLM ever outputs it
+    .replace(/நியமங்களின்படி/g, 'விதிமுறைகளின்படி')
+    // Strip markdown heading hashes and double asterisks (Instagram DM doesn't render Markdown)
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .trim();
+  return clean;
+}
+
+// Meta Instagram DM Hard Limit is 1,000 characters — cleanly split long replies at paragraph/sentence boundaries
+function splitForInstagramDM(text = '', maxLen = 950) {
+  const clean = sanitizeAndFormatForInstagram(text);
+  if (clean.length <= maxLen) return [clean];
+  const chunks = [];
+  let remaining = clean;
+  while (remaining.length > maxLen) {
+    let splitAt = remaining.lastIndexOf('\n\n', maxLen);
+    if (splitAt < maxLen * 0.4) splitAt = remaining.lastIndexOf('\n', maxLen);
+    if (splitAt < maxLen * 0.4) splitAt = remaining.lastIndexOf(' ', maxLen);
+    if (splitAt < 1) splitAt = maxLen;
+    chunks.push(remaining.slice(0, splitAt).trim());
+    remaining = remaining.slice(splitAt).trim();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
+async function downloadInstagramMedia(url, fallbackMime = 'image/jpeg') {
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const arrayBuf = await res.arrayBuffer();
+    if (arrayBuf.byteLength > 4 * 1024 * 1024) return null; // Skip >4MB to protect 512MB RAM
+    const contentType = res.headers.get('content-type') || fallbackMime;
+    return {
+      mimetype: contentType.split(';')[0].trim(),
+      data: Buffer.from(arrayBuf).toString('base64'),
+      isAudio: contentType.startsWith('audio/'),
+      isVideo: contentType.startsWith('video/')
+    };
+  } catch (err) {
+    console.warn('⚠️ [Instagram Media Download Notice]:', err.message);
+    return null;
+  }
+}
 
 function recordProcessedComment(commentId) {
   if (!commentId) return;
@@ -155,13 +220,53 @@ async function handleWebhookEvent(req, res, sock = null) {
 
       if (payload.object === 'instagram') {
         for (const entry of (payload.entry || [])) {
-          // A. Process Direct Messages (DMs)
+          // A. Process Direct Messages (DMs — Text, Images, Voice Notes, Reels & Story Replies!)
           if (Array.isArray(entry.messaging)) {
             for (const event of entry.messaging) {
-              if (event.message && !event.message.is_echo && event.message.text && String(event.sender?.id) !== INSTA_BUSINESS_ACCOUNT_ID) {
-                const msgId = event.message.mid || `${event.sender?.id}_${event.timestamp}`;
-                if (!isDuplicateMessage(msgId)) {
-                  await handleIncomingDM(event.sender.id, event.message.text, sock, event);
+              const senderId = String(event.sender?.id || '');
+              if (!senderId || senderId === INSTA_BUSINESS_ACCOUNT_ID) continue;
+
+              // Postback button click
+              if (event.postback && event.postback.title) {
+                const pbId = `pb_${senderId}_${event.timestamp}`;
+                if (!isDuplicateMessage(pbId)) {
+                  await handleIncomingDM(senderId, event.postback.title, sock, event);
+                }
+                continue;
+              }
+
+              if (event.message && !event.message.is_echo) {
+                const msgId = event.message.mid || `${senderId}_${event.timestamp}`;
+                if (isDuplicateMessage(msgId)) continue;
+
+                let msgText = (event.message.text || '').trim();
+                let mediaPayload = null;
+
+                // Story reply context
+                if (event.message.reply_to && event.message.reply_to.story) {
+                  msgText = msgText ? `[STORY_REPLY] ${msgText}` : '[STORY_REPLY] Customer replied to our Instagram Story';
+                }
+
+                // Multimodal attachments (image / audio / video / reel share)
+                const attachments = Array.isArray(event.message.attachments) ? event.message.attachments : [];
+                if (attachments.length > 0) {
+                  const att = attachments[0];
+                  const attType = (att.type || '').toLowerCase();
+                  const attUrl = att.payload?.url || '';
+                  if (attType === 'image') {
+                    mediaPayload = await downloadInstagramMedia(attUrl, 'image/jpeg');
+                    if (!msgText) msgText = '[IMAGE_SCREENSHOT_SHARED]';
+                  } else if (attType === 'audio') {
+                    mediaPayload = await downloadInstagramMedia(attUrl, 'audio/mp4');
+                    if (mediaPayload) mediaPayload.isAudio = true;
+                    if (!msgText) msgText = '';
+                  } else if (attType === 'video' || attType === 'ig_reel' || attType === 'share') {
+                    msgText = msgText ? `[VIDEO_OR_REEL_SHARED] ${msgText}` : '[VIDEO_OR_REEL_SHARED] Customer shared a Reel/Video asking for details';
+                  }
+                }
+
+                if (msgText || mediaPayload) {
+                  await handleIncomingDM(senderId, msgText, sock, event, { media: mediaPayload });
                 }
               }
             }
@@ -305,79 +410,130 @@ async function handleReelComment(commentData, sock = null, options = {}) {
 // ---------------------------------------------------------------------------
 // 4. INCOMING DIRECT MESSAGE (DM) PROCESSING WITH GEMINI
 // ---------------------------------------------------------------------------
-async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null, options = {}) {
+async function handleIncomingDM(senderId, userText = '', sock = null, rawEvent = null, options = {}) {
   const activeMode = channelControls.getInstagramPersona() || 'builder';
 
-  // Channel ON/OFF Toggle Check
+  // 0. Channel ON/OFF Toggle Check
   if (!options.bypassToggle && !channelControls.isInstagramDmEnabled()) {
     console.log(`⏸️ [Instagram DM AI PAUSED] Skipped DM from ${senderId} (Toggle is OFF)`);
     return { paused: true, activeMode, replyText: '⏸️ Instagram DM AI is currently PAUSED (Toggle is OFF on Dashboard).' };
   }
 
+  const trimmed = String(userText || '').trim();
+  const lower = trimmed.toLowerCase();
+
+  // 0b. 5-Second Rapid Duplicate Message Debounce (e.g. customer sends "Hi" twice in 2 seconds)
+  const prev = recentInstaMessages.get(senderId);
+  if (prev && prev.text === lower && (Date.now() - prev.timestamp) < 5000 && !options.media) {
+    console.log(`⏳ [Instagram Debounce] Skipped duplicate rapid message from ${senderId}: "${trimmed}"`);
+    return { skipped: true, reason: 'duplicate_debounce', activeMode };
+  }
+  recentInstaMessages.set(senderId, { text: lower, timestamp: Date.now() });
+
+  // 0c. Per-Sender Concurrency Lock (prevent overlapping Gemini runs — matches WhatsApp agent!)
+  if (activeInstaLocks.has(senderId)) {
+    console.log(`⏳ [Instagram Lock] Already processing a reply for ${senderId}, skipping overlap.`);
+    return { skipped: true, reason: 'concurrency_lock', activeMode };
+  }
+
   // Scope chatId per persona so switching modes in live demos starts a clean, unmixed conversation!
   const chatId = `insta_${activeMode}_${senderId}`;
-  console.log(`📩 [Instagram DM from ${senderId}] (Active Mode: ${activeMode}): "${userText}"`);
-
-  // 1. Update builder customer memory only when in builder mode
-  let profile = {};
-  if (activeMode === 'builder') {
-    builderCustomerMemory.updateFromMessage(chatId, userText);
-    profile = builderCustomerMemory.getProfile(chatId);
-  }
-
-  // 2. Check if user provided their WhatsApp phone number in this message
-  const detectedPhone = extractPhoneNumber(userText);
-  if (detectedPhone && !profile.customer_phone) {
-    if (activeMode === 'builder') {
-      profile.customer_phone = detectedPhone;
-      builderCustomerMemory.saveProfiles();
-    }
-    console.log(`🎯 [Instagram Phone Captured] (${activeMode}): ${detectedPhone} from user ${senderId}`);
-
-    // Bridge lead to WhatsApp CRM and trigger automated welcome
-    await bridgeLeadToWhatsApp({
-      source: 'Instagram DM',
-      activeMode,
-      instagramSenderId: senderId,
-      phone: detectedPhone,
-      profile,
-      userText
-    }, sock);
-  }
-
-  // 3. Generate response using Gemini Engine (using activeMode from channelControls!)
   const gemini = getGemini();
-  let replyText = '';
 
+  // 0d. Quick Reset Command (!reset / /reset)
+  if (lower === '!reset' || lower === '/reset') {
+    gemini.resetHistory(chatId);
+    optedOutUsers.delete(senderId);
+    const resetMsg = '✅ Conversation cleanly reset! How can I assist you today?';
+    const sendRes = await sendInstagramDM(senderId, resetMsg);
+    return { activeMode, replyText: resetMsg, sendRes };
+  }
+
+  // 0e. Polite Opt-Out / Unsubscribe Guard (100% Meta Policy Compliant — matches WhatsApp agent!)
+  if (/\b(stop|unsubscribe|don't message|dont message|no messages|not interested)\b/i.test(lower) || /வேண்டாம்|மெசேஜ் பண்ணாதீங்க|மெசேஜ் செய்ய வேண்டாம்/.test(trimmed)) {
+    optedOutUsers.add(senderId);
+    const stopMsg = activeMode === 'builder'
+      ? 'கண்டிப்பாக சார், உங்கள் முடிவை மதிக்கிறோம்! இனி மெசேஜ் அனுப்ப மாட்டோம். எதிர்காலத்தில் வீடு கட்ட உதவி தேவைப்பட்டால் +91 93615 99097-ல் தொடர்பு கொள்ளலாம். நன்றி 🙏'
+      : 'Understood! We respect your choice and will not message you further. Feel free to reach out anytime at +91 93615 99097. Have a wonderful day! 🙏';
+    const sendRes = await sendInstagramDM(senderId, stopMsg);
+    return { activeMode, optedOut: true, replyText: stopMsg, sendRes };
+  }
+
+  // If user previously opted out and didn't explicitly restart, stay quiet unless they ask a real question
+  if (optedOutUsers.has(senderId) && trimmed.length < 4) {
+    return { skipped: true, reason: 'user_opted_out', activeMode };
+  }
+
+  activeInstaLocks.add(senderId);
   try {
-    replyText = await gemini.generateResponse(chatId, userText, null, {
-      platform: 'instagram',
-      senderId: senderId,
-      overrideMode: activeMode
-    });
-  } catch (err) {
-    console.error('❌ [Gemini Error on Instagram DM]:', err.message);
-    const fallbacks = {
-      builder: `வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡.\nஎங்கள் Chief Engineer Er. Dhilip Kumar: +91 93615 99097.\nஉங்கள் Plot விபரங்கள் மற்றும் WhatsApp எண்ணைப் பகிருங்கள் சார்!`,
-      restaurant: `வணக்கம்! மதுரை தாஜ் ஹோட்டல் 🍗✨ Chicken Biryani ₹190 | Mutton Biryani ₹290. ஆர்டர் செய்ய உங்கள் விருப்பத்தை அனுப்புங்கள்!`,
-      wholesale: `வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர், மாட்டுத்தாவணி 📦 Gold Winner 1L Box ₹1,420 | 15Kg Tin ₹2,420. எத்தனை பாக்ஸ் வேண்டும்?`,
-      dev: `வணக்கம்! SoloDeveloper.pro ⚡ Modern Websites from ₹8,999 & 24/7 AI Agents from ₹19,999. நேரடி தொடர்புக்கு: +91 93615 99097 (https://solodeveloper.pro)`
-    };
-    replyText = fallbacks[activeMode] || fallbacks.dev;
-  }
+    console.log(`📩 [Instagram DM from ${senderId}] (Active Mode: ${activeMode}): "${trimmed || '[MEDIA]'}"`);
 
-  // 4. Builder-specific WhatsApp CTA when plot requirements are known but phone is missing
-  if (activeMode === 'builder' && profile.plot_size && profile.location && !profile.customer_phone) {
-    if (!replyText.toLowerCase().includes('whatsapp') && !replyText.includes('வாட்ஸ்அப்') && !replyText.includes('எண்')) {
-      replyText += `\n\nசார், உங்கள் ${profile.plot_size} Plot-க்கு ஏற்ற 2D Floor Plan மற்றும் 3D Elevation மாதிரிகளை உடனே உங்கள் வாட்ஸ்அப்பிற்கு அனுப்பலாமா? உங்கள் WhatsApp Mobile Number பகிருங்கள் சார்!`;
+    // 1. Update builder customer memory only when in builder mode
+    let profile = {};
+    if (activeMode === 'builder' && trimmed) {
+      builderCustomerMemory.updateFromMessage(chatId, trimmed);
+      profile = builderCustomerMemory.getProfile(chatId);
     }
+
+    // 2. Check if user provided their WhatsApp phone number in this message
+    const detectedPhone = extractPhoneNumber(trimmed);
+    if (detectedPhone && !profile.customer_phone) {
+      if (activeMode === 'builder') {
+        profile.customer_phone = detectedPhone;
+        builderCustomerMemory.saveProfiles();
+      }
+      console.log(`🎯 [Instagram Phone Captured] (${activeMode}): ${detectedPhone} from user ${senderId}`);
+
+      // Bridge lead to WhatsApp CRM and trigger automated welcome
+      await bridgeLeadToWhatsApp({
+        source: 'Instagram DM',
+        activeMode,
+        instagramSenderId: senderId,
+        phone: detectedPhone,
+        profile,
+        userText: trimmed
+      }, sock);
+    }
+
+    // 3. Generate response using Gemini Engine (full multimodal + WhatsApp rules + live admin rules!)
+    let replyText = '';
+    try {
+      replyText = await gemini.generateResponse(chatId, trimmed, options.media || null, {
+        platform: 'instagram',
+        senderId: senderId,
+        overrideMode: activeMode
+      });
+    } catch (err) {
+      console.error('❌ [Gemini Error on Instagram DM]:', err.message);
+      const fallbacks = {
+        builder: `வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡.\nஎங்கள் Chief Engineer Er. Dhilip Kumar: +91 93615 99097.\nஉங்கள் Plot விபரங்கள் மற்றும் WhatsApp எண்ணைப் பகிருங்கள் சார்!`,
+        restaurant: `வணக்கம்! மதுரை தாஜ் ஹோட்டல் 🍗✨ Chicken Biryani ₹190 | Mutton Biryani ₹290. ஆர்டர் செய்ய உங்கள் விருப்பத்தை அனுப்புங்கள்!`,
+        wholesale: `வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர், மாட்டுத்தாவணி 📦 Gold Winner 1L Box ₹1,420 | 15Kg Tin ₹2,420. எத்தனை பாக்ஸ் வேண்டும்?`,
+        dev: `வணக்கம்! SoloDeveloper.pro ⚡ Modern Websites from ₹8,999 & 24/7 AI Agents from ₹19,999. நேரடி தொடர்புக்கு: +91 93615 99097 (https://solodeveloper.pro)`
+      };
+      replyText = fallbacks[activeMode] || fallbacks.dev;
+    }
+
+    // 4. Builder-specific WhatsApp CTA when plot requirements are known but phone is missing
+    if (activeMode === 'builder' && profile.plot_size && profile.location && !profile.customer_phone) {
+      if (!replyText.toLowerCase().includes('whatsapp') && !replyText.includes('வாட்ஸ்அப்') && !replyText.includes('எண்')) {
+        replyText += `\n\nசார், உங்கள் ${profile.plot_size} Plot-க்கு ஏற்ற 2D Floor Plan மற்றும் 3D Elevation மாதிரிகளை உடனே உங்கள் வாட்ஸ்அப்பிற்கு அனுப்பலாமா? உங்கள் WhatsApp Mobile Number பகிருங்கள் சார்!`;
+      }
+    }
+
+    // 5. Sanitize (Zero-Sinhala / Clean Instagram formatting) & Auto-Chunk under Meta's 1,000-char limit!
+    const chunks = splitForInstagramDM(replyText, 950);
+    let sendRes = null;
+    for (const chunk of chunks) {
+      sendRes = await sendInstagramDM(senderId, chunk);
+    }
+
+    const cleanReply = chunks.join('\n\n');
+    console.log(`📤 [Instagram DM Reply Sent to ${senderId}] (Mode: ${activeMode}, Chunks: ${chunks.length}, Length: ${cleanReply.length} chars)`);
+    return { activeMode, replyText: cleanReply, chunks: chunks.length, sendRes };
+  } finally {
+    activeInstaLocks.delete(senderId);
   }
-
-  // 5. Send reply back to customer via Meta Send API
-  const sendRes = await sendInstagramDM(senderId, replyText);
-  console.log(`📤 [Instagram DM Reply Sent to ${senderId}] (Mode: ${activeMode}, Length: ${replyText.length} chars)`);
-
-  return { activeMode, replyText, sendRes };
 }
 
 // ---------------------------------------------------------------------------
@@ -423,20 +579,21 @@ async function bridgeLeadToWhatsApp(leadData, sock = null) {
     console.error('❌ Failed to write lead to construction_enquiries.json:', err.message);
   }
 
-  // Step 2: Send WhatsApp Portfolio Welcome to Homeowner
-  const homeownerWelcome = `வணக்கம் ${customerName} சார்! 🏡✨
-Danam Holdings Civil Engineering & Turnkey EPC, மதுரை.
+  // Step 2: Dummy Phone Safety Guard (Never fire outbound WhatsApp to test/dummy numbers like 9876543210)
+  if (isDummyPhoneNumber(cleanDigits)) {
+    console.log(`🛡️ [Instagram Safety Guard] Skipped outbound WhatsApp bridge for dummy/test phone: ${cleanDigits}`);
+    return;
+  }
 
-நீங்கள் எங்கள் Instagram பக்கத்தில் கேட்ட வீடு கட்டும் விபரங்களுக்கான 2D Floor Plan மற்றும் Elevation மாதிரிகள்:
-• Standard Package: ₹1,850 – ₹1,950 / Sq.Ft
-• Premium Luxury: ₹2,250 – ₹2,350 / Sq.Ft
-• Elite Royal Villa: ₹2,750 – ₹2,950 / Sq.Ft
-
-📍 உங்கள் இடம்: ${location}
-📐 Plot விபரம்: ${plotSize}
-
-எங்கள் Chief Engineer Er. Dhilip Kumar அவர்கள் விரைவில் உங்களைத் தொடர்பு கொண்டு இலவச Site & Soil Inspection ஏற்பாடு செய்வார்.
-முழு விபரங்களுக்கு: https://danamholdings.com`;
+  // Step 3: Persona-Aware WhatsApp Welcome to Customer
+  const activeMode = leadData.activeMode || channelControls.getInstagramPersona() || 'builder';
+  const welcomeMap = {
+    builder: `வணக்கம் ${customerName} சார்! 🏡✨\nDanam Holdings Civil Engineering & Turnkey EPC, மதுரை.\n\nநீங்கள் எங்கள் Instagram பக்கத்தில் கேட்ட வீடு கட்டும் விபரங்களுக்கான 2D Floor Plan மற்றும் Elevation மாதிரிகள்:\n• Standard Package: ₹1,850 – ₹1,950 / Sq.Ft\n• Premium Luxury: ₹2,250 – ₹2,350 / Sq.Ft\n• Elite Royal Villa: ₹2,750 – ₹2,950 / Sq.Ft\n\n📍 உங்கள் இடம்: ${location}\n📐 Plot விபரம்: ${plotSize}\n\nஎங்கள் Chief Engineer Er. Dhilip Kumar விரைவில் உங்களைத் தொடர்பு கொள்வார்.\nமுழு விபரங்களுக்கு: https://danamholdings.com`,
+    dev: `வணக்கம் ${customerName}! 💻⚡\nSoloDeveloper.pro (Suresh Kumar — AI & Web Automation, Madurai).\n\nநீங்கள் Instagram-ல் கேட்ட விபரங்கள்:\n• Modern Business Website: ₹8,999 முதல் (7 Days Delivery)\n• 24/7 WhatsApp & Instagram AI Agent + CRM: ₹19,999 முதல்\n\nLive Portfolio: https://solodeveloper.pro\nநேரடி ஆலோசனைக்கு இப்போதே இங்கே ரிப்ளை செய்யலாம்!`,
+    restaurant: `வணக்கம் ${customerName}! 🍗✨\nமதுரை தாஜ் ஹோட்டல் (Authentic Seeraga Samba Dum Biryani).\n• Chicken Biryani: ₹190 | Mutton Biryani: ₹290 | Fish Biryani: ₹270\nஎத்தனை பார்சல் வேண்டும் என்று இங்கே அனுப்புங்கள் — உடனே Digital Token அனுப்புகிறோம்!`,
+    wholesale: `வணக்கம் ${customerName} அண்ணா! 📦\nஅண்ணாமலையார் ஆயில் ஸ்டோர் (மாட்டுத்தாவணி, மதுரை).\n• Gold Winner 1L Box: ₹1,420 | 15Ltr Tin: ₹2,180 | 15Kg Tin: ₹2,420\nஎத்தனை பாக்ஸ் லோடிங் போட வேண்டும் அண்ணா?`
+  };
+  const homeownerWelcome = welcomeMap[activeMode] || welcomeMap.builder;
 
   if (sock && sock.user && cleanDigits) {
     try {

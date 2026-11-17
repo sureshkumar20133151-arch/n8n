@@ -754,6 +754,72 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 3c. Live Behavior & Boss Rules API (Applies identically to WhatsApp & Instagram across all personas!)
+  if (req.method === 'GET' && req.url === '/api/rules') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(JSON.stringify({
+      success: true,
+      rules: adminRules.rules,
+      builtInBehaviors: [
+        'Respectful Tamil Default + Zero-Sinhala / Zero-Malayalam Sanitizer',
+        'Ask EXACTLY ONE question at a time (Never overwhelm customers)',
+        'Madurai Real-Proof Landmark Validation (Villapuram, Goripalayam, Anna Nagar, KK Nagar, etc.)',
+        'Civil Engineering Brain: Corner vs Middle Plot Setbacks, OTS Duct & Drainage Slope',
+        'Multimodal Vision & Audio: Analyzes Photos, Floor Plans, Voice Notes, Reels & Story Replies',
+        '5-Second Duplicate Message Debounce + Per-User Concurrency Lock (No Double Replies)',
+        'Polite Instant Opt-Out / Unsubscribe Guard (STOP / வேண்டாம்)',
+        'Human Handover & Complaint Escalation (+91 93615 99097)',
+        'Meta 1,000-Char Auto-Splitter + Clean Markdown Stripper for Instagram DM',
+        'Dummy Phone Safety Guard (Never sends outbound WhatsApp to test numbers)'
+      ]
+    }));
+  }
+
+  if (req.method === 'POST' && req.url === '/api/rules') {
+    let body = '';
+    let bodySize = 0;
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_SIZE) {
+        if (!res.headersSent) {
+          res.writeHead(413, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+          res.end(JSON.stringify({ error: 'Payload too large (max 100KB)' }));
+        }
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+    req.on('end', () => {
+      if (res.headersSent) return;
+      try {
+        const data = JSON.parse(body || '{}');
+        if (data.action === 'add' && data.text) {
+          adminRules.addDirective(data.text);
+        } else if (data.action === 'delete' && data.index) {
+          adminRules.removeDirective(Number(data.index));
+        } else if (data.action === 'clear') {
+          adminRules.clearDirectives();
+        }
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify({ success: true, rules: adminRules.rules }));
+      } catch (err) {
+        res.writeHead(400, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   // 4. Developer Test Simulation: Reel Comment
   if (req.method === 'POST' && req.url === '/api/instagram/test-comment') {
     let body = '';

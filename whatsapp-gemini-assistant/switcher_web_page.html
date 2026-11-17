@@ -424,6 +424,7 @@
     <!-- CLEAN TABBED TOOLS SECTION BELOW -->
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="openTab('sim', this)">🧪 Live Instagram Simulator</button>
+      <button class="tab-btn" onclick="openTab('rules', this)">📜 Agent Rules & Behavior</button>
       <button class="tab-btn" onclick="openTab('cmds', this)">⚡ WhatsApp Secret Commands</button>
       <button class="tab-btn" onclick="openTab('quotas', this)">📊 Cloud & AI Quotas (₹0)</button>
     </div>
@@ -447,6 +448,30 @@
           <button class="btn btn-ig-dm" onclick="runInstaSim('dm')">📩 Test Direct DM</button>
         </div>
         <div class="sim-output" id="insta-sim-result"></div>
+      </div>
+    </div>
+
+    <!-- TAB 1B: LIVE BEHAVIOR & BOSS RULES -->
+    <div class="tab-panel" id="tab-rules">
+      <div class="panel-card">
+        <h3 style="font-size:1rem;">📜 Shared WhatsApp & Instagram AI Behavior Rules</h3>
+        <p style="font-size:0.8rem; color:var(--muted); margin-top:4px; margin-bottom:14px;">
+          Every rule below automatically governs <b>BOTH WhatsApp AND Instagram</b> across all 4 business personas in real time.
+        </p>
+
+        <div style="margin-bottom:16px;">
+          <h4 style="font-size:0.85rem; color:#34d399; margin-bottom:8px;">👑 Live Custom Boss Directives (Add / Delete Instantly)</h4>
+          <div class="sim-row" style="margin-top:6px;">
+            <input type="text" id="new-rule-input" class="sim-input" placeholder="e.g. Always offer a Free 3D Elevation Preview for Madurai plots this week">
+            <button class="btn" style="background:linear-gradient(135deg,#10b981,#059669);" onclick="addBossRule()">➕ Add Live Rule</button>
+          </div>
+          <div id="custom-rules-list" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
+        </div>
+
+        <div>
+          <h4 style="font-size:0.85rem; color:#93c5fd; margin-bottom:8px;">🛡️ Built-In Active WhatsApp + Instagram Behavior Guardrails</h4>
+          <div id="builtin-rules-list" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:8px;"></div>
+        </div>
       </div>
     </div>
 
@@ -819,11 +844,79 @@
       if (btn) btn.classList.add('active');
     }
 
+    async function loadRules() {
+      try {
+        const res = await fetch(`${API_BASE}/api/rules`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success) return;
+
+        const customList = document.getElementById('custom-rules-list');
+        const directives = (data.rules && data.rules.customDirectives) || [];
+        if (customList) {
+          if (directives.length === 0) {
+            customList.innerHTML = '<div style="font-size:0.8rem;color:#94a3b8;padding:8px 0;">No custom boss rules yet. Add one above to override AI behavior on both WhatsApp & Instagram!</div>';
+          } else {
+            customList.innerHTML = directives.map((d, idx) => `
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:#0b1120;border:1px solid rgba(16,185,129,0.28);padding:10px 12px;border-radius:10px;font-size:0.84rem;">
+                <span><b>#${idx + 1}.</b> ${escapeHtml(d.text)}</span>
+                <button onclick="deleteBossRule(${idx + 1})" style="background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:700;">Delete</button>
+              </div>
+            `).join('');
+          }
+        }
+
+        const builtInList = document.getElementById('builtin-rules-list');
+        if (builtInList && Array.isArray(data.builtInBehaviors)) {
+          builtInList.innerHTML = data.builtInBehaviors.map(b => `
+            <div style="background:#161f33;border:1px solid rgba(255,255,255,0.07);padding:9px 12px;border-radius:9px;font-size:0.79rem;color:#cbd5e1;">
+              ✅ ${escapeHtml(b)}
+            </div>
+          `).join('');
+        }
+      } catch (e) {}
+    }
+
+    async function addBossRule() {
+      const inp = document.getElementById('new-rule-input');
+      const text = (inp ? inp.value : '').trim();
+      if (!text) return showToast('⚠️ Type a rule instruction first!');
+      try {
+        const res = await fetch(`${API_BASE}/api/rules`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          inp.value = '';
+          showToast('👑 Live Rule Added to BOTH WhatsApp & Instagram!');
+          loadRules();
+        }
+      } catch (e) { showToast('❌ Failed to save rule'); }
+    }
+
+    async function deleteBossRule(index) {
+      try {
+        const res = await fetch(`${API_BASE}/api/rules`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', index })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('🗑️ Rule Removed!');
+          loadRules();
+        }
+      } catch (e) {}
+    }
+
     // Boot
     renderDecks();
     syncFromServer();
     checkQR();
     loadQuotas();
+    loadRules();
     setInterval(checkQR, 4500);
     setInterval(syncFromServer, 12000);
     setInterval(loadQuotas, 30000);

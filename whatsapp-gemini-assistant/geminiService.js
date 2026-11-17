@@ -321,20 +321,33 @@ class GeminiService {
     return clean;
   }
 
-  getSystemInstruction(chatId = '', overrideMode = null) {
+  getSystemInstruction(chatId = '', overrideMode = null, platform = 'whatsapp') {
     const mode = overrideMode || personaManager.getActiveMode();
+    let base = '';
     if (mode === 'wholesale') {
-      return buildWholesaleSystemPrompt();
+      base = buildWholesaleSystemPrompt();
+    } else if (mode === 'restaurant') {
+      base = buildRestaurantSystemPrompt(chatId);
+    } else if (mode === 'builder') {
+      base = buildBuilderSystemPrompt();
+    } else {
+      base = buildSystemPrompt();
     }
-    if (mode === 'restaurant') {
-      return buildRestaurantSystemPrompt(chatId);
-    }
-    if (mode === 'builder') {
-      return buildBuilderSystemPrompt();
-    }
-    const base = buildSystemPrompt();
+
     const liveRules = adminRules.formatPromptExtension();
-    return liveRules ? `${base}\n\n${liveRules}` : base;
+    let finalPrompt = liveRules ? `${base}\n\n${liveRules}` : base;
+
+    if (platform === 'instagram') {
+      finalPrompt += `\n\n==================================================
+📸 INSTAGRAM DM OMNICHANNEL BEHAVIOR RULES (STRICT):
+1. Follow EVERY single business rule, language rule (Tamil default for Builder, zero Sinhala/Malayalam script, English technical loanwords), objection handler, human handover (+91 93615 99097), and complaint escalation rule from above identically on Instagram DM.
+2. Keep every Instagram DM concise, conversational, and strictly under 850 characters (Meta Instagram hard limit is 1,000 chars).
+3. Ask EXACTLY ONE clear question at a time — never overwhelm with multiple questions.
+4. Do NOT use ugly raw markdown like **bold** or ## headings (Instagram DM does not render Markdown — use clean spacing, bullet symbols •, and light natural emojis).
+5. Once the customer's core need is clear, naturally invite them to share their 10-digit WhatsApp Mobile Number so we can send PDFs, 2D floor plans, 3D elevations, or detailed proposals directly to their WhatsApp!`;
+    }
+
+    return finalPrompt;
   }
 
   getActiveTools(isOwner, overrideMode = null) {
@@ -742,7 +755,7 @@ class GeminiService {
 
     try {
       const history = this.getOrCreateHistory(chatId);
-      const systemInstruction = this.getSystemInstruction(chatId, mode);
+      const systemInstruction = this.getSystemInstruction(chatId, mode, options.platform || 'whatsapp');
 
       // Build user parts
       const userParts = [];
