@@ -3,1089 +3,821 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SoloDeveloper.pro — Multi-Persona WhatsApp Switcher</title>
+  <title>SoloDeveloper.pro — Omnichannel AI Command Center</title>
   <style>
     :root {
-      --bg: #0b0f19;
-      --card-bg: rgba(26, 32, 53, 0.75);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --accent-blue: #3b82f6;
-      --accent-green: #10b981;
-      --accent-purple: #8b5cf6;
-      --accent-amber: #f59e0b;
-      --text: #f3f4f6;
-      --text-muted: #9ca3af;
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-2: #161f33;
+      --border: rgba(255, 255, 255, 0.09);
+      --border-hover: rgba(255, 255, 255, 0.22);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --wa: #10b981;
+      --wa-bg: rgba(16, 185, 129, 0.12);
+      --wa-border: rgba(16, 185, 129, 0.45);
+      --ig: #ec4899;
+      --ig-grad: linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%);
+      --ig-bg: rgba(236, 72, 153, 0.12);
+      --ig-border: rgba(236, 72, 153, 0.48);
+      --danger: #ef4444;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    
-    /* Header */
-    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--card-border); margin-bottom: 24px; gap: 14px; }
-    .brand h1 { font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .brand p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
-    .status-badges { display: flex; gap: 10px; flex-wrap: wrap; }
-    .phone-badge { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 9999px; padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
-    .wa-status-badge { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 9999px; padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
-    .pulse-dot { width: 10px; height: 10px; background: var(--accent-green); border-radius: 50%; box-shadow: 0 0 10px var(--accent-green); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    /* QR Code Card if disconnected */
-    .qr-banner { background: #1a2234; border: 1px solid #374151; border-radius: 16px; padding: 20px; margin-bottom: 24px; text-align: center; }
-    .qr-box { background: #ffffff; padding: 12px; border-radius: 12px; display: inline-block; margin: 12px 0; }
-    .qr-box img { display: block; width: 220px; height: 220px; }
-
-    /* Active Mode Banner */
-    .active-banner { background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(59, 130, 246, 0.18)); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 16px 22px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-    .active-banner strong { color: #34d399; font-size: 1.15rem; }
-
-    /* Cards Grid */
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 32px; }
-    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px; backdrop-filter: blur(12px); transition: all 0.25s ease; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
-    .card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.2); }
-    .card.active { border: 2px solid var(--accent-green); box-shadow: 0 0 24px rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.06); }
-    .card-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 12px; }
-    .badge-dev { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-    .badge-wholesale { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    .badge-food { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-    
-    .card h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-    .card-meta { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.4; }
-    .card-meta b { color: #e5e7eb; }
-    .feature-list { list-style: none; margin-bottom: 20px; font-size: 0.88rem; line-height: 1.6; color: #d1d5db; }
-    .feature-list li::before { content: "✓ "; color: var(--accent-green); font-weight: bold; }
-    
-    .btn { width: 100%; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; border: none; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); }
-    .btn-primary:hover { background: #1e40af; transform: translateY(-1px); }
-    .btn-active { background: #059669; color: white; cursor: default; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35); }
-    
-    /* Lower Section: Preview & Info */
-    .lower-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 850px) { .lower-section { grid-template-columns: 1fr; } }
-
-    .box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; }
-    .box h3 { font-size: 1.1rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-    
-    /* WhatsApp Chat Preview */
-    .chat-bubble { padding: 12px 16px; border-radius: 12px; max-width: 85%; font-size: 0.88rem; line-height: 1.5; margin-bottom: 12px; }
-    .bubble-user { background: #005c4b; color: white; margin-left: auto; border-bottom-right-radius: 2px; }
-    .bubble-bot { background: #202c33; color: white; margin-right: auto; border-bottom-left-radius: 2px; border-left: 3px solid var(--accent-green); }
-    
-    /* Table */
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--card-border); }
-    th { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
-    code { background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 4px; color: #38bdf8; font-family: monospace; }
-
-    /* Toast */
-    #toast { position: fixed; bottom: 24px; right: 24px; background: #10b981; color: white; padding: 16px 26px; border-radius: 12px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,0.6); opacity: 0; pointer-events: none; transition: 0.3s; transform: translateY(10px); z-index: 1000; font-size: 0.95rem; }
-    #toast.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
-  
-    /* Quota Dashboard Styling */
-    .quota-dashboard {
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: radial-gradient(circle at 15% 0%, rgba(16,185,129,0.08), transparent 40%),
+                  radial-gradient(circle at 85% 0%, rgba(236,72,153,0.09), transparent 40%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 18px 20px 48px;
     }
-    .quota-header {
+    .container { max-width: 1220px; margin: 0 auto; }
+
+    /* Top Navigation Bar */
+    .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 12px;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
     }
-    .quota-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; font-weight: 800; box-shadow: 0 4px 16px rgba(99,102,241,0.35);
     }
-    .quota-title h3 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #f3f4f6;
-      letter-spacing: -0.3px;
+    .brand h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.3px; }
+    .brand p { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+    .top-pills { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 12px; border-radius: 9999px; font-size: 0.78rem; font-weight: 600;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
     }
-    .quota-pulse {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #34d399;
-      box-shadow: 0 0 10px #34d399;
-      animation: pulse 2s infinite;
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--wa); box-shadow: 0 0 8px var(--wa); }
+    .dot.amber { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+    .dot.pink { background: var(--ig); box-shadow: 0 0 8px var(--ig); }
+
+    /* QR Banner (Only shown when disconnected) */
+    .qr-banner {
+      display: none;
+      background: var(--surface);
+      border: 1.5px solid var(--wa);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.15);
     }
-    .quota-cost-pill {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .quota-grid {
+    .qr-box { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; margin: 12px 0; }
+    .qr-box img { width: 210px; height: 210px; display: block; }
+
+    /* MAIN SPLIT-SCREEN COMMAND DECK */
+    .deck-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 16px;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
     }
-    .quota-card {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 16px;
+    @media (max-width: 900px) {
+      .deck-grid { grid-template-columns: 1fr; }
+    }
+
+    .channel-deck {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.2s ease;
-    }
-    .quota-card:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-      transform: translateY(-2px);
-    }
-    .quota-card-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .quota-icon {
-      font-size: 1.4rem;
-      width: 38px;
-      height: 38px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .quota-card-header h4 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #f9fafb;
-    }
-    .quota-sub {
-      font-size: 0.75rem;
-      color: #9ca3af;
-      display: block;
-    }
-    .quota-status-tag {
-      margin-left: auto;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 6px;
-      text-transform: uppercase;
-    }
-    .tag-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .tag-purple { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-    .tag-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    .quota-metric-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.82rem;
-      margin-bottom: 6px;
-    }
-    .quota-metric-row .label { color: #9ca3af; }
-    .quota-metric-row .val { color: #f3f4f6; font-weight: 600; }
-    .progress-bar-bg {
-      width: 100%;
-      height: 7px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 9999px;
+      gap: 14px;
+      position: relative;
       overflow: hidden;
-      margin-bottom: 12px;
     }
-    .progress-bar-fill {
-      height: 100%;
-      border-radius: 9999px;
-      transition: width 0.5s ease;
-    }
-    .fill-blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-    .fill-purple { background: linear-gradient(90deg, #8b5cf6, #c084fc); }
-    .fill-amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-    .quota-stats-mini {
-      font-size: 0.76rem;
-      color: #9ca3af;
-      line-height: 1.6;
-      border-top: 1px dashed rgba(255, 255, 255, 0.08);
-      padding-top: 10px;
-    }
-    .quota-stats-mini div {
+    .channel-deck.wa-deck { border-top: 3px solid var(--wa); }
+    .channel-deck.ig-deck { border-top: 3px solid var(--ig); }
+
+    .deck-head {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .deck-title-wrap h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
       gap: 8px;
     }
-    .quota-stats-mini b {
-      color: #e5e7eb;
+    .deck-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
     }
 
-    /* Omnichannel Toggle Control Center */
-    .channel-control-panel {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(225, 48, 108, 0.08));
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 24px;
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    /* Switch Controls */
+    .switch-stack { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+    .switch-row { display: flex; align-items: center; gap: 8px; font-size: 0.76rem; font-weight: 600; color: #cbd5e1; }
+    .toggle {
+      position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0;
     }
-    .channel-control-header {
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #334155; border-radius: 9999px; transition: 0.2s;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .slider:before {
+      content: ""; position: absolute; height: 18px; width: 18px; left: 2px; bottom: 2px;
+      background: #fff; border-radius: 50%; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .toggle input:checked + .slider.wa { background: var(--wa); box-shadow: 0 0 12px rgba(16,185,129,0.5); }
+    .toggle input:checked + .slider.ig { background: var(--ig-grad); box-shadow: 0 0 12px rgba(236,72,153,0.5); }
+    .toggle input:checked + .slider:before { transform: translateX(22px); }
+
+    /* Live Status Bar inside Deck */
+    .deck-live-strip {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    .channel-control-header h3 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #f9fafb;
-      display: flex;
-      align-items: center;
       gap: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.82rem;
     }
-    .channel-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 14px;
-    }
-    .channel-tile {
-      background: rgba(15, 23, 42, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      transition: border-color 0.2s ease;
-    }
-    .channel-tile:hover {
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-    .channel-tile-info h4 {
-      font-size: 0.92rem;
-      font-weight: 700;
-      color: #f3f4f6;
-      margin-bottom: 3px;
-    }
-    .channel-tile-info span {
-      font-size: 0.75rem;
-      color: #9ca3af;
-    }
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 52px;
-      height: 28px;
-      flex-shrink: 0;
-    }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #374151;
-      transition: 0.25s;
+    .deck-live-strip.wa { background: var(--wa-bg); border: 1px solid rgba(16,185,129,0.25); }
+    .deck-live-strip.ig { background: var(--ig-bg); border: 1px solid rgba(236,72,153,0.25); }
+    .deck-live-strip strong { color: #fff; }
+    .mini-sync-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: #f8fafc;
+      padding: 4px 10px;
       border-radius: 9999px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
     }
-    .toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      bottom: 3px;
-      background-color: #ffffff;
-      transition: 0.25s;
-      border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    }
-    .toggle-switch input:checked + .toggle-slider.wa-slider {
-      background: linear-gradient(135deg, #10b981, #059669);
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
-    }
-    .toggle-switch input:checked + .toggle-slider.ig-slider {
-      background: linear-gradient(135deg, #e1306c, #833ab4);
-      box-shadow: 0 0 12px rgba(225, 48, 108, 0.5);
-    }
-    .toggle-switch input:checked + .toggle-slider:before {
-      transform: translateX(24px);
-    }
-    .ig-persona-select {
+    .mini-sync-btn:hover { background: rgba(255,255,255,0.18); }
+    .mini-sync-btn.synced { background: rgba(236,72,153,0.28); border-color: var(--ig); color: #fbcfe8; }
+
+    /* Agent Selector List (Clean, Scannable 1-Click Rows) */
+    .agent-list { display: flex; flex-direction: column; gap: 10px; }
+    .agent-row {
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-align: left;
       width: 100%;
-      background: rgba(15, 23, 42, 0.95);
-      color: #f3f4f6;
-      border: 1px solid rgba(225, 48, 108, 0.45);
+      color: var(--text);
+    }
+    .agent-row:hover { border-color: var(--border-hover); transform: translateY(-1px); background: #1c273f; }
+    .agent-row.active-wa {
+      border-color: var(--wa);
+      background: linear-gradient(135deg, rgba(16,185,129,0.16), rgba(16,185,129,0.05));
+      box-shadow: 0 0 0 1px rgba(16,185,129,0.25), 0 6px 18px rgba(16,185,129,0.12);
+    }
+    .agent-row.active-ig {
+      border-color: var(--ig);
+      background: linear-gradient(135deg, rgba(236,72,153,0.16), rgba(139,92,246,0.08));
+      box-shadow: 0 0 0 1px rgba(236,72,153,0.25), 0 6px 18px rgba(236,72,153,0.12);
+    }
+
+    .agent-left { display: flex; align-items: center; gap: 12px; }
+    .agent-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .agent-meta h3 { font-size: 0.94rem; font-weight: 700; color: #fff; }
+    .agent-meta p { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+
+    .agent-badge {
+      padding: 5px 11px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700;
+      white-space: nowrap; flex-shrink: 0;
+      background: rgba(255,255,255,0.07); color: #cbd5e1;
+    }
+    .agent-row.active-wa .agent-badge { background: var(--wa); color: #022c22; }
+    .agent-row.active-ig .agent-badge { background: var(--ig-grad); color: #fff; }
+
+    .paused-overlay-note {
+      display: none;
+      background: rgba(239,68,68,0.14);
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5;
+      padding: 8px 12px;
       border-radius: 8px;
-      padding: 8px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* Clean Tabbed Utility Workspace Below */
+    .tabs-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 10px;
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
-      outline: none;
+      transition: 0.15s;
+    }
+    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .tab-btn.active {
+      background: var(--surface-2);
+      border-color: var(--border-hover);
+      color: #fff;
     }
 
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .panel-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    /* Simulator */
+    .sim-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+    .sim-input {
+      flex: 1; min-width: 240px; padding: 11px 14px; border-radius: 10px;
+      border: 1px solid var(--border-hover); background: #090d16; color: #fff; font-size: 0.9rem;
+    }
+    .btn {
+      border: none; padding: 11px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; color: #fff; transition: 0.15s;
+    }
+    .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-ig-cmt { background: linear-gradient(135deg, #e1306c, #c13584); }
+    .btn-ig-dm { background: linear-gradient(135deg, #833ab4, #5851db); }
+    .btn-wa-reset { background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+
+    .sim-output {
+      display: none; margin-top: 12px; padding: 14px; border-radius: 12px;
+      background: #0b1120; border: 1px solid var(--border); font-size: 0.88rem; line-height: 1.55;
+    }
+
+    /* Tables & Quotas */
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-size: 0.74rem; text-transform: uppercase; }
+    code { background: rgba(56,189,248,0.12); color: #38bdf8; padding: 3px 7px; border-radius: 5px; font-family: monospace; }
+
+    .quota-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .quota-box {
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+    }
+    .quota-box h4 { font-size: 0.92rem; margin-bottom: 8px; }
+    .quota-line { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+    .quota-line b { color: #f8fafc; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 22px; right: 22px;
+      background: #10b981; color: #022c22; padding: 12px 20px;
+      border-radius: 12px; font-weight: 700; font-size: 0.88rem;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      opacity: 0; pointer-events: none; transform: translateY(10px);
+      transition: 0.25s; z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
   </style>
 </head>
 <body>
-
   <div class="container">
-    <!-- Header -->
-    <header>
+    <!-- Compact Top Bar -->
+    <div class="topbar">
       <div class="brand">
-        <h1>⚡ SoloDeveloper.pro — Multi-Persona Website Switcher</h1>
-        <p>1-Click instant switch between Wholesale, Restaurant & Developer Assistant (Zero Tokens)</p>
-      </div>
-      <div class="status-badges">
-        <div class="phone-badge">
-          <span>Target Phone: <b>+91 93615 99097</b></span>
-        </div>
-        <div class="phone-badge" style="background: rgba(225, 48, 108, 0.15); border: 1px solid rgba(225, 48, 108, 0.35);">
-          <span>📸 Instagram AI: <b id="insta-status-text" style="color: #f472b6;">Graph API v19.0 Ready</b></span>
-        </div>
-        <div class="wa-status-badge" id="wa-status-box">
-          <div class="pulse-dot" id="wa-dot"></div>
-          <span id="wa-status-text">Checking WhatsApp...</span>
+        <div class="brand-logo">⚡</div>
+        <div>
+          <h1>SoloDeveloper.pro — AI Command Center</h1>
+          <p>Separate Live Controls for WhatsApp & Instagram • Instant 0.1s Switching</p>
         </div>
       </div>
-    </header>
+      <div class="top-pills">
+        <div class="pill"><span class="dot" id="top-wa-dot"></span><span id="top-wa-text">Checking WhatsApp...</span></div>
+        <div class="pill"><span class="dot pink" id="top-ig-dot"></span><span id="top-ig-text">Instagram API Live</span></div>
+        <div class="pill" style="color:#34d399; border-color:rgba(16,185,129,0.3);">₹0 / mo Free Tier</div>
+      </div>
+    </div>
 
-        <!-- QR Code Section (Only shown if WhatsApp needs linking) -->
-    <div class="qr-banner" id="qr-banner" style="display: none; background: #1a2234; border: 2px solid #25d366; border-radius: 16px; padding: 24px; margin-bottom: 24px; text-align: center; box-shadow: 0 10px 30px rgba(37, 211, 102, 0.2);">
-      <h3 style="color:#25d366;font-size:1.25rem;display:flex;align-items:center;justify-content:center;gap:8px;">
-        <span>📱 WhatsApp Login Required (Disconnected)</span>
-      </h3>
-      <p id="qr-instruction" style="color:#e5e7eb;font-size:0.95rem;margin:10px 0;">
-        Open WhatsApp on your phone ➔ <b>Settings</b> ➔ <b>Linked Devices</b> ➔ <b>Link a Device</b>, then scan this QR code:
+    <!-- QR Banner (Only shown when WhatsApp needs scan) -->
+    <div class="qr-banner" id="qr-banner">
+      <h3 style="color:#34d399; font-size:1.05rem;">📱 Scan QR Code to Connect WhatsApp (+91 93615 99097)</h3>
+      <p id="qr-instruction" style="color:#cbd5e1; font-size:0.84rem; margin-top:6px;">
+        WhatsApp ➔ Settings ➔ Linked Devices ➔ Link a Device
       </p>
-      <div class="qr-box" style="background:#ffffff;padding:14px;border-radius:14px;display:inline-block;margin:12px 0;box-shadow:0 8px 24px rgba(0,0,0,0.5);">
-        <img id="qr-image" src="" alt="WhatsApp QR Code" style="display:block;width:240px;height:240px;">
-        <div id="qr-spinner" style="display:none;width:240px;height:240px;align-items:center;justify-content:center;color:#111827;font-weight:600;font-size:0.9rem;text-align:center;padding:20px;">
-          ⏳ Generating fresh QR Code...<br><span style="font-size:0.75rem;color:#6b7280;font-weight:normal;">Connecting to WhatsApp Baileys socket...</span>
+      <div class="qr-box">
+        <img id="qr-image" src="" alt="WhatsApp QR">
+        <div id="qr-spinner" style="display:none; width:210px; height:210px; align-items:center; justify-content:center; color:#111827; font-weight:600; font-size:0.85rem;">
+          ⏳ Generating fresh QR...
         </div>
       </div>
       <div>
-        <button id="btn-force-refresh-qr" onclick="forceRestartSession()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;padding:8px 18px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;margin-top:6px;transition:0.2s;">
-          🔄 Reset Session & Generate Fresh QR Code
-        </button>
+        <button class="btn btn-wa-reset" id="btn-force-refresh-qr" onclick="forceRestartSession()">🔄 Reset Session & Fresh QR</button>
       </div>
-      <p style="color:#9ca3af;font-size:0.78rem;margin-top:10px;">⚡ Auto-refreshing every 4 seconds. Once scanned, WhatsApp reconnects instantly!</p>
     </div>
 
-    <!-- ⚡ 100% Free-Tier Cloud & API Quota Radar -->
-    <div class="quota-dashboard">
-      <div class="quota-header">
-        <div class="quota-title">
-          <span class="quota-pulse"></span>
-          <h3>⚡ 100% Free-Tier Cloud & AI Quota Radar</h3>
+    <!-- MAIN SPLIT-SCREEN COMMAND DECK: WHATSAPP (LEFT) vs INSTAGRAM (RIGHT) -->
+    <div class="deck-grid">
+
+      <!-- LEFT DECK: WHATSAPP -->
+      <section class="channel-deck wa-deck">
+        <div class="deck-head">
+          <div class="deck-title-wrap">
+            <h2>💬 WhatsApp AI Agent</h2>
+            <div class="deck-sub">Number: <b>+91 93615 99097</b> (Baileys Live Engine)</div>
+          </div>
+          <div class="switch-stack">
+            <div class="switch-row">
+              <span id="wa-power-label" style="color:#34d399;">AUTO-REPLY ON</span>
+              <label class="toggle">
+                <input type="checkbox" id="toggle-wa" checked onchange="setChannel({ whatsappEnabled: this.checked })">
+                <span class="slider wa"></span>
+              </label>
+            </div>
+          </div>
         </div>
-        <span class="quota-cost-pill">Cost: ₹0.00 / Month (Zero Overhead)</span>
-      </div>
-      
-      <div class="quota-grid">
-        <!-- Render Free Card -->
-        <div class="quota-card">
+
+        <div class="paused-overlay-note" id="wa-paused-note">
+          ⏸️ WhatsApp AI is PAUSED — you can chat manually. Toggle ON anytime to resume!
+        </div>
+
+        <div class="deck-live-strip wa">
+          <span>Active on WhatsApp: <strong id="wa-active-name">Loading...</strong></span>
+          <span style="font-size:0.74rem; color:#6ee7b7;">Click any business below</span>
+        </div>
+
+        <div class="agent-list" id="wa-agent-list"></div>
+      </section>
+
+      <!-- RIGHT DECK: INSTAGRAM -->
+      <section class="channel-deck ig-deck">
+        <div class="deck-head">
+          <div class="deck-title-wrap">
+            <h2>📸 Instagram AI Agent</h2>
+            <div class="deck-sub">Handle: <b>@solodeveloper.pro</b> (Meta Graph API v21.0)</div>
+          </div>
+          <div class="switch-stack">
+            <div class="switch-row">
+              <span id="ig-dm-label" style="color:#f472b6;">DM AI ON</span>
+              <label class="toggle">
+                <input type="checkbox" id="toggle-ig-dm" checked onchange="setChannel({ instagramDmEnabled: this.checked })">
+                <span class="slider ig"></span>
+              </label>
+            </div>
+            <div class="switch-row">
+              <span id="ig-cmt-label" style="color:#f472b6;">REEL COMMENTS ON</span>
+              <label class="toggle">
+                <input type="checkbox" id="toggle-ig-cmt" checked onchange="setChannel({ instagramCommentEnabled: this.checked })">
+                <span class="slider ig"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="paused-overlay-note" id="ig-paused-note">
+          ⏸️ Both Instagram DM & Reel Comments are PAUSED. Toggle ON above to resume!
+        </div>
+
+        <div class="deck-live-strip ig">
+          <span>Active on Instagram: <strong id="ig-active-name">Loading...</strong></span>
+          <button class="mini-sync-btn" id="btn-sync-toggle" onclick="toggleSyncWithWhatsApp()">🔗 Sync with WhatsApp</button>
+        </div>
+
+        <div class="agent-list" id="ig-agent-list"></div>
+      </section>
+
+    </div>
+
+    <!-- CLEAN TABBED TOOLS SECTION BELOW -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="openTab('sim', this)">🧪 Live Instagram Simulator</button>
+      <button class="tab-btn" onclick="openTab('cmds', this)">⚡ WhatsApp Secret Commands</button>
+      <button class="tab-btn" onclick="openTab('quotas', this)">📊 Cloud & AI Quotas (₹0)</button>
+    </div>
+
+    <!-- TAB 1: SIMULATOR -->
+    <div class="tab-panel active" id="tab-sim">
+      <div class="panel-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <div class="quota-card-header">
-              <div class="quota-icon">🖥️</div>
-              <div>
-                <h4>Render Cloud Web Service</h4>
-                <span class="quota-sub">Free Tier (750 Hours / Month)</span>
-              </div>
-              <span class="quota-status-tag tag-green">Active</span>
-            </div>
-            <div class="quota-metrics">
-              <div class="quota-metric-row">
-                <span class="label">Monthly Free Allowance</span>
-                <span class="val" id="render-hours">~543 hrs (~22.6 Days Free)</span>
-              </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill fill-blue" id="render-hours-bar" style="width: 28%;"></div>
-              </div>
-            </div>
+            <h3 style="font-size:1rem;">📸 Test Your Active Instagram Agent Live</h3>
+            <p style="font-size:0.8rem; color:var(--muted); margin-top:3px;">
+              Simulates a real Instagram Reel Comment or Direct Message using whichever business is currently active on the <b>Instagram Deck (Right)</b>.
+            </p>
           </div>
-          <div class="quota-stats-mini">
-            <div><span>RAM Usage:</span> <b id="render-ram">~42MB / 512MB (92% Free)</b></div>
-            <div><span>Bandwidth:</span> <b>100 GB / Month Free</b></div>
-            <div><span>Keep-Alive:</span> <b style="color:#34d399;">8-Min Self-Ping Active (Zero Sleep)</b></div>
-            <div><span>Month Status:</span> <b style="color:#60a5fa;" id="render-month-status">Covers remaining 21.4 days completely!</b></div>
-          </div>
+          <span class="pill" id="sim-active-badge" style="border-color:var(--ig-border); color:#fbcfe8;">Testing: Loading...</span>
         </div>
 
-        <!-- Neon Postgres Free Card -->
-        <div class="quota-card">
-          <div>
-            <div class="quota-card-header">
-              <div class="quota-icon">🐘</div>
-              <div>
-                <h4>Neon PostgreSQL</h4>
-                <span class="quota-sub">Serverless Postgres (Singapore)</span>
-              </div>
-              <span class="quota-status-tag tag-purple">Active</span>
-            </div>
-            <div class="quota-metrics">
-              <div class="quota-metric-row">
-                <span class="label">Database Storage</span>
-                <span class="val" id="neon-storage">4.5 MB / 512 MB (99% Free)</span>
-              </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill fill-purple" id="neon-storage-bar" style="width: 1%;"></div>
-              </div>
-            </div>
-          </div>
-          <div class="quota-stats-mini">
-            <div><span>Free Storage:</span> <b>507.5 MB Remaining (99.1% Free)</b></div>
-            <div><span>Compute Quota:</span> <b>100 Compute Hours / Month</b></div>
-            <div><span>Connections:</span> <b>10,000 Pooled (PgBouncer)</b></div>
-            <div><span>Database Name:</span> <b>neondb @ ap-southeast-1</b></div>
-          </div>
+        <div class="sim-row">
+          <input type="text" id="insta-test-input" class="sim-input" value="Rate per sq.ft please? Villapuram site 9876543210" placeholder="Type any customer comment or DM...">
+          <button class="btn btn-ig-cmt" onclick="runInstaSim('comment')">💬 Test Reel Comment</button>
+          <button class="btn btn-ig-dm" onclick="runInstaSim('dm')">📩 Test Direct DM</button>
         </div>
-
-        <!-- Gemini API Free Card -->
-        <div class="quota-card">
-          <div>
-            <div class="quota-card-header">
-              <div class="quota-icon">🧠</div>
-              <div>
-                <h4>Google Gemini API</h4>
-                <span class="quota-sub">Google AI Studio Free Tier</span>
-              </div>
-              <span class="quota-status-tag tag-amber">Active</span>
-            </div>
-            <div class="quota-metrics">
-              <div class="quota-metric-row">
-                <span class="label">Daily Request Quota (RPD)</span>
-                <span class="val" id="gemini-requests">0 / 1,500 RPD (100% Free)</span>
-              </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill fill-amber" id="gemini-requests-bar" style="width: 1%;"></div>
-              </div>
-            </div>
-          </div>
-          <div class="quota-stats-mini">
-            <div><span>Rate Limit:</span> <b>15 RPM (Requests / Min)</b></div>
-            <div><span>Token Limit:</span> <b>1,000,000 TPM Free</b></div>
-            <div><span>Reset Schedule:</span> <b>Daily at 12:00 AM Midnight PT</b></div>
-            <div><span>Monthly Bill:</span> <b style="color:#34d399;">₹0.00 (Zero Cost Guaranteed)</b></div>
-          </div>
-        </div>
+        <div class="sim-output" id="insta-sim-result"></div>
       </div>
     </div>
 
-    <!-- 🎛️ Omnichannel Live Toggle Control Center (WhatsApp & Instagram) -->
-    <div class="channel-control-panel">
-      <div class="channel-control-header">
-        <h3>🎛️ Live Channel Controls (WhatsApp & Instagram ON / OFF)</h3>
-        <span style="font-size: 0.78rem; color: #9ca3af;">Pause or switch any channel instantly without restarting the server</span>
-      </div>
-      <div class="channel-grid">
-        <!-- Toggle 1: WhatsApp AI -->
-        <div class="channel-tile">
-          <div class="channel-tile-info">
-            <h4>💬 WhatsApp AI Auto-Reply</h4>
-            <span id="label-wa-toggle">🟢 Active & Replying</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="toggle-wa-enabled" checked onchange="updateChannelControl({ whatsappEnabled: this.checked })">
-            <span class="toggle-slider wa-slider"></span>
-          </label>
-        </div>
-
-        <!-- Toggle 2: Instagram DM AI -->
-        <div class="channel-tile">
-          <div class="channel-tile-info">
-            <h4>📩 Instagram DM AI</h4>
-            <span id="label-ig-dm-toggle">🟢 Active on @solodeveloper.pro</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="toggle-ig-dm-enabled" checked onchange="updateChannelControl({ instagramDmEnabled: this.checked })">
-            <span class="toggle-slider ig-slider"></span>
-          </label>
-        </div>
-
-        <!-- Toggle 3: Instagram Reel Comments -->
-        <div class="channel-tile">
-          <div class="channel-tile-info">
-            <h4>🗣️ Insta Reel Comment-to-DM</h4>
-            <span id="label-ig-cmt-toggle">🟢 Auto-Reply Active</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="toggle-ig-cmt-enabled" checked onchange="updateChannelControl({ instagramCommentEnabled: this.checked })">
-            <span class="toggle-slider ig-slider"></span>
-          </label>
-        </div>
-
-        <!-- Control 4: Instagram Independent Persona Selector -->
-        <div class="channel-tile" style="flex-direction: column; align-items: stretch; gap: 6px;">
-          <div class="channel-tile-info">
-            <h4>📸 Instagram Agent Mode</h4>
-          </div>
-          <select id="select-ig-persona" class="ig-persona-select" onchange="updateChannelControl({ instagramPersona: this.value })">
-            <option value="sync">🔗 Sync with WhatsApp Mode (Auto)</option>
-            <option value="builder">🏗️ Always Danam Holdings Builder</option>
-            <option value="dev">💻 Always SoloDeveloper.pro</option>
-            <option value="restaurant">🍗 Always Taj Hotel Madurai</option>
-            <option value="wholesale">📦 Always Annamaliyar Oil Store</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- Active Banner -->
-    <div class="active-banner">
-      <div>Current Live WhatsApp Mode: <strong id="current-mode-label">Loading Active Mode...</strong></div>
-      <span style="font-size: 0.85rem; color: #9ca3af;">All incoming WhatsApp messages adapt to this active brain instantly (0 Token Cost).</span>
-    </div>
-
-    <!-- 3 Big Cards Grid -->
-    <div class="grid">
-      
-      <!-- Card 1: Annamaliyar Oil Store -->
-      <div class="card" id="card-wholesale">
-        <div>
-          <span class="card-badge badge-wholesale">Wholesale B2B Mode</span>
-          <h2>📦 Annamaliyar Oil Store</h2>
-          <div class="card-meta">
-            <b>Proprietor:</b> Manikanda Vinayaga Prabhu<br>
-            <b>Location:</b> Mattuthavani Wholesale Market, Madurai<br>
-            <b>Product:</b> Gold Winner Refined Sunflower Oil (Boxes & Tins)
-          </div>
-          <ul class="feature-list">
-            <li>1L (10 pouches/box @ ₹1,420), 500ml (10 pouches @ ₹740)</li>
-            <li>200ml (48 pouches @ ₹1,536), 100ml (96 pouches @ ₹1,632)</li>
-            <li>15Ltr Tin (₹2,180) & 15Kg Bulk Tin (₹2,420)</li>
-            <li><b>Strict MOQ: 1 Box / 1 Tin</b> (Retailer friendly)</li>
-            <li>Live Google Sheet Stock & Lorry Dispatch Logger</li>
-          </ul>
-        </div>
-        <button class="btn btn-primary" id="btn-wholesale" onclick="switchMode('wholesale')">⚡ Switch to Wholesale Mode</button>
-      </div>
-
-      <!-- Card 2: Taj Hotel Madurai -->
-      <div class="card" id="card-restaurant">
-        <div>
-          <span class="card-badge badge-food">Restaurant / Food Mode</span>
-          <h2>🍗 Taj Hotel, Madurai</h2>
-          <div class="card-meta">
-            <b>Specialty:</b> Authentic Madurai Seeraga Samba Dum Biryani<br>
-            <b>Location:</b> Madurai, Tamil Nadu<br>
-            <b>Concept:</b> Skip-the-Counter WhatsApp Pre-Order & Token
-          </div>
-          <ul class="feature-list">
-            <li>Chicken Biryani (₹190), Mutton (₹290), Fish (₹270)</li>
-            <li>Automatic Bill Total & UPI Payment String</li>
-            <li>Generates Digital Token (e.g. <b>#TAJ-205</b>)</li>
-            <li>Zero Waiting Time — 10-Second Counter Pickup</li>
-          </ul>
-        </div>
-        <button class="btn btn-primary" id="btn-restaurant" onclick="switchMode('restaurant')">⚡ Switch to Restaurant Mode</button>
-      </div>
-
-      <!-- Card 4: Danam Holdings Builder -->
-      <div class="card" id="card-builder">
-        <div>
-          <span class="card-badge" style="background:rgba(16,185,129,0.2);color:#34d399;">Civil Construction Mode</span>
-          <h2>🏗️ Danam Holdings Builder</h2>
-          <div class="card-meta">
-            <b>Proprietor:</b> Er. Dhilip Kumar (Turnkey Civil EPC)<br>
-            <b>Location:</b> Madurai & South Tamil Nadu<br>
-            <b>Specialty:</b> Turnkey Residential Houses, Duplex & Luxury Villas
-          </div>
-          <ul class="feature-list">
-            <li>Standard (₹1,950/sq.ft), Premium (₹2,350), Luxury (₹2,850)</li>
-            <li>Instant BOQ Material & Construction Cost Calculator</li>
-            <li>Real 3D Portfolios (Ocean Peacock Villa, Vinoth BJV)</li>
-            <li>Free Site & Soil Plot Inspection Booking</li>
-            <li>Direct n8n Webhook & Hot Lead WhatsApp Alert</li>
-          </ul>
-        </div>
-        <button class="btn btn-primary" id="btn-builder" onclick="switchMode('builder')">⚡ Switch to Builder Mode</button>
-      </div>
-
-      <!-- Card 3: SoloDeveloper.pro -->
-      <div class="card" id="card-dev">
-        <div>
-          <span class="card-badge badge-dev">Default Mode</span>
-          <h2>💻 SoloDeveloper.pro</h2>
-          <div class="card-meta">
-            <b>Persona:</b> Suresh Kumar (Senior AI & Web Consultant)<br>
-            <b>Location:</b> Madurai, Tamil Nadu<br>
-            <b>Specialty:</b> Next.js Websites, AI WhatsApp Assistants & CRM
-          </div>
-          <ul class="feature-list">
-            <li>Modern Websites from ₹8,999+ (Scroll animations)</li>
-            <li>Hormozi 3-Way Customer Segmentation</li>
-            <li>Automated Google Meet Demo Booking</li>
-            <li>Direct 36-Column Google Sheet CRM Logger</li>
-          </ul>
-        </div>
-        <button class="btn btn-primary" id="btn-dev" onclick="switchMode('dev')">⚡ Switch to Developer Mode</button>
-      </div>
-
-      <!-- Card 5: Instagram AI Agent & Reel Comment-to-DM Engine -->
-      <div class="card" id="card-instagram" style="border-color: rgba(225, 48, 108, 0.35);">
-        <div>
-          <span class="card-badge" style="background:linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);color:#ffffff;">📸 Instagram Reel & DM AI Agent</span>
-          <h2>📸 SoloDeveloper.pro Insta AI</h2>
-          <div class="card-meta">
-            <b>Platform:</b> Official Meta Graph API v19.0 (₹0 Free Tier)<br>
-            <b>Sync Mode:</b> Auto-Syncs with Active Persona above (SoloDev / Builder / Taj / Oil)<br>
-            <b>Capabilities:</b> Reel Public Auto-Reply + Private DM + WhatsApp Lead Bridge
-          </div>
-          <ul class="feature-list">
-            <li>Auto Public Reply to Reel comments in Tamil & English</li>
-            <li>Instant Private DM with active business pricing & offers</li>
-            <li>1-Click Persona Sync: Switch above to change both WhatsApp & Insta!</li>
-            <li>Phone Number Extractor ➔ Automatic WhatsApp Handover</li>
-            <li>VIP Lead Alert directly to +91 93615 99097</li>
-          </ul>
-        </div>
-        <button class="btn btn-primary" style="background:linear-gradient(135deg, #e1306c, #833ab4);color:#ffffff;" onclick="scrollToInstaSimulator()">⚡ Test Instagram AI Reply</button>
-      </div>
-
-    </div>
-
-    <!-- Live Preview -->
-    <div class="lower-section">
-      <div class="box">
-        <h3>💬 Live AI Response Simulator</h3>
-        <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px;">This is how Gemini AI replies right now on WhatsApp for this active mode:</p>
-        <div id="chat-preview"></div>
-      </div>
-
-      <div class="box">
-        <h3>⚡ Direct WhatsApp Control Commands</h3>
-        <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 14px;">You can also switch anytime directly from WhatsApp by sending these commands to your own number:</p>
+    <!-- TAB 2: SECRET COMMANDS -->
+    <div class="tab-panel" id="tab-cmds">
+      <div class="panel-card">
+        <h3 style="font-size:1rem; margin-bottom:10px;">⚡ Instant WhatsApp Chat Switching Commands</h3>
+        <p style="font-size:0.8rem; color:var(--muted); margin-bottom:12px;">Send any of these from <b>+91 93615 99097</b> to switch on the go from your phone:</p>
         <table>
-          <thead>
-            <tr><th>Send Message</th><th>Result</th></tr>
-          </thead>
+          <thead><tr><th>Command</th><th>Action</th></tr></thead>
           <tbody>
-            <tr><td><code>switch to oil store</code></td><td>Activates <b>Annamaliyar Oil Store</b></td></tr>
-            <tr><td><code>switch to restaurant</code></td><td>Activates <b>Taj Hotel Madurai</b></td></tr>
-            <tr><td><code>switch to builder</code></td><td>Activates <b>Danam Holdings Builder</b></td></tr>
-            <tr><td><code>switch to dev</code></td><td>Activates <b>SoloDeveloper.pro</b></td></tr>
-            <tr><td><code>switch</code> / <code>!mode</code></td><td>Replies with current active mode</td></tr>
+            <tr><td><code>switch to builder</code></td><td>Activates <b>Danam Holdings House Construction</b></td></tr>
+            <tr><td><code>switch to dev</code></td><td>Activates <b>SoloDeveloper.pro Sales OS</b></td></tr>
+            <tr><td><code>switch to restaurant</code></td><td>Activates <b>Taj Hotel Madurai Biryani</b></td></tr>
+            <tr><td><code>switch to oil store</code></td><td>Activates <b>Annamaliyar Oil Store Wholesale</b></td></tr>
+            <tr><td><code>!mode</code></td><td>Shows currently active business persona</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- 📸 Instagram Real-Time Simulator Box -->
-    <div class="box" id="insta-simulator-box" style="border: 1px solid rgba(225, 48, 108, 0.4); background: linear-gradient(135deg, rgba(225, 48, 108, 0.08), rgba(131, 58, 180, 0.08)); margin-top: 24px; border-radius: 16px; padding: 22px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-        <h3 style="color:#f472b6; font-size:1.2rem; display:flex; align-items:center; gap:8px;">
-          <span>📸 Instagram AI Reel Comment & DM Simulator</span>
-        </h3>
-        <span style="background:rgba(225,48,108,0.2); color:#f472b6; border:1px solid rgba(225,48,108,0.4); padding:4px 12px; border-radius:9999px; font-size:0.75rem; font-weight:700;">
-          Meta Graph API v19.0 Active
-        </span>
+    <!-- TAB 3: CLOUD QUOTAS -->
+    <div class="tab-panel" id="tab-quotas">
+      <div class="panel-card">
+        <div class="quota-mini-grid">
+          <div class="quota-box">
+            <h4>🖥️ Render Cloud Service</h4>
+            <div class="quota-line"><span>Free Hours Left</span><b id="q-render-hrs">--</b></div>
+            <div class="quota-line"><span>RAM Footprint</span><b id="q-render-ram">--</b></div>
+            <div class="quota-line"><span>Keep-Alive</span><b style="color:#34d399;">Active (Zero Sleep)</b></div>
+          </div>
+          <div class="quota-box">
+            <h4>🐘 Neon PostgreSQL</h4>
+            <div class="quota-line"><span>Storage Used</span><b id="q-neon-storage">--</b></div>
+            <div class="quota-line"><span>Region</span><b>Singapore (ap-southeast-1)</b></div>
+            <div class="quota-line"><span>Tier</span><b style="color:#34d399;">Free Forever</b></div>
+          </div>
+          <div class="quota-box">
+            <h4>✨ Google Gemini AI</h4>
+            <div class="quota-line"><span>Daily Usage</span><b id="q-gemini-req">--</b></div>
+            <div class="quota-line"><span>Rate Limit</span><b>15 RPM / 1,500 RPD</b></div>
+            <div class="quota-line"><span>Cost</span><b style="color:#34d399;">₹0.00 / Month</b></div>
+          </div>
+        </div>
       </div>
-      <p style="color: #d1d5db; font-size: 0.88rem; margin-bottom: 14px;">
-        Simulate real Instagram user interactions! Type any query below to test how the AI replies in public on your Reel and dispatches the private DM:
-      </p>
-      <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
-        <input type="text" id="insta-test-input" placeholder="e.g. Rate per sq.ft please? Villapuram site 9876543210" style="flex: 1; min-width: 280px; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(15, 23, 42, 0.8); color: #fff; font-size: 0.95rem;" value="Rate per sq.ft please? Villapuram site 9876543210">
-        <button id="btn-sim-comment" onclick="testInstagramSimulation('comment')" style="background: linear-gradient(135deg, #e1306c, #c13584); color: white; border: none; padding: 12px 22px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s;">💬 Simulate Reel Comment</button>
-        <button id="btn-sim-dm" onclick="testInstagramSimulation('dm')" style="background: linear-gradient(135deg, #833ab4, #5851db); color: white; border: none; padding: 12px 22px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s;">📩 Simulate Direct DM</button>
-      </div>
-      <div id="insta-sim-result" style="display:none; padding: 16px; border-radius: 12px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.15); font-size: 0.9rem; line-height: 1.6;"></div>
     </div>
-
   </div>
 
-  <div id="toast">✅ Mode Switched Successfully!</div>
+  <div id="toast">✅ Updated!</div>
 
-    <script>
+  <script>
     const API_BASE = window.location.origin;
 
-    const modes = {
-      wholesale: {
-        title: "Annamaliyar Oil Store — Wholesale Gold Winner (Mattuthavani)",
-        cardId: "card-wholesale",
-        btnId: "btn-wholesale",
-        sampleUser: "Prabhu anna, 1 Litre box rate enna? 15Kg tin irukka?",
-        sampleBot: "வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர் (மாட்டுத்தாவணி) 📦<br>• Gold Winner 1L: <b>1 பாக்ஸ் = 10 பாக்கெட் (விலை ₹1,420 / பாக்கெட் ₹142)</b>.<br>• 15 Kg Bulk Tin: <b>விலை ₹2,420 (MRP ₹2,690)</b> - ஸ்டாக்கில் 20 டின் உள்ளது!<br><b>குறைந்தபட்சம் 1 பாக்ஸ் அல்லது 1 டின் கூட ஆர்டர் செய்யலாம்!</b> எத்தனை பாக்ஸ் லோடிங் போட வேண்டும்?"
+    const AGENTS = [
+      {
+        id: 'builder',
+        icon: '🏗️',
+        name: 'Danam Holdings Builder',
+        desc: 'Madurai Turnkey Construction • ₹1,850 – ₹2,850/sq.ft • BOQ & Site Visits'
       },
-      restaurant: {
-        title: "Taj Hotel, Madurai — Biryani Pre-Order & Token System",
-        cardId: "card-restaurant",
-        btnId: "btn-restaurant",
-        sampleUser: "2 Chicken Biryani & 1 Mutton Biryani parcel ready pannunga",
-        sampleBot: "வணக்கம்! மதுரை தாஜ் ஹோட்டல் 🍗<br>• 2x சிக்கன் பிரியாணி = ₹380<br>• 1x மட்டன் பிரியாணி = ₹290<br><b>மொத்தம்: ₹670</b>. UPI: tajhotelmadurai@upi<br>🎟️ <b>உங்க Token எண்: #TAJ-205</b> (10 நிமிடங்களில் ரெடி! நேராக வந்து டோக்கன் காட்டி பார்சல் வாங்கலாம்! ⚡)"
+      {
+        id: 'dev',
+        icon: '💻',
+        name: 'SoloDeveloper.pro',
+        desc: 'Websites from ₹8,999 • WhatsApp & Instagram AI Agents • CRM Automation'
       },
-      builder: {
-        title: "Danam Holdings — House Construction & Civil EPC (Madurai)",
-        cardId: "card-builder",
-        btnId: "btn-builder",
-        sampleUser: "Madurai Selvapuram la 1500 sq.ft plot irukku. G+1 duplex build panna evlo cost aagum?",
-        sampleBot: "வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡<br>• 1,500 Sq.Ft G+1 Duplex (Premium Package @ ₹2,350/sq.ft): <b>தோராயமாக ₹33.8 – ₹35.3 லட்சம்</b> ஆகும்.<br>• இதில் Fe550D TMT கம்பிகள், M25 கான்கிரீட், 4x2 மார்பிள் பினிஷ் டைல்ஸ் & தேக்கு மர கதவுகள் அனைத்தும் அடங்கும்!<br>எங்கள் சீஃப் இன்ஜினியர் <b>Er. திலீப் குமார்</b> இலவச Plot Measurement & Soil Inspection செய்ய வரட்டுமா சார்? 📐"
+      {
+        id: 'restaurant',
+        icon: '🍗',
+        name: 'Taj Hotel Madurai',
+        desc: 'Seeraga Samba Dum Biryani • Live Menu • Digital Pickup Token'
       },
-      dev: {
-        title: "SoloDeveloper.pro Web & Automation Sales",
-        cardId: "card-dev",
-        btnId: "btn-dev",
-        sampleUser: "Hi brother, website pannurathuku evvalavu aagum?",
-        sampleBot: "வணக்கம்! SoloDeveloper.pro-க்கு வரவேற்கிறோம்! ⚡<br>• Modern 3D / Portfolio Website: <b>₹8,999</b>-ல் இருந்து தொடங்குகிறது.<br>• 24/7 WhatsApp AI Assistant & CRM: <b>₹19,999</b>.<br>7 நாட்களில் Ready! உங்கள் business பெயர் என்ன?"
+      {
+        id: 'wholesale',
+        icon: '📦',
+        name: 'Annamaliyar Oil Store',
+        desc: 'Gold Winner Sunflower Oil Wholesale • Boxes & Tins • MOQ 1 Box'
       }
+    ];
+
+    let state = {
+      waPersona: 'builder',
+      igPersona: 'builder',
+      syncPersonas: true,
+      whatsappEnabled: true,
+      instagramDmEnabled: true,
+      instagramCommentEnabled: true
     };
 
-    let currentMode = "wholesale";
-
-    function updatePreview() {
-      const data = modes[currentMode] || modes.wholesale;
-      document.getElementById('current-mode-label').innerText = data.title;
-      
-      const chatHtml = `
-        <div class="chat-bubble bubble-user">${data.sampleUser}</div>
-        <div class="chat-bubble bubble-bot">${data.sampleBot}</div>
-      `;
-      document.getElementById('chat-preview').innerHTML = chatHtml;
-
-      const modeLabels = {
-        wholesale: 'Wholesale',
-        restaurant: 'Restaurant',
-        builder: 'Builder',
-        dev: 'Developer'
-      };
-
-      ['dev', 'wholesale', 'restaurant', 'builder'].forEach(m => {
-        if (!modes[m]) return;
-        const card = document.getElementById(modes[m].cardId);
-        const btn = document.getElementById(modes[m].btnId);
-        if (!card || !btn) return;
-        if (m === currentMode) {
-          card.classList.add('active');
-          btn.className = 'btn btn-active';
-          btn.innerText = '✓ Currently Active & Live on WhatsApp';
-        } else {
-          card.classList.remove('active');
-          btn.className = 'btn btn-primary';
-          btn.innerText = `⚡ Switch to ${modeLabels[m] || m} Mode`;
-        }
-      });
+    function getAgentName(id) {
+      const found = AGENTS.find(a => a.id === id);
+      return found ? `${found.icon} ${found.name}` : id;
     }
 
     function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.innerHTML = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3500);
+      const t = document.getElementById('toast');
+      t.innerHTML = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
     }
 
-    // Live Quota Fetcher
-    async function updateQuotas() {
-      try {
-        const res = await fetch(API_BASE + '/api/quota');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.success) return;
+    function renderDecks() {
+      // 1. WhatsApp Deck
+      document.getElementById('toggle-wa').checked = state.whatsappEnabled;
+      const waLbl = document.getElementById('wa-power-label');
+      waLbl.innerText = state.whatsappEnabled ? 'AUTO-REPLY ON' : 'PAUSED';
+      waLbl.style.color = state.whatsappEnabled ? '#34d399' : '#f87171';
+      document.getElementById('wa-paused-note').style.display = state.whatsappEnabled ? 'none' : 'block';
+      document.getElementById('wa-active-name').innerText = getAgentName(state.waPersona);
 
-        // Render
-        if (data.render) {
-          const usedH = data.render.hoursUsed;
-          const remH = data.render.hoursRemaining;
-          const pct = data.render.percentUsed;
-          const ramMb = data.render.ramUsedMb;
-          const ramLim = data.render.ramLimitMb;
-          const ramPct = (100 - data.render.ramPercent).toFixed(1);
+      const waHtml = AGENTS.map(a => {
+        const isActive = a.id === state.waPersona;
+        return `
+          <button class="agent-row ${isActive ? 'active-wa' : ''}" onclick="switchWhatsAppAgent('${a.id}')">
+            <div class="agent-left">
+              <div class="agent-icon">${a.icon}</div>
+              <div class="agent-meta">
+                <h3>${a.name}</h3>
+                <p>${a.desc}</p>
+              </div>
+            </div>
+            <span class="agent-badge">${isActive ? '● LIVE ON WA' : 'Switch'}</span>
+          </button>
+        `;
+      }).join('');
+      document.getElementById('wa-agent-list').innerHTML = waHtml;
 
-          const freeDays = (remH / 24).toFixed(1);
-          document.getElementById('render-hours').innerText = `${remH} hrs (${freeDays} Days Free)`;
-          document.getElementById('render-hours-bar').style.width = `${pct}%`;
-          document.getElementById('render-ram').innerText = `${ramMb}MB / ${ramLim}MB (${ramPct}% Free)`;
-        }
+      // 2. Instagram Deck
+      const effectiveIg = state.syncPersonas ? state.waPersona : state.igPersona;
+      document.getElementById('toggle-ig-dm').checked = state.instagramDmEnabled;
+      document.getElementById('toggle-ig-cmt').checked = state.instagramCommentEnabled;
 
-        // Neon
-        if (data.neon) {
-          const stUsed = data.neon.storageUsedMb;
-          const stLim = data.neon.storageLimitMb;
-          const stPct = data.neon.storagePercent;
-          document.getElementById('neon-storage').innerText = `${stUsed} MB / ${stLim} MB (99% Free)`;
-          document.getElementById('neon-storage-bar').style.width = `${Math.max(1, stPct)}%`;
-        }
+      const igDmLbl = document.getElementById('ig-dm-label');
+      igDmLbl.innerText = state.instagramDmEnabled ? 'DM AI ON' : 'DM PAUSED';
+      igDmLbl.style.color = state.instagramDmEnabled ? '#f472b6' : '#f87171';
 
-        // Gemini
-        if (data.gemini) {
-          const reqToday = data.gemini.todayRequests;
-          const reqLim = data.gemini.dailyLimitRpd;
-          const reqRem = data.gemini.requestsRemaining;
-          const reqPct = Math.min(100, Math.round((reqToday / reqLim) * 100));
+      const igCmtLbl = document.getElementById('ig-cmt-label');
+      igCmtLbl.innerText = state.instagramCommentEnabled ? 'REEL COMMENTS ON' : 'COMMENTS PAUSED';
+      igCmtLbl.style.color = state.instagramCommentEnabled ? '#f472b6' : '#f87171';
 
-          document.getElementById('gemini-requests').innerText = `${reqToday} / ${reqLim} RPD (${reqRem} Left)`;
-          document.getElementById('gemini-requests-bar').style.width = `${Math.max(1, reqPct)}%`;
-        }
-      } catch (err) {
-        // Fallback to static values if offline
+      document.getElementById('ig-paused-note').style.display =
+        (!state.instagramDmEnabled && !state.instagramCommentEnabled) ? 'block' : 'none';
+
+      document.getElementById('ig-active-name').innerText = getAgentName(effectiveIg);
+      document.getElementById('sim-active-badge').innerText = `Testing: ${getAgentName(effectiveIg)}`;
+
+      const syncBtn = document.getElementById('btn-sync-toggle');
+      if (state.syncPersonas) {
+        syncBtn.classList.add('synced');
+        syncBtn.innerText = '🔗 Synced with WA';
+      } else {
+        syncBtn.classList.remove('synced');
+        syncBtn.innerText = '🔓 Independent Mode';
       }
+
+      const igHtml = AGENTS.map(a => {
+        const isActive = a.id === effectiveIg;
+        return `
+          <button class="agent-row ${isActive ? 'active-ig' : ''}" onclick="switchInstagramAgent('${a.id}')">
+            <div class="agent-left">
+              <div class="agent-icon">${a.icon}</div>
+              <div class="agent-meta">
+                <h3>${a.name}</h3>
+                <p>${a.desc}</p>
+              </div>
+            </div>
+            <span class="agent-badge">${isActive ? '● LIVE ON IG' : 'Switch'}</span>
+          </button>
+        `;
+      }).join('');
+      document.getElementById('ig-agent-list').innerHTML = igHtml;
     }
 
-    async function switchMode(newMode) {
-      currentMode = newMode;
-      updatePreview();
-      showToast(`⚡ Switching WhatsApp Bot to: <b>${modes[newMode].title}</b>...`);
-
+    async function switchWhatsAppAgent(modeId) {
+      state.waPersona = modeId;
+      renderDecks();
       try {
-        const response = await fetch(`${API_BASE}/api/persona`, {
+        const res = await fetch(`${API_BASE}/api/persona`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: newMode, updatedBy: 'Website Switcher Dashboard' })
+          body: JSON.stringify({ mode: modeId, updatedBy: 'Command Center WA Deck' })
         });
-        const data = await response.json();
+        const data = await res.json();
         if (data.success) {
-          showToast(`✅ WhatsApp Bot (+91 93615 99097) is now LIVE on: <b>${modes[newMode].title}</b>!`);
-        } else {
-          showToast(`⚠️ Server response: ${data.error || 'Failed to switch'}`);
+          showToast(`💬 WhatsApp switched to <b>${getAgentName(modeId)}</b>!`);
         }
-      } catch (err) {
-        console.warn('Backend call failed, switched locally:', err);
-        showToast(`✅ Mode switched locally to: <b>${modes[newMode].title}</b>`);
+      } catch (e) {
+        showToast('⚠️ Failed to sync WhatsApp switch');
       }
     }
 
-    let qrPollingActive = false;
+    async function switchInstagramAgent(modeId) {
+      state.syncPersonas = false;
+      state.igPersona = modeId;
+      renderDecks();
+      await setChannel({ syncPersonas: false, instagramPersona: modeId }, `📸 Instagram switched to <b>${getAgentName(modeId)}</b>!`);
+    }
 
-    async function checkHealthAndQR() {
-      if (qrPollingActive) return;
-      qrPollingActive = true;
+    async function toggleSyncWithWhatsApp() {
+      const nextSync = !state.syncPersonas;
+      state.syncPersonas = nextSync;
+      if (nextSync) {
+        await setChannel({ syncPersonas: true }, '🔗 Instagram is now Synced with WhatsApp!');
+      } else {
+        state.igPersona = state.waPersona;
+        await setChannel({ syncPersonas: false, instagramPersona: state.waPersona }, '🔓 Instagram is now Independent from WhatsApp!');
+      }
+    }
+
+    async function setChannel(patch, customToast = null) {
+      try {
+        const res = await fetch(`${API_BASE}/api/channels`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...patch, updatedBy: 'Command Center UI' })
+        });
+        const data = await res.json();
+        if (data.success && data.channels) {
+          applyChannelState(data.channels);
+          showToast(customToast || '🎛️ Channel control updated live!');
+        }
+      } catch (e) {
+        showToast('❌ Could not reach server');
+      }
+    }
+
+    function applyChannelState(ch) {
+      state.whatsappEnabled = ch.whatsappEnabled !== false;
+      state.instagramDmEnabled = ch.instagramDmEnabled !== false;
+      state.instagramCommentEnabled = ch.instagramCommentEnabled !== false;
+      state.syncPersonas = ch.syncPersonas !== false;
+      if (ch.instagramPersona) state.igPersona = ch.instagramPersona;
+      if (ch.effectiveWhatsappPersona) state.waPersona = ch.effectiveWhatsappPersona;
+      renderDecks();
+    }
+
+    async function syncFromServer() {
+      try {
+        const [pRes, cRes, igRes] = await Promise.all([
+          fetch(`${API_BASE}/api/persona`),
+          fetch(`${API_BASE}/api/channels`),
+          fetch(`${API_BASE}/api/instagram/status`)
+        ]);
+        if (pRes.ok) {
+          const p = await pRes.json();
+          if (p.activeMode) state.waPersona = p.activeMode;
+        }
+        if (cRes.ok) {
+          const c = await cRes.json();
+          if (c.channels) applyChannelState(c.channels);
+        }
+        if (igRes.ok) {
+          const ig = await igRes.json();
+          const el = document.getElementById('top-ig-text');
+          el.innerText = ig.hasToken ? '@solodeveloper.pro Live' : 'Instagram Simulation';
+        }
+      } catch (e) {}
+    }
+
+    async function checkQR() {
       try {
         const res = await fetch(`${API_BASE}/api/qr-data`);
-        const dot = document.getElementById('wa-dot');
-        const text = document.getElementById('wa-status-text');
-        const qrBanner = document.getElementById('qr-banner');
-        const qrImage = document.getElementById('qr-image');
-        const qrSpinner = document.getElementById('qr-spinner');
-        const qrInst = document.getElementById('qr-instruction');
+        if (!res.ok) return;
+        const data = await res.json();
+        const dot = document.getElementById('top-wa-dot');
+        const txt = document.getElementById('top-wa-text');
+        const banner = document.getElementById('qr-banner');
+        const img = document.getElementById('qr-image');
+        const spin = document.getElementById('qr-spinner');
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.ready) {
-            dot.style.background = '#10b981';
-            dot.style.boxShadow = '0 0 10px #10b981';
-            text.innerText = 'WhatsApp Connected & Active';
-            qrBanner.style.display = 'none';
-          } else {
-            dot.style.background = '#f59e0b';
-            dot.style.boxShadow = '0 0 10px #f59e0b';
-            text.innerText = 'WhatsApp Awaiting QR Scan';
-            qrBanner.style.display = 'block';
-
-            if (data.qrDataUrl) {
-              qrImage.src = data.qrDataUrl;
-              qrImage.style.display = 'block';
-              if (qrSpinner) qrSpinner.style.display = 'none';
-              if (qrInst) qrInst.innerHTML = 'Open WhatsApp on your phone ➔ <b>Settings</b> ➔ <b>Linked Devices</b> ➔ <b>Link a Device</b>, then scan this QR code:';
-            } else {
-              qrImage.style.display = 'none';
-              if (qrSpinner) qrSpinner.style.display = 'flex';
-              if (qrInst) qrInst.innerHTML = '⏳ <b>Initializing WhatsApp connection...</b> Generating fresh QR code in a few seconds...';
-            }
-          }
+        if (data.ready) {
+          dot.className = 'dot';
+          txt.innerText = 'WhatsApp Online';
+          banner.style.display = 'none';
         } else {
-          // Fallback to /health
-          const hRes = await fetch(`${API_BASE}/health`);
-          if (hRes.ok) {
-            const hData = await hRes.json();
-            if (hData.ready) {
-              dot.style.background = '#10b981';
-              dot.style.boxShadow = '0 0 10px #10b981';
-              text.innerText = 'WhatsApp Connected & Active';
-              qrBanner.style.display = 'none';
-            }
-          }
-        }
-      } catch (e) {
-        console.log('Health check notice:', e.message);
-      } finally {
-        qrPollingActive = false;
-      }
-    }
-
-    async function forceRestartSession() {
-      const btn = document.getElementById('btn-force-refresh-qr');
-      if (btn) {
-        btn.innerText = '⏳ Resetting Session & Generating QR...';
-        btn.style.opacity = '0.6';
-        btn.disabled = true;
-      }
-      showToast('🔄 Resetting WhatsApp session... Generating a fresh QR code...');
-      try {
-        await fetch(`${API_BASE}/api/restart`, { method: 'POST' });
-      } catch (e) {
-        try { await fetch(`${API_BASE}/restart`); } catch (_) {}
-      }
-      setTimeout(() => {
-        if (btn) {
-          btn.innerText = '🔄 Reset Session & Generate Fresh QR Code';
-          btn.style.opacity = '1';
-          btn.disabled = false;
-        }
-        checkHealthAndQR();
-      }, 1800);
-    }
-
-    async function fetchLiveModeFromServer() {
-      try {
-        const res = await fetch(`${API_BASE}/api/persona`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.activeMode && modes[data.activeMode]) {
-            currentMode = data.activeMode;
-            updatePreview();
-          }
-        }
-      } catch (err) {
-        console.log('Using default mode:', err.message);
-      }
-    }
-
-    function scrollToInstaSimulator() {
-      const box = document.getElementById('insta-simulator-box');
-      if (box) {
-        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        document.getElementById('insta-test-input')?.focus();
-      }
-    }
-
-    async function fetchInstagramStatus() {
-      try {
-        const res = await fetch(`${API_BASE}/api/instagram/status`);
-        if (res.ok) {
-          const data = await res.json();
-          const el = document.getElementById('insta-status-text');
-          if (el) {
-            if (data.hasToken) {
-              el.innerText = `Live Connected (${data.processedComments} Comments)`;
-              el.style.color = '#34d399';
-            } else {
-              el.innerText = `Ready (Simulation Mode)`;
-              el.style.color = '#f472b6';
-            }
+          dot.className = 'dot amber';
+          txt.innerText = 'WhatsApp Needs QR';
+          banner.style.display = 'block';
+          if (data.qrDataUrl) {
+            img.src = data.qrDataUrl;
+            img.style.display = 'block';
+            spin.style.display = 'none';
+          } else {
+            img.style.display = 'none';
+            spin.style.display = 'flex';
           }
         }
       } catch (e) {}
     }
 
-    async function testInstagramSimulation(type) {
-      const inputEl = document.getElementById('insta-test-input');
-      const resultEl = document.getElementById('insta-sim-result');
-      const text = (inputEl ? inputEl.value : '').trim();
-      if (!text) return showToast('⚠️ Please enter a comment or DM message to test!');
+    async function forceRestartSession() {
+      showToast('🔄 Resetting WhatsApp QR...');
+      try { await fetch(`${API_BASE}/api/restart`, { method: 'POST' }); } catch (e) {}
+      setTimeout(checkQR, 1800);
+    }
 
-      resultEl.style.display = 'block';
-      resultEl.innerHTML = '⏳ Running live Instagram AI Engine...';
+    async function loadQuotas() {
+      try {
+        const res = await fetch(`${API_BASE}/api/quota`);
+        if (!res.ok) return;
+        const q = await res.json();
+        if (q.render) {
+          document.getElementById('q-render-hrs').innerText = `${q.render.hoursRemaining} hrs (${q.render.daysRemaining}d)`;
+          document.getElementById('q-render-ram').innerText = `${q.render.ramUsedMb}MB / ${q.render.ramLimitMb}MB`;
+        }
+        if (q.neon) {
+          document.getElementById('q-neon-storage').innerText = `${q.neon.storageUsedMb}MB / ${q.neon.storageLimitMb}MB`;
+        }
+        if (q.gemini) {
+          document.getElementById('q-gemini-req').innerText = `${q.gemini.todayRequests} / ${q.gemini.dailyLimitRpd} RPD`;
+        }
+      } catch (e) {}
+    }
 
+    async function runInstaSim(type) {
+      const text = (document.getElementById('insta-test-input').value || '').trim();
+      const out = document.getElementById('insta-sim-result');
+      if (!text) return showToast('⚠️ Type a message first!');
+
+      out.style.display = 'block';
+      out.innerHTML = '⏳ Running live Instagram AI Agent...';
       const endpoint = type === 'comment' ? '/api/instagram/test-comment' : '/api/instagram/test-dm';
       try {
         const res = await fetch(`${API_BASE}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text, username: 'madurai_prospect', senderId: 'demo_user_' + Date.now() })
+          body: JSON.stringify({ text, username: 'demo_client', senderId: 'sim_' + Date.now() })
         });
         const data = await res.json();
         if (data.success && data.result) {
-          if (type === 'comment') {
-            resultEl.innerHTML = `
-              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Reel Comment Processed Successfully!</div>
-              <div style="margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.06); border-radius:8px; border-left:3px solid #f472b6;">
+          if (data.result.paused) {
+            out.innerHTML = `<span style="color:#fbbf24;">⏸️ ${data.result.message || data.result.replyText}</span>`;
+          } else if (type === 'comment') {
+            out.innerHTML = `
+              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Reel Comment Processed (${getAgentName(data.result.activeMode)})</div>
+              <div style="margin-bottom:8px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #ec4899;">
                 <b>📢 Public Comment Reply:</b><br>${data.result.publicReply}
               </div>
-              <div style="padding:10px; background:rgba(255,255,255,0.06); border-radius:8px; border-left:3px solid #8b5cf6;">
-                <b>📩 Auto Private DM Sent:</b><br>${(data.result.privateDm || '').replace(/\n/g, '<br>')}
-              </div>
-            `;
+              <div style="padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #8b5cf6;">
+                <b>📩 Auto Private DM:</b><br>${(data.result.privateDm || '').replace(/\n/g, '<br>')}
+              </div>`;
           } else {
-            resultEl.innerHTML = `
-              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Instagram Direct Message Processed!</div>
-              <div style="padding:10px; background:rgba(255,255,255,0.06); border-radius:8px; border-left:3px solid #8b5cf6;">
-                <b>🤖 AI Agent DM Reply:</b><br>${(data.result.replyText || '').replace(/\n/g, '<br>')}
-              </div>
-            `;
+            out.innerHTML = `
+              <div style="color:#34d399; font-weight:700; margin-bottom:8px;">✅ Direct DM Reply (${getAgentName(data.result.activeMode)})</div>
+              <div style="padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #8b5cf6;">
+                ${(data.result.replyText || '').replace(/\n/g, '<br>')}
+              </div>`;
           }
-          showToast('📸 Instagram AI Simulation Complete!');
-          fetchInstagramStatus();
         } else {
-          resultEl.innerHTML = `<span style="color:#f87171;">❌ Error: ${data.error || 'Request failed'}</span>`;
+          out.innerHTML = `<span style="color:#f87171;">❌ ${data.error || 'Error'}</span>`;
         }
-      } catch (err) {
-        resultEl.innerHTML = `<span style="color:#f87171;">❌ Connection error: ${err.message}</span>`;
+      } catch (e) {
+        out.innerHTML = `<span style="color:#f87171;">❌ ${e.message}</span>`;
       }
     }
 
-    function renderChannelControls(ch) {
-      if (!ch) return;
-      const waChk = document.getElementById('toggle-wa-enabled');
-      const igDmChk = document.getElementById('toggle-ig-dm-enabled');
-      const igCmtChk = document.getElementById('toggle-ig-cmt-enabled');
-      const igSel = document.getElementById('select-ig-persona');
-
-      if (waChk) waChk.checked = ch.whatsappEnabled !== false;
-      if (igDmChk) igDmChk.checked = ch.instagramDmEnabled !== false;
-      if (igCmtChk) igCmtChk.checked = ch.instagramCommentEnabled !== false;
-      if (igSel) igSel.value = ch.syncPersonas !== false ? 'sync' : (ch.instagramPersona || 'builder');
-
-      const waLbl = document.getElementById('label-wa-toggle');
-      const igDmLbl = document.getElementById('label-ig-dm-toggle');
-      const igCmtLbl = document.getElementById('label-ig-cmt-toggle');
-
-      if (waLbl) waLbl.innerHTML = ch.whatsappEnabled !== false ? '<span style="color:#34d399;">🟢 Active & Replying</span>' : '<span style="color:#f87171;">⏸️ Paused (Manual Mode)</span>';
-      if (igDmLbl) igDmLbl.innerHTML = ch.instagramDmEnabled !== false ? `<span style="color:#34d399;">🟢 Active (${ch.effectiveInstagramPersona || 'sync'})</span>` : '<span style="color:#f87171;">⏸️ Paused (DMs Off)</span>';
-      if (igCmtLbl) igCmtLbl.innerHTML = ch.instagramCommentEnabled !== false ? '<span style="color:#34d399;">🟢 Reel Auto-Reply ON</span>' : '<span style="color:#f87171;">⏸️ Paused (Comments Off)</span>';
+    function openTab(tabId, btn) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      if (btn) btn.classList.add('active');
     }
 
-    async function fetchChannelControls() {
-      try {
-        const res = await fetch(`${API_BASE}/api/channels`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.channels) renderChannelControls(data.channels);
-        }
-      } catch (e) {}
-    }
-
-    async function updateChannelControl(patch) {
-      try {
-        const res = await fetch(`${API_BASE}/api/channels`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...patch, updatedBy: 'Switcher Dashboard Toggle' })
-        });
-        const data = await res.json();
-        if (data.success && data.channels) {
-          renderChannelControls(data.channels);
-          showToast('🎛️ Live Channel Settings Updated Instantly!');
-        } else {
-          showToast('⚠️ Could not update toggle: ' + (data.error || 'Unknown error'));
-        }
-      } catch (err) {
-        showToast('❌ Connection error while saving toggle');
-      }
-    }
-
-    // Init
-    updatePreview();
-    fetchLiveModeFromServer();
-    fetchChannelControls();
-    updateQuotas();
-    checkHealthAndQR();
-    fetchInstagramStatus();
-    setInterval(checkHealthAndQR, 4000);
-    setInterval(updateQuotas, 30000);
-    setInterval(fetchInstagramStatus, 15000);
-    setInterval(fetchChannelControls, 15000);
+    // Boot
+    renderDecks();
+    syncFromServer();
+    checkQR();
+    loadQuotas();
+    setInterval(checkQR, 4500);
+    setInterval(syncFromServer, 12000);
+    setInterval(loadQuotas, 30000);
   </script>
 </body>
 </html>
