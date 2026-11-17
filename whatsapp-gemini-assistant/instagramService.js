@@ -15,6 +15,7 @@ const GeminiService = require('./geminiService');
 const builderCustomerMemory = require('./builderCustomerMemory');
 const personaManager = require('./personaManager');
 const channelControls = require('./channelControls');
+const proFeatures = require('./instagramProFeatures');
 
 // Environment configuration
 const INSTA_PAGE_ACCESS_TOKEN = process.env.INSTA_PAGE_ACCESS_TOKEN || '';
@@ -235,11 +236,11 @@ async function handleWebhookEvent(req, res, sock = null) {
               const senderId = String(event.sender?.id || '');
               if (!senderId || senderId === INSTA_BUSINESS_ACCOUNT_ID) continue;
 
-              // Postback button click
-              if (event.postback && event.postback.title) {
+              // Postback button click (from Carousel / Ice Breakers)
+              if (event.postback && (event.postback.payload || event.postback.title)) {
                 const pbId = `pb_${senderId}_${event.timestamp}`;
                 if (!isDuplicateMessage(pbId)) {
-                  await handleIncomingDM(senderId, event.postback.title, sock, event);
+                  await handleIncomingDM(senderId, event.postback.payload || event.postback.title, sock, event);
                 }
                 continue;
               }
@@ -249,6 +250,7 @@ async function handleWebhookEvent(req, res, sock = null) {
                 if (isDuplicateMessage(msgId)) continue;
 
                 let msgText = (event.message.text || '').trim();
+                const quickReplyPayload = event.message.quick_reply?.payload || '';
                 let mediaPayload = null;
 
                 // Story reply context
@@ -256,12 +258,19 @@ async function handleWebhookEvent(req, res, sock = null) {
                   msgText = msgText ? `[STORY_REPLY] ${msgText}` : '[STORY_REPLY] Customer replied to our Instagram Story';
                 }
 
-                // Multimodal attachments (image / audio / video / reel share)
+                // Multimodal attachments (image / audio / forwarded reel / video / story_mention)
                 const attachments = Array.isArray(event.message.attachments) ? event.message.attachments : [];
                 if (attachments.length > 0) {
                   const att = attachments[0];
                   const attType = (att.type || '').toLowerCase();
                   const attUrl = att.payload?.url || '';
+
+                  // Feature #6: Story Mention Auto-Thank-You
+                  if (attType === 'story_mention') {
+                    await handleStoryMention(senderId, att.payload || {});
+                    continue;
+                  }
+
                   if (attType === 'image') {
                     mediaPayload = await downloadInstagramMedia(attUrl, 'image/jpeg');
                     if (!msgText) msgText = '[IMAGE_SCREENSHOT_SHARED]';
@@ -269,25 +278,41 @@ async function handleWebhookEvent(req, res, sock = null) {
                     mediaPayload = await downloadInstagramMedia(attUrl, 'audio/mp4');
                     if (mediaPayload) mediaPayload.isAudio = true;
                     if (!msgText) msgText = '';
-                  } else if (attType === 'video' || attType === 'ig_reel' || attType === 'share') {
-                    msgText = msgText ? `[VIDEO_OR_REEL_SHARED] ${msgText}` : '[VIDEO_OR_REEL_SHARED] Customer shared a Reel/Video asking for details';
+                  } else if (attType === 'video' || attType === 'ig_reel' || attType === 'reel' || attType === 'share') {
+                    // Feature #1: Smart Forwarded Reel Vision & Caption Reader
+                    const reelAnalysis = await proFeatures.analyzeForwardedReelAttachment(att, downloadInstagramMedia);
+                    mediaPayload = reelAnalysis.mediaPayload;
+                    msgText = msgText ? `${reelAnalysis.reelContextText}\nCustomer Question: "${msgText}"` : reelAnalysis.reelContextText;
                   }
                 }
 
                 if (msgText || mediaPayload) {
-                  await handleIncomingDM(senderId, msgText, sock, event, { media: mediaPayload });
+                  await handleIncomingDM(senderId, msgText, sock, event, { media: mediaPayload, quickReplyPayload });
                 }
               }
             }
           }
 
-          // B. Process Reel / Post Comments
+          // B. Process Reel / Post Comments & Mentions
           if (Array.isArray(entry.changes)) {
             for (const change of entry.changes) {
               if (change.field === 'comments' && change.value) {
                 const commentId = change.value.id;
                 if (!isDuplicateComment(commentId)) {
                   await handleReelComment(change.value, sock);
+                }
+              } else if (change.field === 'mentions' && change.value) {
+                const mentionId = change.value.comment_id || change.value.media_id || `m_${Date.now()}`;
+                if (!isDuplicateComment(`mention_${mentionId}`)) {
+                  console.log(`📣 [Instagram Mention Detected]:`, JSON.stringify(change.value));
+                  if (change.value.comment_id) {
+                    await handleReelComment({
+                      id: change.value.comment_id,
+                      text: '@solodeveloper.pro mention',
+                      media: { id: change.value.media_id },
+                      from: { username: 'Follower' }
+                    }, sock);
+                  }
                 }
               }
             }
@@ -393,11 +418,17 @@ async function handleReelComment(commentData, sock = null, options = {}) {
   const pubResult = await sendPublicCommentReply(commentId, chosenReply);
   console.log(`📢 [Public Reply Sent to @${fromUser}]: "${chosenReply}" (Result: ${pubResult.success ? 'Success' : 'Simulated/Error'})`);
 
-  // Step 2: Private DM Triggered from Comment (Dynamic per Active Persona)
-  const privateDmGreeting = template.buildPrivateDm(fromUser);
+  // Step 2: Fetch Own Reel/Post Caption for Context-Aware Private DM (Feature #2)
+  const mediaId = commentData.media?.id || null;
+  const mediaCtx = mediaId ? await proFeatures.fetchMediaContext(mediaId) : null;
+  let privateDmGreeting = template.buildPrivateDm(fromUser);
+  if (mediaCtx && mediaCtx.caption) {
+    const shortCaption = mediaCtx.caption.replace(/\s+/g, ' ').slice(0, 90);
+    privateDmGreeting = `🎬 நீங்கள் பார்த்த எங்கள் பதிவு: "${shortCaption}${mediaCtx.caption.length > 90 ? '...' : ''}"\n\n` + privateDmGreeting;
+  }
 
   const privResult = await sendPrivateDMByComment(commentId, privateDmGreeting);
-  console.log(`📩 [Private DM Triggered for @${fromUser}]: (Result: ${privResult.success ? 'Success' : 'Simulated/Error'})`);
+  console.log(`📩 [Private DM Triggered for @${fromUser}]: (ReelCtx: ${Boolean(mediaCtx)}, Result: ${privResult.success ? 'Success' : 'Simulated/Error'})`);
 
   // Check if commenter included phone number directly in comment
   const phone = extractPhoneNumber(commentText);
@@ -413,7 +444,20 @@ async function handleReelComment(commentData, sock = null, options = {}) {
     }, sock);
   }
 
-  return { activeMode, publicReply: chosenReply, privateDm: privateDmGreeting, pubResult, privResult };
+  return { activeMode, mediaContext: mediaCtx, publicReply: chosenReply, privateDm: privateDmGreeting, pubResult, privResult };
+}
+
+// Feature #6: Story Mention Auto-Thank-You & Lead Capture
+async function handleStoryMention(senderId, mentionPayload = {}) {
+  if (!channelControls.isInstagramDmEnabled()) {
+    return { paused: true };
+  }
+  const activeMode = channelControls.getInstagramPersona() || 'builder';
+  const thankYouText = proFeatures.buildStoryMentionReply(activeMode);
+  const quickReplies = proFeatures.getQuickRepliesForMode(activeMode);
+  const sendRes = await sendInstagramDM(senderId, thankYouText, quickReplies);
+  console.log(`📣 [Story Mention Auto-Thank-You Sent] to ${senderId} (Mode: ${activeMode})`);
+  return { activeMode, replyText: thankYouText, sendRes };
 }
 
 // ---------------------------------------------------------------------------
@@ -475,7 +519,13 @@ async function handleIncomingDM(senderId, userText = '', sock = null, rawEvent =
 
   activeInstaLocks.add(senderId);
   try {
+    // Cancel any pending 4-hour warm follow-up since the customer just replied!
+    proFeatures.cancelWarmFollowUp(senderId);
+
     console.log(`📩 [Instagram DM from ${senderId}] (Active Mode: ${activeMode}): "${trimmed || '[MEDIA]'}"`);
+
+    // Feature #3: Auto-Load Previous Chat History from Meta Instagram Inbox on Cold Start!
+    await proFeatures.hydrateHistoryFromInstagramInbox(senderId, chatId, activeMode, gemini, builderCustomerMemory);
 
     // 1. Update builder customer memory only when in builder mode
     let profile = {};
@@ -531,15 +581,35 @@ async function handleIncomingDM(senderId, userText = '', sock = null, rawEvent =
     }
 
     // 5. Sanitize (Zero-Sinhala / Clean Instagram formatting) & Auto-Chunk under Meta's 1,000-char limit!
+    // Feature #4: Attach Native Tap-to-Reply Quick Reply Buttons on the final chunk!
     const chunks = splitForInstagramDM(replyText, 950);
+    const quickReplies = proFeatures.getQuickRepliesForMode(activeMode);
     let sendRes = null;
-    for (const chunk of chunks) {
-      sendRes = await sendInstagramDM(senderId, chunk);
+    for (let i = 0; i < chunks.length; i++) {
+      const isLast = i === chunks.length - 1;
+      sendRes = await sendInstagramDM(senderId, chunks[i], isLast ? quickReplies : null);
     }
 
     const cleanReply = chunks.join('\n\n');
-    console.log(`📤 [Instagram DM Reply Sent to ${senderId}] (Mode: ${activeMode}, Chunks: ${chunks.length}, Length: ${cleanReply.length} chars)`);
-    return { activeMode, replyText: cleanReply, chunks: chunks.length, sendRes };
+
+    // Feature #5: Auto-Send HD Portfolio / 3D Elevation Carousel Cards when customer asks for samples/photos/plans!
+    let carouselSent = false;
+    if (proFeatures.shouldSendPortfolioCarousel(trimmed, cleanReply) && (activeMode === 'builder' || activeMode === 'dev')) {
+      const carouselPayload = proFeatures.buildPortfolioCarouselPayload(activeMode);
+      const carRes = await sendInstagramCarousel(senderId, carouselPayload);
+      carouselSent = Boolean(carRes && carRes.success);
+      console.log(`🖼️ [Portfolio Carousel Dispatched] to ${senderId} (Mode: ${activeMode}, Success: ${carouselSent})`);
+    }
+
+    // Feature #7: Instant Hot Lead WhatsApp Alert + Smart 4-Hour Warm Follow-Up Nudge
+    await proFeatures.maybeSendHotLeadWhatsAppAlert(senderId, activeMode, profile, trimmed, sock, BUILDER_PHONE);
+    proFeatures.scheduleWarmFollowUp(senderId, activeMode, profile, {
+      shouldSkip: () => optedOutUsers.has(senderId) || !channelControls.isInstagramDmEnabled(),
+      sendDM: sendInstagramDM
+    });
+
+    console.log(`📤 [Instagram DM Reply Sent to ${senderId}] (Mode: ${activeMode}, Chunks: ${chunks.length}, Carousel: ${carouselSent}, Length: ${cleanReply.length} chars)`);
+    return { activeMode, replyText: cleanReply, chunks: chunks.length, quickRepliesCount: quickReplies.length, carouselSent, sendRes };
   } finally {
     activeInstaLocks.delete(senderId);
   }
@@ -707,11 +777,23 @@ function getMessagesEndpoint() {
   return '/me/messages';
 }
 
-function sendInstagramDM(recipientId, text) {
+function sendInstagramDM(recipientId, text, quickReplies = null) {
+  const messageObj = { text: text };
+  if (Array.isArray(quickReplies) && quickReplies.length > 0) {
+    messageObj.quick_replies = quickReplies;
+  }
   return callMetaGraphApi(getMessagesEndpoint(), {
     messaging_type: 'RESPONSE',
     recipient: { id: recipientId },
-    message: { text: text }
+    message: messageObj
+  });
+}
+
+function sendInstagramCarousel(recipientId, attachmentObj) {
+  return callMetaGraphApi(getMessagesEndpoint(), {
+    messaging_type: 'RESPONSE',
+    recipient: { id: recipientId },
+    message: { attachment: attachmentObj }
   });
 }
 
@@ -855,6 +937,7 @@ function getStatus() {
     processedComments: processedCommentIds.size,
     processedMessages: processedMessageIds.size,
     simulationMode: !hasLiveToken,
+    proFeatures: proFeatures.getProFeaturesStatus(),
     costPerMessage: '₹0 (Meta Free Direct Message Tier)'
   };
 }
@@ -863,10 +946,12 @@ module.exports = {
   handleVerification,
   handleWebhookEvent,
   handleReelComment,
+  handleStoryMention,
   handleIncomingDM,
   bridgeLeadToWhatsApp,
   extractPhoneNumber,
   sendInstagramDM,
+  sendInstagramCarousel,
   sendPublicCommentReply,
   sendPrivateDMByComment,
   callMetaGraphApi,
