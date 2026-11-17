@@ -267,23 +267,31 @@ async function handleReelComment(commentData, sock = null) {
 // 4. INCOMING DIRECT MESSAGE (DM) PROCESSING WITH GEMINI
 // ---------------------------------------------------------------------------
 async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null) {
-  const chatId = `insta_${senderId}`;
-  console.log(`📩 [Instagram DM from ${senderId}]: "${userText}"`);
+  const activeMode = personaManager.getActiveMode() || 'builder';
+  // Scope chatId per persona so switching modes in live demos starts a clean, unmixed conversation!
+  const chatId = `insta_${activeMode}_${senderId}`;
+  console.log(`📩 [Instagram DM from ${senderId}] (Active Mode: ${activeMode}): "${userText}"`);
 
-  // 1. Update customer memory profile
-  builderCustomerMemory.updateFromMessage(chatId, userText);
-  const profile = builderCustomerMemory.getProfile(chatId);
+  // 1. Update builder customer memory only when in builder mode
+  let profile = {};
+  if (activeMode === 'builder') {
+    builderCustomerMemory.updateFromMessage(chatId, userText);
+    profile = builderCustomerMemory.getProfile(chatId);
+  }
 
   // 2. Check if user provided their WhatsApp phone number in this message
   const detectedPhone = extractPhoneNumber(userText);
   if (detectedPhone && !profile.customer_phone) {
-    profile.customer_phone = detectedPhone;
-    builderCustomerMemory.saveProfiles();
-    console.log(`🎯 [Instagram Phone Captured]: ${detectedPhone} from user ${senderId}`);
+    if (activeMode === 'builder') {
+      profile.customer_phone = detectedPhone;
+      builderCustomerMemory.saveProfiles();
+    }
+    console.log(`🎯 [Instagram Phone Captured] (${activeMode}): ${detectedPhone} from user ${senderId}`);
 
-    // Bridge lead to WhatsApp CRM and trigger automated quotation
+    // Bridge lead to WhatsApp CRM and trigger automated welcome
     await bridgeLeadToWhatsApp({
       source: 'Instagram DM',
+      activeMode,
       instagramSenderId: senderId,
       phone: detectedPhone,
       profile,
@@ -291,7 +299,7 @@ async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null
     }, sock);
   }
 
-  // 3. Generate response using Gemini Engine with builder persona
+  // 3. Generate response using Gemini Engine (automatically uses activeMode from personaManager!)
   const gemini = getGemini();
   let replyText = '';
 
@@ -302,13 +310,17 @@ async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null
     });
   } catch (err) {
     console.error('❌ [Gemini Error on Instagram DM]:', err.message);
-    replyText = `வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡.
-எங்கள் Chief Engineer Er. Dhilip Kumar அவர்களை நேரடியாகத் தொடர்பு கொள்ள: +91 93615 99097.
-உங்கள் Plot விபரங்கள் மற்றும் WhatsApp எண்ணைப் பகிருங்கள் சார், உடனே 2D Plan & Elevation அனுப்புகிறோம்!`;
+    const fallbacks = {
+      builder: `வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡.\nஎங்கள் Chief Engineer Er. Dhilip Kumar: +91 93615 99097.\nஉங்கள் Plot விபரங்கள் மற்றும் WhatsApp எண்ணைப் பகிருங்கள் சார்!`,
+      restaurant: `வணக்கம்! மதுரை தாஜ் ஹோட்டல் 🍗✨ Chicken Biryani ₹190 | Mutton Biryani ₹290. ஆர்டர் செய்ய உங்கள் விருப்பத்தை அனுப்புங்கள்!`,
+      wholesale: `வணக்கம் அண்ணா! அண்ணாமலையார் ஆயில் ஸ்டோர், மாட்டுத்தாவணி 📦 Gold Winner 1L Box ₹1,420 | 15Kg Tin ₹2,420. எத்தனை பாக்ஸ் வேண்டும்?`,
+      dev: `வணக்கம்! SoloDeveloper.pro ⚡ Modern Websites from ₹8,999 & 24/7 AI Agents from ₹19,999. நேரடி தொடர்புக்கு: +91 93615 99097 (https://solodeveloper.pro)`
+    };
+    replyText = fallbacks[activeMode] || fallbacks.dev;
   }
 
-  // 4. If customer requirements are known but phone is missing, ensure WhatsApp call-to-action
-  if (profile.plot_size && profile.location && !profile.customer_phone) {
+  // 4. Builder-specific WhatsApp CTA when plot requirements are known but phone is missing
+  if (activeMode === 'builder' && profile.plot_size && profile.location && !profile.customer_phone) {
     if (!replyText.toLowerCase().includes('whatsapp') && !replyText.includes('வாட்ஸ்அப்') && !replyText.includes('எண்')) {
       replyText += `\n\nசார், உங்கள் ${profile.plot_size} Plot-க்கு ஏற்ற 2D Floor Plan மற்றும் 3D Elevation மாதிரிகளை உடனே உங்கள் வாட்ஸ்அப்பிற்கு அனுப்பலாமா? உங்கள் WhatsApp Mobile Number பகிருங்கள் சார்!`;
     }
@@ -316,9 +328,9 @@ async function handleIncomingDM(senderId, userText, sock = null, rawEvent = null
 
   // 5. Send reply back to customer via Meta Send API
   const sendRes = await sendInstagramDM(senderId, replyText);
-  console.log(`📤 [Instagram DM Reply Sent to ${senderId}]: (Length: ${replyText.length} chars)`);
+  console.log(`📤 [Instagram DM Reply Sent to ${senderId}] (Mode: ${activeMode}, Length: ${replyText.length} chars)`);
 
-  return { replyText, sendRes };
+  return { activeMode, replyText, sendRes };
 }
 
 // ---------------------------------------------------------------------------

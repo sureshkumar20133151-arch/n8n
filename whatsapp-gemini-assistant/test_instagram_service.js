@@ -143,7 +143,7 @@ async function runTests() {
     assert.ok(result.replyText, 'Must generate AI reply');
 
     // Check memory profile
-    const profile = builderCustomerMemory.getProfile(`insta_${senderId}`);
+    const profile = builderCustomerMemory.getProfile(`insta_builder_${senderId}`);
     assert.ok(profile.customer_phone && profile.customer_phone.includes('9876543210'), 'Phone should be stored in memory');
     assert.ok(profile.location && profile.location.includes('Villapuram'), 'Location should be Villapuram');
     assert.strictEqual(profile.house_type, 'G+1 Duplex');
