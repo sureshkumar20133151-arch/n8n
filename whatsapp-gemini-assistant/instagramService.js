@@ -553,7 +553,9 @@ function sendPublicCommentReply(commentId, text) {
 
 function callMetaGraphApi(endpoint, payload, method = 'POST') {
   return new Promise((resolve) => {
-    const token = process.env.INSTA_PAGE_ACCESS_TOKEN || INSTA_PAGE_ACCESS_TOKEN;
+    const rawToken = process.env.INSTA_PAGE_ACCESS_TOKEN || INSTA_PAGE_ACCESS_TOKEN || '';
+    // Strip any accidental spaces or line-breaks pasted from Meta Access Token Debugger
+    const token = String(rawToken).replace(/\s+/g, '');
     // If token is missing or placeholder, run in simulation mode so tests & local runs succeed
     if (!token || token.includes('your_') || token === '') {
       console.log(`ℹ️ [Meta Graph API - Simulation Mode] Endpoint: ${endpoint}`);
@@ -627,8 +629,45 @@ function callMetaGraphApi(endpoint, payload, method = 'POST') {
   });
 }
 
+async function verifyLiveToken() {
+  const rawToken = process.env.INSTA_PAGE_ACCESS_TOKEN || INSTA_PAGE_ACCESS_TOKEN || '';
+  const token = String(rawToken).replace(/\s+/g, '');
+  if (!token) return { valid: false, error: 'INSTA_PAGE_ACCESS_TOKEN is not configured' };
+
+  const isIg = token.startsWith('IG');
+  const host = isIg ? 'graph.instagram.com' : 'graph.facebook.com';
+  const url = `https://${host}/v21.0/me?fields=id,name,instagram_business_account{id,username}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8000)
+    });
+    const data = await res.json();
+    if (res.ok && data.id) {
+      return {
+        valid: true,
+        tokenLength: token.length,
+        pageId: data.id,
+        pageName: data.name || null,
+        igId: data.instagram_business_account?.id || null,
+        igUsername: data.instagram_business_account?.username || null
+      };
+    }
+    return {
+      valid: false,
+      tokenLength: token.length,
+      tokenPrefix: token.slice(0, 4),
+      error: data.error?.message || 'Token validation failed'
+    };
+  } catch (err) {
+    return { valid: false, error: err.message };
+  }
+}
+
 function getStatus() {
-  const token = process.env.INSTA_PAGE_ACCESS_TOKEN || INSTA_PAGE_ACCESS_TOKEN;
+  const rawToken = process.env.INSTA_PAGE_ACCESS_TOKEN || INSTA_PAGE_ACCESS_TOKEN || '';
+  const token = String(rawToken).replace(/\s+/g, '');
   const hasLiveToken = Boolean(token && !token.includes('your_') && token !== '');
   return {
     engine: 'instagram-graph-api-v21.0',
@@ -654,5 +693,6 @@ module.exports = {
   sendPublicCommentReply,
   sendPrivateDMByComment,
   callMetaGraphApi,
+  verifyLiveToken,
   getStatus
 };

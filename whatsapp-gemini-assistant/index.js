@@ -685,6 +685,24 @@ const server = http.createServer((req, res) => {
     }));
   }
 
+  // 3a. Live Meta Graph API Token Health Check (zero secret exposure)
+  if (req.method === 'GET' && req.url === '/api/instagram/verify-token') {
+    instagramService.verifyLiveToken().then(result => {
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(JSON.stringify({ success: result.valid, ...result }));
+    }).catch(err => {
+      res.writeHead(500, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
   // 3b. Omnichannel Live Toggle Controls (WhatsApp & Instagram ON/OFF + Independent Persona)
   if (req.method === 'GET' && req.url === '/api/channels') {
     res.writeHead(200, {
