@@ -531,15 +531,26 @@ function extractPhoneNumber(text = '') {
   return null;
 }
 
+function getMessagesEndpoint() {
+  const rawToken = process.env.INSTA_PAGE_ACCESS_TOKEN || INSTA_PAGE_ACCESS_TOKEN || '';
+  const token = String(rawToken).replace(/\s+/g, '');
+  // Facebook Page Tokens (EAA...) MUST post to /{IG_BUSINESS_ACCOUNT_ID}/messages (NOT /me/messages which requires pages_messaging!)
+  if (token && !token.startsWith('IG') && INSTA_BUSINESS_ACCOUNT_ID) {
+    return `/${INSTA_BUSINESS_ACCOUNT_ID}/messages`;
+  }
+  return '/me/messages';
+}
+
 function sendInstagramDM(recipientId, text) {
-  return callMetaGraphApi('/me/messages', {
+  return callMetaGraphApi(getMessagesEndpoint(), {
+    messaging_type: 'RESPONSE',
     recipient: { id: recipientId },
     message: { text: text }
   });
 }
 
 function sendPrivateDMByComment(commentId, text) {
-  return callMetaGraphApi('/me/messages', {
+  return callMetaGraphApi(getMessagesEndpoint(), {
     recipient: { comment_id: commentId },
     message: { text: text }
   });
