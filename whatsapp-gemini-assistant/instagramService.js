@@ -60,6 +60,15 @@ function sanitizeAndFormatForInstagram(text = '') {
     .replace(/[\u0D80-\u0DFF\u0D00-\u0D7F]/g, '')
     // Replace corrupted Tamil word if LLM ever outputs it
     .replace(/நியமங்களின்படி/g, 'விதிமுறைகளின்படி')
+    // Replace awkward Tamil transliterations of English construction terms with clean English script
+    .replace(/நான் உங்கள் கன்ஸ்ட்ரக்ஷன் அசிஸ்டன்ட்/g, 'நான் Danam Holdings-இன் AI Assistant')
+    .replace(/3D\s*ஃப்ளோர்\s*பிளான்\s*டிசைனிங்/g, '2D Floor Plan & 3D Elevation Design')
+    .replace(/கன்ஸ்ட்ரக்ஷன்/g, 'Construction')
+    .replace(/அசிஸ்டன்ட்/g, 'Assistant')
+    .replace(/இன்டிபென்டன்ட்/g, 'Independent')
+    .replace(/ஃப்ளோர்\s*பிளான்/g, 'Floor Plan')
+    .replace(/டிசைனிங்/g, 'Design')
+    .replace(/பிளானிங்\s*ஸ்டேஜில்/g, 'திட்டமிடும் கட்டத்தில்')
     // Strip markdown heading hashes and double asterisks (Instagram DM doesn't render Markdown)
     .replace(/^#{1,6}\s*/gm, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
