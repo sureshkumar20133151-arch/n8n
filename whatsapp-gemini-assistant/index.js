@@ -496,7 +496,7 @@ async function connectToWhatsApp() {
             // Smart MEP Group Bypass: In plumber mode, auto-reply to site photos, audio voice notes, or site/worker queries
             const activeMode = personaManager.getActiveMode();
             const isPlumberMode = (activeMode === 'plumber');
-            const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|வேலை|விவரம்|லிஸ்ட்|photo|pipe|plumb|electr|roof|concrete|chasing|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|details|list/i.test(body);
+            const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|வேலை|விவரம்|லிஸ்ட்|டிரைவ்|கூகுள்|ஷீட்|லிங்க்|ஃபோல்டர்|அப்டேட்|ஸ்டேட்டஸ்|செக்|அரசன்|photo|pipe|plumb|electr|roof|concrete|chasing|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|details|list|drive|google|sheet|link|folder|update|status|check|add|added|arasan|mep/i.test(body);
             const allowGroupBypass = isPlumberMode && (Boolean(mediaPayload) || hasPlumbingKeyword);
 
             if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly && !allowGroupBypass) continue;
