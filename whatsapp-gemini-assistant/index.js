@@ -511,11 +511,27 @@ async function connectToWhatsApp() {
           if (isGroup) {
             if (!enableGroups && !modeIntentEarly) continue;
             
-            // Smart MEP Group Bypass: In plumber mode, auto-reply to site photos, audio voice notes, quotes to bot, mentions, or site/worker/chat queries
+            // Smart Personal Assistant Group Bypass: Auto-reply to site photos, audio voice notes, quotes, mentions, any question/inquiry, greetings, or site/worker queries
             const activeMode = personaManager.getActiveMode();
             const isPlumberMode = (activeMode === 'plumber');
+
+            const isQuestionOrInquiry = body.includes('?') ||
+              /^(what|when|where|who|whom|whose|which|why|how|can|could|will|would|is|are|am|do|does|did|have|has|had|should|may|please|tell|give|check|send|show|update|status|explain|help)\b/i.test(body) ||
+              /\b(what|when|where|who|why|how|can\s*u|can\s*you|could\s*you|please|help|status|update|details|question|doubt|clarification)\b/i.test(body) ||
+              /என்ன|எப்போது|எப்ப|எங்கே|எங்க|யார்|யாரு|ஏன்|எப்படி|முடியுமா|சொல்லுங்க|சொல்லு|கொடு|கொடுங்க|பாருங்க|பாரு|அனுப்பு|அனுப்புங்க|செக்|அப்டேட்|ஸ்டேட்டஸ்|விவரம்|விபரம்|சந்தேகம்|உதவி|கேள்வி|\?/i.test(body);
+
+            const isGreeting = /^(hi|hello|hey|vanakkam|வணக்கம்|good\s*morning|good\s*evening|good\s*afternoon)\b/i.test(body.trim());
+
             const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|படங்கள்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|எலக்ட்ரிக்கல்|ஒயரிங்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|சுவர்|தரை|டைல்ஸ்|டிரைனேஜ்|சேம்பர்|மெயின்\s*டிபி|எர்திங்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|தொழிலாளி|வேலை|விவரம்|விபரம்|லிஸ்ட்|டிரைவ்|கூகுள்|ஷீட்|லிங்க்|ஃபோல்டர்|அப்டேட்|ஸ்டேட்டஸ்|செக்|அரசன்|சாட்|பழைய|மெசேஜ்|படி|காட்டு|அனுப்பு|உதவி|எப்படி|என்ன|எங்கே|photo|pic|picture|pipe|plumb|electr|wir|roof|concrete|slab|chasing|wall|floor|tile|bath|drain|sewage|chamber|main\s*db|earth|mcb|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|phone|mobile|number|details|list|drive|google|sheet|link|folder|update|status|check|add|added|save|saved|store|stored|record|archive|doc|file|arasan|mep|chat|chats|old|history|read|view|send|show|tell|help|how|what|where|who|can\s*u|can\s*you|able|super/i.test(body);
-            const allowGroupBypass = isPlumberMode && (Boolean(mediaPayload) || isQuotingBot || isMentioningBot || hasPlumbingKeyword);
+
+            const allowGroupBypass = isPlumberMode && (
+              Boolean(mediaPayload) ||
+              isQuotingBot ||
+              isMentioningBot ||
+              isQuestionOrInquiry ||
+              isGreeting ||
+              hasPlumbingKeyword
+            );
 
             if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly && !allowGroupBypass) continue;
           } else {
