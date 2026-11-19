@@ -24,97 +24,106 @@ function getQueuedImage(chatId) {
   return item;
 }
 
-// Default initial 10 laborers
+// Default initial laborers (synced with user's Google Sheet Laborers_Directory)
 const DEFAULT_LABORERS = [
   {
     id: 1,
-    name: "Muthuvel (முத்துவேல்)",
-    role: "Head Plumber (தலைமை பிளம்பர்)",
-    skill: "PPR / CPVC / Concealed Diverter Piping",
-    phone: "+91 98421 11001",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "Anna Nagar Villa"
+    name: "Prabhu (பிரபு)",
+    role: "Fitter (ஃபிட்டர்)",
+    skill: "Plumbing & Electrical Fitting",
+    phone: "9600310448",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
   },
   {
     id: 2,
-    name: "Senthil Kumar (செந்தில் குமார்)",
-    role: "Senior Electrician (சீனியர் எலக்ட்ரீசியன்)",
-    skill: "3-Phase DB / Conduit / Concealed Wiring",
-    phone: "+91 98421 11002",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "Ram Nagar Site"
+    name: "Pandi (பாண்டி)",
+    role: "Fitter (ஃபிட்டர்)",
+    skill: "Concealed Conduit & Piping",
+    phone: "8695410060",
+    status: "Off Duty (Off)",
+    assignedSite: "All Sites"
   },
   {
     id: 3,
-    name: "Murugan (முருகன்)",
-    role: "Wall Chasing Specialist (கார்டி & பாக்ஸ் ஸ்பெஷலிஸ்ட்)",
-    skill: "Chaser Machine / Brick Cutting / Concealed Box Fixing",
-    phone: "+91 98421 11003",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "Ram Nagar Site"
+    name: "Paal Pandi (பால் பாண்டி)",
+    role: "Helper (ஹெல்பர்)",
+    skill: "Wall Chasing & Pipe Carrying",
+    phone: "8098287117",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
   },
   {
     id: 4,
-    name: "Karthi (கார்த்தி)",
-    role: "Plumbing Pipe Fitter (பிளம்பிங் ஃபிட்டர்)",
-    skill: "PVC Drainage & Rainwater Line / Manhole Connection",
-    phone: "+91 98421 11004",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "K.Pudur Commercial"
+    name: "Sanjay (சஞ்சய்)",
+    role: "Fitter (ஃபிட்டர்)",
+    skill: "Roof Slab Conduit & Piping",
+    phone: "7708123560",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
   },
   {
     id: 5,
-    name: "Velu (வேலு)",
-    role: "Roof Conduit Layer (ரூஃப் ஸ்லாப் கான்கிரீட் பைப்)",
-    skill: "Slab Electrical Conduit / Fan Box Tying / Wire Guiding",
-    phone: "+91 98421 11005",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "Anna Nagar Villa"
+    name: "Easwaren (ஈஸ்வரன்)",
+    role: "Helper (ஹெல்பர்)",
+    skill: "Material Handling & Site Support",
+    phone: "8072842592",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
   },
   {
     id: 6,
-    name: "Ramu (ராமு)",
-    role: "Bathroom Plumbing Technician (பாத்ரூம் ஃபிட்டிங்)",
-    skill: "Wall Concealed Mixer / Wall Hung EWC / Water Heater Line",
-    phone: "+91 98421 11006",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "Selvapuram House"
-  },
-  {
-    id: 7,
-    name: "Dinesh (தினேஷ்)",
-    role: "Wireman (வயர்மேன்)",
-    skill: "Cable Pulling / Inverter Line / Earthing Pit",
-    phone: "+91 98421 11007",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "Selvapuram House"
+    name: "Vicky (விக்கி)",
+    role: "Fitter (ஃபிட்டர்)",
+    skill: "Bathroom Plumbing & Sanitary Lines",
+    phone: "9043205943",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
   },
   {
     id: 8,
-    name: "Saravanan (சரவணன்)",
-    role: "Chasing & Plaster Assistant (கார்டி ஹெல்பர்)",
-    skill: "Grooving / Pipe Clamping / Cement Patching",
-    phone: "+91 98421 11008",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "Ram Nagar Site"
+    name: "Suresh (சுரேஷ்)",
+    role: "Helper (ஹெல்பர்)",
+    skill: "Site Assistance & Grooving",
+    phone: "8072239594",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
   },
   {
     id: 9,
-    name: "Pandian (பாண்டியன்)",
-    role: "Senior Site Supervisor (சைட் சூப்பர்வைசர்)",
-    skill: "Material Inspection / Daily Labour Attendance / Quality Check",
-    phone: "+91 98421 11009",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "All Sites (Madurai)"
+    name: "Kumareson (குமரேசன்)",
+    role: "Fitter (ஃபிட்டர்)",
+    skill: "Electrical Wiring & Conduit Laying",
+    phone: "7010124382",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
   },
   {
     id: 10,
-    name: "Mani (மணி)",
-    role: "Helper / Material Handler (ஹெல்பர் / லோடு மேன்)",
-    skill: "Pipe & Wire Unloading / Tool Maintenance / Cleaning",
-    phone: "+91 98421 11010",
-    status: "Active (ஆன்-சைட்)",
-    assignedSite: "K.Pudur Commercial"
+    name: "Aswin (அஸ்வின்)",
+    role: "Helper (ஹெல்பர்)",
+    skill: "Concrete Pipe & Chasing Support",
+    phone: "9159779787",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
+  },
+  {
+    id: 11,
+    name: "Muthu (முத்து)",
+    role: "Fitter (ஃபிட்டர்)",
+    skill: "Drainage & Water Supply Lines",
+    phone: "6380895983",
+    status: "Active (On)",
+    assignedSite: "All Sites / On Call"
+  },
+  {
+    id: 12,
+    name: "Dhilip (திலீப்)",
+    role: "Supervisor (சூப்பர்வைசர்)",
+    skill: "Site Supervision & Inspection",
+    phone: "8883332499",
+    status: "Off Duty (Off)",
+    assignedSite: "Head Office / Roving"
   }
 ];
 
@@ -279,7 +288,18 @@ function buildPlumbingElectricalSystemPrompt(senderName = 'Friend', isOwner = fa
 You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor/Laborer Groups.
 
 ## 🎯 YOUR CORE CAPABILITIES & RESPONSIBILITIES:
-1. **SITE PHOTO ARCHIVING (கான்கிரீட் & கார்டி & பிளம்பிங் போட்டோக்கள்):**
+1. **👁️ SMART COMPUTER VISION & PHOTO CLASSIFICATION (போட்டோவை AI தானாகப் புரிந்துகொள்ளும் திறன்):**
+   - When an image is received (even with NO caption or just a short text like "இங்க பாரு" / "இது எந்த சைட்"):
+     Look carefully at the visual content of the photo and classify it automatically:
+     * **ரூஃப் கான்கிரீட் பைப்ஸ் (Roof_Concrete_Pipes):** Rebar steel grid on slab + tied fan boxes + PVC electrical/plumbing conduits before concrete pouring.
+     * **சுவர் கார்டி & கன்சீல்டு பைப்ஸ் (Wall_Chasing_Pipes):** Chased/cut brick walls with vertical/horizontal PVC pipes and modular switch boxes before plastering.
+     * **பாத்ரூம் பிளம்பிங் (Bathroom_Plumbing):** CPVC/PPR pipes on walls/sunken floor, diverter bodies, shower points, hot/cold mixer lines before tiling.
+     * **விண்டோ & கார்டி வேலை (Window_And_Chasing):** Window frames fixed in wall openings with electrical pipes dropping for AC/points.
+     * **டிரைனேஜ் லைன் (Drainage_Sewage):** External 4-inch/6-inch sewage PVC lines, manhole chamber masonry, rain water pipes.
+     * **மெயின் டிபி & எர்திங் (Main_DB_Wiring):** Distribution board box with MCBs, 3-phase wires, inverter point, or earthing rod/pit.
+   - Always state clearly in your Tamil reply what exact stage you identified from looking at the photo!
+
+2. **SITE PHOTO ARCHIVING (கான்கிரீட் & கார்டி & பிளம்பிங் போட்டோக்கள்):**
    - When workers, supervisors, or the contractor upload site photos along with a Tamil voice note or text:
      * Identify the Site Name (e.g., Ram Nagar, Anna Nagar, Selvapuram, K.Pudur).
      * Categorize the critical construction stage:
@@ -333,6 +353,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const stageSlug = stage.toLowerCase();
     let driveFolderUrl = `https://drive.google.com/drive/folders/MEP_${folderSlug}_${stageSlug}`;
     let uploadedFile = null;
+    let localFilePath = null;
 
     if (googleDriveService.isConfigured()) {
       try {
@@ -342,7 +363,6 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
         }
 
         // Save high-resolution physical photo to local media vault
-        let localFilePath = null;
         if (media && media.data && media.isImage) {
           try {
             const imageBuffer = Buffer.from(media.data, 'base64');
@@ -494,15 +514,17 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       laborers = laborers.filter(l => l.assignedSite.toLowerCase().includes(siteFilter));
     }
 
-    const formattedList = laborers.map((l, idx) => 
-      `*${idx + 1}. ${l.name}*\n   👷 *பணி:* ${l.role}\n   📞 *மொபைல்:* ${l.phone}\n   📍 *சைட்:* ${l.assignedSite}\n   ⚡ *திறமை:* ${l.skill}`
-    ).join('\n\n');
+    const formattedList = laborers.map((l, idx) => {
+      const isOff = (l.status && String(l.status).toLowerCase().includes('off'));
+      const statusBadge = isOff ? '🔴 Off' : '🟢 On';
+      return `*${idx + 1}. ${l.name}*\n   👷 *பணி:* ${l.role}\n   📞 *மொபைல்:* ${l.phone}\n   🔘 *Status:* ${statusBadge}`;
+    }).join('\n\n');
 
     return {
       success: true,
       totalCount: laborers.length,
       laborers,
-      formattedTextTamil: `📋 *எலக்ட்ரிக்கல் & பிளம்பிங் லேபர்ஸ் விபரம் (10 பேர் டீம்):*\n\n${formattedList}\n\n_குறிப்பு: இந்த விபரம் Google Sheet-ல் தொடர்ந்து அப்டேட் செய்யப்பட்டு வருகிறது._`
+      formattedTextTamil: `📋 *அரசன் எலக்ட்ரிக்கல் & பிளம்பிங் - வேலையாட்கள் பட்டியல் (${laborers.length} பேர் குழு):*\n\n${formattedList}\n\n━━━━━━━━━━━━━━━━━━━━━━\n_குறிப்பு: இந்த விபரம் Google Sheet (Laborers_Directory)-ல் தொடர்ந்து அப்டேட் செய்யப்பட்டு வருகிறது._`
     };
   }
 

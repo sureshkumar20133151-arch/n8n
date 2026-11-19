@@ -353,8 +353,9 @@ async function connectToWhatsApp() {
           }
           recordProcessedMessageId(msgId);
 
-          // 3. If from me, ONLY allow if sent to own chat (Message Yourself / Notes to self for testing)
-          if (isFromMe) {
+          // 3. If from me in 1-on-1 DM, ONLY allow if sent to own chat (Message Yourself / Notes to self for testing)
+          // (In WhatsApp groups, allow Suresh/Owner to interact with the assistant)
+          if (isFromMe && !isGroup) {
             const myDigits = (sock.user?.id || '').replace(/\D/g, '').slice(0, 12);
             const remoteDigits = (remoteJid || '').replace(/\D/g, '');
             const ownerPhoneDigits = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
@@ -367,7 +368,7 @@ async function connectToWhatsApp() {
               remoteJid.endsWith('@lid');
 
             if (!isSelfChat) {
-              continue; // Message sent from Suresh's phone to an external chat -> NEVER auto-reply
+              continue; // Message sent from Suresh's phone to an external DM chat -> NEVER auto-reply
             }
           }
 
@@ -490,7 +491,7 @@ async function connectToWhatsApp() {
             // Smart MEP Group Bypass: In plumber mode, auto-reply to site photos, audio voice notes, or site/worker queries
             const activeMode = personaManager.getActiveMode();
             const isPlumberMode = (activeMode === 'plumber');
-            const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|லேபர்|லேபர்ஸ்|ஆட்கள்|photo|pipe|plumb|electr|roof|concrete|chasing|labor|worker|site/i.test(body);
+            const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|வேலை|விவரம்|லிஸ்ட்|photo|pipe|plumb|electr|roof|concrete|chasing|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|details|list/i.test(body);
             const allowGroupBypass = isPlumberMode && (Boolean(mediaPayload) || hasPlumbingKeyword);
 
             if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly && !allowGroupBypass) continue;
@@ -520,8 +521,8 @@ async function connectToWhatsApp() {
           const ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
           const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone);
 
-          // Routable destination JID: route self-chat or @lid to owner phone @s.whatsapp.net
-          const isSelfRoute = isFromMe && (remoteJid === 'me' || remoteJid.endsWith('@lid') || (typeof isSelfChat !== 'undefined' && isSelfChat));
+          // Routable destination JID: route self-chat or @lid to owner phone @s.whatsapp.net (groups always route to remoteJid)
+          const isSelfRoute = isFromMe && !isGroup && (remoteJid === 'me' || remoteJid.endsWith('@lid') || (typeof isSelfChat !== 'undefined' && isSelfChat));
           const replyJid = isSelfRoute
             ? `${ownerPhone}@s.whatsapp.net`
             : remoteJid;
