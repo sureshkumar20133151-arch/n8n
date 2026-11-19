@@ -199,16 +199,14 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
         properties: {
           siteName: {
             type: 'STRING',
-            description: 'Name of the construction site (e.g., Ram Nagar, Anna Nagar, Selvapuram, K.Pudur)'
+            description: 'Name of the construction site (e.g., Ram Nagar, Anna Nagar, Selvapuram, K.Pudur, HMS Colony)'
           },
           stage: {
             type: 'STRING',
-            enum: ['Roof_Concrete_Pipes', 'Wall_Chasing_Pipes', 'Bathroom_Plumbing', 'Drainage_Sewage', 'Main_DB_Wiring', 'General_Work'],
-            description: 'Stage of work: Roof_Concrete_Pipes (கான்கிரீட் பைப்), Wall_Chasing_Pipes (கார்டி எடுத்த பைப்), Bathroom_Plumbing (பாத்ரூம் பிளம்பிங்), etc.'
+            description: 'Stage or category of work: Roof_Concrete_Pipes, Wall_Chasing_Pipes, Bathroom_Plumbing, Profile_LED_Work, Drainage_Sewage, Main_DB_Wiring, False_Ceiling_Wiring, or any custom site stage name'
           },
           workType: {
             type: 'STRING',
-            enum: ['Electrical', 'Plumbing', 'Both'],
             description: 'Trade category: Electrical, Plumbing, or Both'
           },
           notes: {
@@ -225,7 +223,7 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
     },
     {
       name: 'fetchSitePhotos',
-      description: 'Call this tool whenever anyone (owner, client, supervisor, or laborer in WhatsApp DM or Group) requests photos for a specific site or stage (e.g. "Ram Nagar bathroom plumbing photos", "Anna Nagar roof concrete pipe photos").',
+      description: 'Call this tool whenever anyone (owner, client, supervisor, or laborer in WhatsApp DM or Group) requests photos for a specific site or stage (e.g. "Ram Nagar bathroom plumbing photos", "HMS Colony profile LED work photos").',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -235,11 +233,32 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           },
           stage: {
             type: 'STRING',
-            enum: ['Roof_Concrete_Pipes', 'Wall_Chasing_Pipes', 'Bathroom_Plumbing', 'Drainage_Sewage', 'Main_DB_Wiring', 'All'],
-            description: 'Specific stage requested or All'
+            description: 'Specific stage requested or All (e.g. Profile_LED_Work, Roof_Concrete_Pipes, All)'
           }
         },
         required: ['siteName']
+      }
+    },
+    {
+      name: 'renameOrUpdateSiteStage',
+      description: 'Call this tool when the contractor asks to rename or change a site stage, folder, or category in Google Drive (e.g. rename "Main_DB_Wiring" to "Profile_LED_Work" for HMS Colony).',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Name of the site (e.g. HMS Colony, Ramnad)'
+          },
+          oldStage: {
+            type: 'STRING',
+            description: 'The current or old stage/folder name to change (e.g. Main_DB_Wiring)'
+          },
+          newStage: {
+            type: 'STRING',
+            description: 'The new desired stage/folder name (e.g. Profile_LED_Work)'
+          }
+        },
+        required: ['siteName', 'oldStage', 'newStage']
       }
     },
     {
@@ -587,6 +606,53 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       success: true,
       messageTamil: `✅ *${args.name}* விபரம் லேபர்ஸ் லிஸ்டில் வெற்றிகரமாகப் பதிவு செய்யப்பட்டது!`
     };
+  }
+
+  // 5. Rename or Update Site Stage Folder in Google Drive
+  if (fnName === 'renameOrUpdateSiteStage') {
+    const siteName = args.siteName || 'HMS Colony';
+    const oldStage = args.oldStage || 'Main_DB_Wiring';
+    const newStage = args.newStage || 'Profile_LED_Work';
+
+    console.log(`📂 [Drive Rename Tool] Renaming stage for ${siteName}: "${oldStage}" -> "${newStage}"`);
+    const renameRes = await googleDriveService.renameSiteFolder(siteName, oldStage, newStage);
+
+    // Also update local photo archive
+    let archive = loadPhotosArchive();
+    let updatedCount = 0;
+    archive = archive.map(item => {
+      const matchSite = (item.siteName || '').toLowerCase().includes(siteName.toLowerCase());
+      const matchStage = (item.stage || '').toLowerCase().includes(oldStage.toLowerCase());
+      if (matchSite && matchStage) {
+        updatedCount++;
+        return {
+          ...item,
+          stage: newStage.replace(/\s+/g, '_'),
+          notes: `${item.notes || ''} [Updated to ${newStage}]`
+        };
+      }
+      return item;
+    });
+    if (updatedCount > 0) {
+      savePhotosArchive(archive);
+    }
+
+    if (renameRes && renameRes.success) {
+      return {
+        success: true,
+        siteName,
+        oldStage,
+        newStage,
+        folderUrl: renameRes.folderUrl,
+        messageTamil: `✅ *Google Drive ஃபோல்டர் பெயர் வெற்றிகரமாக மாற்றப்பட்டது!*\n\n📍 *சைட்:* ${siteName}\n🔄 *பழைய பெயர்:* ${oldStage}\n✨ *புதிய பெயர்:* ${newStage}\n📁 *Drive Folder:* ${renameRes.folderUrl}\n\n_உள்ளே உள்ள அனைத்து போட்டோக்களும் மற்றும் சிஸ்டம் பதிவுகளும் ${newStage} என புதுப்பிக்கப்பட்டுவிட்டன._`
+      };
+    } else {
+      return {
+        success: false,
+        error: renameRes?.error || 'Failed to rename folder in Google Drive',
+        messageTamil: `⚠️ Google Drive-ல் "${oldStage}" ஃபோல்டரை "${newStage}" என மாற்றுவதில் சிறு தடங்கல்: ${renameRes?.error || 'Folder not found'}`
+      };
+    }
   }
 
   return { error: `Unknown tool function: ${fnName}` };

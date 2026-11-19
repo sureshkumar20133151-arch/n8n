@@ -168,6 +168,85 @@ class GoogleDriveService {
     }
   }
 
+  async renameSiteFolder(siteName, oldStageName, newStageName) {
+    try {
+      const token = await this.getAccessToken();
+      const rootFolderId = '1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
+      
+      const siteFolder = await this.findFolder(siteName.trim(), rootFolderId);
+      if (!siteFolder) {
+        return { success: false, error: `Site folder "${siteName}" not found in Google Drive.` };
+      }
+
+      const oldClean = oldStageName.trim();
+      const newClean = newStageName.trim().replace(/\s+/g, '_');
+
+      // Search for folders under siteFolder
+      const q = `mimeType = 'application/vnd.google-apps.folder' and '${siteFolder.id}' in parents and trashed = false`;
+      const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,webViewLink)`;
+      const resData = await this._makeHttpRequest(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const parsed = JSON.parse(resData);
+      const targetFolder = (parsed.files || []).find(f => 
+        f.name.toLowerCase() === oldClean.toLowerCase() ||
+        f.name.toLowerCase() === oldClean.replace(/\s+/g, '_').toLowerCase() ||
+        f.name.toLowerCase().includes(oldClean.toLowerCase())
+      );
+
+      if (!targetFolder) {
+        return { success: false, error: `Folder matching "${oldStageName}" not found under ${siteName}.` };
+      }
+
+      // Rename the physical folder
+      const renameBody = JSON.stringify({ name: newClean });
+      await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files/${targetFolder.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(renameBody)
+        }
+      }, renameBody);
+
+      // Rename files inside folder
+      try {
+        const fileListRes = await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files?q='${targetFolder.id}'+in+parents+and+trashed=false&fields=files(id,name)`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const files = JSON.parse(fileListRes).files || [];
+        for (const f of files) {
+          if (f.name.includes(oldClean) || f.name.includes(oldClean.replace(/\s+/g, '_'))) {
+            const newFileName = f.name.replace(oldClean, newClean).replace(oldClean.replace(/\s+/g, '_'), newClean);
+            const patchBody = JSON.stringify({ name: newFileName });
+            await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files/${f.id}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(patchBody)
+              }
+            }, patchBody);
+          }
+        }
+      } catch (fileErr) {
+        console.warn('[renameSiteFolder] Error updating file names:', fileErr.message);
+      }
+
+      return {
+        success: true,
+        siteName,
+        oldStage: oldStageName,
+        newStage: newClean,
+        folderId: targetFolder.id,
+        folderUrl: `https://drive.google.com/drive/folders/${targetFolder.id}`
+      };
+    } catch (err) {
+      console.error('[renameSiteFolder] Error:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
   async uploadSitePhotoViaAppsScript(siteName, stage, fileName, imageBuffer) {
     const url = process.env.APPS_SCRIPT_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbwQvR4FHoG1abqy7pJDYlfAlkS1lcS0CNrFEPy9KwfOIjsJKTDYmdKIYI6DjqHWwrIa/exec';
     const payload = JSON.stringify({
