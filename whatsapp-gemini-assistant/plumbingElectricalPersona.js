@@ -349,9 +349,8 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const count = Number(args.photoCount) || 1;
     const dateStr = new Date().toISOString().split('T')[0];
 
-    const folderSlug = siteName.replace(/[^a-zA-Z0-9]/g, '_');
-    const stageSlug = stage.toLowerCase();
-    let driveFolderUrl = `https://drive.google.com/drive/folders/MEP_${folderSlug}_${stageSlug}`;
+    // Real Root Folder: "Arasan electrical & plumbing "
+    let driveFolderUrl = 'https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
     let uploadedFile = null;
     let localFilePath = null;
 
@@ -401,6 +400,13 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const photosList = loadPhotosArchive();
     photosList.unshift(newRecord);
     savePhotosArchive(photosList);
+
+    // Automatically append to live Google Sheet (Site_Photos_Log)
+    try {
+      googleDriveService.appendPhotoLogToSheet(newRecord);
+    } catch (sheetErr) {
+      console.warn('[PlumbingPersona] Google Sheet append warning:', sheetErr.message);
+    }
 
     const stageTamil = {
       'Roof_Concrete_Pipes': 'ரூஃப் கான்கிரீட் பைப்ஸ் (Roof Slab Piping)',
@@ -472,7 +478,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
 
     if (matches.length === 0) {
       const safeSite = args.siteName || 'Site';
-      const driveFolderUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(safeSite)}`;
+      const driveFolderUrl = 'https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
       return {
         success: true,
         foundCount: 0,

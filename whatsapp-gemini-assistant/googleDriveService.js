@@ -5,6 +5,15 @@ const fs = require('fs');
 
 const KEY_FILE = path.resolve(__dirname, 'google_drive_key.json');
 
+// Dedicated Google Service Account for Arasan Electrical & Plumbing Drive Automation
+const BUILTIN_SERVICE_ACCOUNT = {
+  type: "service_account",
+  project_id: "n8n-whatsapp-491418",
+  private_key_id: "1b6e755b09f93e559c9c26f0d828a5391b71a9bf",
+  private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDLJTy7VcTsk3Uj\nkHTk0imxEKAH8ktn8KAqLxo9BFmCc1A2St5M20hYkySB05r5Sy/yNE3aG7CHgpl1\nt5rHQnaZxyjjrUOu7mCQYEL0r5KMdAbi46OfgtlRklAKrYOpN//XGDr1M3gO9brM\nQsXDPANpotKqZ99t99BMP7jJ3Sn1tk2rBd91+sgNaC/CsGuV/OyLDYN+gcIm6Q+e\n4UHM3cMZlqWxmj2/huEN2+CU6Ow+n2yedlpFp3S2akD4znQOrAp5pOVqKpbTJV6g\nRgpneCz3mYBA7x7ZkCwKt1NY3NdvIBCYdFbOAzgBZ69bcMzXTibCinrkgxDiHvvN\n24OobXlhAgMBAAECggEADrEs68WVE6EfNd5tkzEJ9+GNGWtc0xx0O6jNcSqeiKXr\nYAnZJbOET3emNRzclqQT8ySfmXiAM29uxt9BD/aOxP9s8HkoWH9VYjZmu/NIxOS4\nAh0sSSM5sWxvYoj7E+LWG4ndQGejtWfwmx5HLErBBRj+uyP+ZPcpIaKdgZKqcA1J\naWo+qvwPYe/pftc6JmvCr6Ao4gs/qCV93dizSTcxsBlhhPep+G4hsLGiYG013Spz\n6t6wgPvi8B220Btw/Op9a7F6EcKm7qm5mSF4+c14KTOCzlOIHY126s7z3boRY8TD\nlcGoJK/qDqvDdbAZi+48lxA8/NnIOeXh9nO/c4KsmwKBgQDyGTzq95TvaG48dfYm\nS19+U+m/hXpoBB5MCPhsz1doPKB7CayBphOO9fc1niDapckLNT0J8oKYeKotRhJ6\naruid6tBq7kNuhh0Un+Nnxji8EmruEFL8DPgNdLaCS+fyuPd4HhY3cMw2NLcLw01\nVLvymg1SSfijdig54JjEzIYEnwKBgQDWz2b+a1QxKuNZx5keKXdpFODkKTLmjOoS\nQFp/o/oM39ai3ToZiD9GdFwCRLa3OfXNEC6byS41VMS8E3iXlVSasg3soIceydqS\nkBQFw9s3xdncu/h4JIP6Oaov8k4pb8hmG8FgzceG1ZhbAxOwWmh6yZfPWMcPEu5U\nl3+6eq3B/wKBgQDBrissFzHRbgxy1jQ8YqRc3ijsjY5l1JWgYrTL5/yXaZlBlXWq\nqwCOqHxDKuRBx8vU6ZyRbq/H5xDN83co9GZ0DaS2fvkm4DBcLvvYguVX+MAXXuru\nI5Z80tKCmEK/ZYNyp/ffsFpNo8jdWc8JUWajKVdq8760lvyLgQD2wGCfJQKBgQCe\nEez2V0CTFb5LOKeiHF10hBqhiveb1CIC4Dw4JRBCHQ0yt5yjYTE+xS1XtfzGg+4u\nwjOqC7bnI8PJqoJY+VhSpae9crs7msoug7tYKrHMLtmMpv3GWwiLP5fOxH1j3JAZ\nI19/vq2OuOruPitk4IJ1qJb/y5Jfs0ySDxG8xb3LPQKBgDgcYmpEAJNYPZamF+ze\n+w29wIm1L3RcYOuUT1jLQDbrTbqL1w2YxHtrX0AwjivNdzVj1p3yUMxymxt+xU/G\nKvj6FjbVWk3uDMcZimwtL6CuFzt8gXNq5u9LU/35hVLHCDeH4OsJxEBm3HvDNObM\nDLHEi3+IFD3PvSa9co4tD2zB\n-----END PRIVATE KEY-----\n",
+  client_email: "drive-automation@n8n-whatsapp-491418.iam.gserviceaccount.com"
+};
+
 class GoogleDriveService {
   constructor() {
     this.keyData = null;
@@ -22,10 +31,16 @@ class GoogleDriveService {
       }
       if (fs.existsSync(KEY_FILE)) {
         this.keyData = JSON.parse(fs.readFileSync(KEY_FILE, 'utf-8'));
-        console.log(`🔑 [GoogleDriveService] Loaded service account: ${this.keyData.client_email}`);
+        console.log(`🔑 [GoogleDriveService] Loaded service account from file: ${this.keyData.client_email}`);
+        return;
+      }
+      // Built-in fallback
+      if (BUILTIN_SERVICE_ACCOUNT && BUILTIN_SERVICE_ACCOUNT.private_key) {
+        this.keyData = BUILTIN_SERVICE_ACCOUNT;
+        console.log(`🔑 [GoogleDriveService] Loaded built-in service account: ${this.keyData.client_email}`);
       }
     } catch (e) {
-      console.warn(`[GoogleDriveService] Could not load key file:`, e.message);
+      console.warn(`[GoogleDriveService] Could not load key:`, e.message);
     }
   }
 
@@ -46,7 +61,7 @@ class GoogleDriveService {
     const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
     const claimSet = Buffer.from(JSON.stringify({
       iss: this.keyData.client_email,
-      scope: 'https://www.googleapis.com/auth/drive',
+      scope: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets',
       aud: 'https://oauth2.googleapis.com/token',
       exp: now + 3600,
       iat: now
@@ -150,6 +165,39 @@ class GoogleDriveService {
         folderId: null,
         webViewLink: `https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo`
       };
+    }
+  }
+
+  async appendPhotoLogToSheet(record) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const row = [
+        record.timestamp || new Date().toISOString(),
+        record.date || new Date().toISOString().split('T')[0],
+        record.siteName || 'Site',
+        record.workType || 'Roof Concrete Electrical Pipes',
+        'Arasan MEP Team',
+        record.loggedByChat || 'WhatsApp Group',
+        record.driveFolderUrl || 'https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo',
+        String(record.photoCount || 1),
+        record.notes || 'Site photo archive',
+        'Verified & Archived'
+      ];
+      const appendBody = JSON.stringify({ values: [row] });
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Photos_Log!A:J:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+      console.log('📊 [GoogleSheet] Appended site photo log to sheet:', record.siteName);
+      return JSON.parse(res);
+    } catch (e) {
+      console.warn('[GoogleSheet] Error appending to sheet:', e.message);
+      return null;
     }
   }
 
