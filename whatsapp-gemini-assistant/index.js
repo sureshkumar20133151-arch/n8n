@@ -413,11 +413,16 @@ async function connectToWhatsApp() {
 
           const body = textMessage.trim();
 
-          // 4. In self-chat, ensure we never respond to our own bot reply text echoes
+          // 4. Infinite Loop & Echo Guard: Never respond to our own bot replies or echoes
           if (isFromMe && body) {
             const recent = recentBotReplies.get(remoteJid);
             if (recent && recent.text === body && (Date.now() - recent.timestamp) < 60000) {
-              console.log(`🛡️ [Self-Loop Guard] Discarded bot reply echo in self-chat (${remoteJid}).`);
+              console.log(`🛡️ [Self-Loop Guard] Discarded bot reply echo (${remoteJid}).`);
+              continue;
+            }
+            // Strict content signature check to prevent any self-reply loop in groups
+            if (body.startsWith('📋 *அரசன்') || body.startsWith('📸 *') || body.includes('அரசன் எலக்ட்ரிக்கல் & பிளம்பிங்') || body.startsWith('✅ *')) {
+              console.log(`🛡️ [Self-Loop Guard] Discarded bot's own formatted reply from group (${remoteJid}).`);
               continue;
             }
           }
