@@ -361,12 +361,26 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
           driveFolderUrl = driveFolder.webViewLink;
         }
 
-        // Save high-resolution physical photo to local media vault
-        if (media && media.data && media.isImage) {
+        // Save high-resolution physical photo to local media vault & upload to Suresh's 5 TB Google Drive
+        if (media && media.data) {
           try {
             const imageBuffer = Buffer.from(media.data, 'base64');
             const cleanSite = siteName.replace(/[^a-zA-Z0-9]/g, '_');
             const fileName = `${cleanSite}_${stage}_${dateStr}_${Date.now()}.jpg`;
+
+            // 1. Direct upload to Google Drive via Apps Script Web App
+            try {
+              const uploadRes = await googleDriveService.uploadSitePhotoViaAppsScript(siteName, stage, fileName, imageBuffer);
+              if (uploadRes && uploadRes.success) {
+                if (uploadRes.folderUrl) driveFolderUrl = uploadRes.folderUrl;
+                if (uploadRes.fileUrl) uploadedFile = { webViewLink: uploadRes.fileUrl, id: uploadRes.fileId };
+                console.log(`☁️ [Drive Upload Success] File: ${uploadRes.fileUrl}`);
+              }
+            } catch (appsScriptErr) {
+              console.warn('[PlumbingPersona] Apps Script upload warning:', appsScriptErr.message);
+            }
+
+            // 2. Local media vault backup
             const mediaDir = path.resolve(__dirname, 'data', 'site_media');
             if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
             localFilePath = path.resolve(mediaDir, fileName);

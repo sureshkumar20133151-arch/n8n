@@ -168,6 +168,73 @@ class GoogleDriveService {
     }
   }
 
+  async uploadSitePhotoViaAppsScript(siteName, stage, fileName, imageBuffer) {
+    const url = process.env.APPS_SCRIPT_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbwQvR4FHoG1abqy7pJDYlfAlkS1lcS0CNrFEPy9KwfOIjsJKTDYmdKIYI6DjqHWwrIa/exec';
+    const payload = JSON.stringify({
+      siteName,
+      stage,
+      fileName,
+      imageBase64: imageBuffer.toString('base64')
+    });
+
+    return new Promise((resolve) => {
+      try {
+        const parsed = new URL(url);
+        const req = https.request({
+          hostname: parsed.hostname,
+          path: parsed.pathname + parsed.search,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload)
+          }
+        }, res => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            https.get(res.headers.location, rRes => {
+              let rBody = '';
+              rRes.on('data', d => rBody += d);
+              rRes.on('end', () => {
+                try {
+                  const parsed = JSON.parse(rBody);
+                  console.log('☁️ [GoogleAppsScript] Uploaded image to Drive:', parsed.fileUrl || parsed.folderUrl);
+                  resolve(parsed);
+                } catch(e) {
+                  resolve({ success: false, error: rBody });
+                }
+              });
+            }).on('error', err => {
+              console.warn('[AppsScript Redirect Error]:', err.message);
+              resolve({ success: false, error: err.message });
+            });
+            return;
+          }
+
+          let body = '';
+          res.on('data', d => body += d);
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(body);
+              resolve(parsed);
+            } catch(e) {
+              resolve({ success: false, error: body });
+            }
+          });
+        });
+
+        req.on('error', err => {
+          console.warn('[AppsScript Request Error]:', err.message);
+          resolve({ success: false, error: err.message });
+        });
+
+        req.write(payload);
+        req.end();
+      } catch (err) {
+        console.warn('[AppsScript Error]:', err.message);
+        resolve({ success: false, error: err.message });
+      }
+    });
+  }
+
   async appendPhotoLogToSheet(record) {
     try {
       const token = await this.getAccessToken();
