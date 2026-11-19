@@ -264,7 +264,7 @@ async function connectToWhatsApp() {
       printQRInTerminal: false,
       browser: Browsers.macOS('Desktop'),
       syncFullHistory: false,
-      keepAliveIntervalMs: 25000,
+      keepAliveIntervalMs: 15000,
       defaultQueryTimeoutMs: 60000,
       connectTimeoutMs: 60000
     });
@@ -294,7 +294,7 @@ async function connectToWhatsApp() {
         latestQrDataUrl = null;
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        const shouldReconnect = !isLoggedOut;
         currentStatus = `Connection closed (Code: ${statusCode}). Reconnecting: ${shouldReconnect}`;
         console.log(`⚠️ Connection closed (Code: ${statusCode}), isLoggedOut: ${isLoggedOut}, reconnecting: ${shouldReconnect}`);
 
@@ -307,14 +307,10 @@ async function connectToWhatsApp() {
           currentStatus = 'Session logged out. Clearing old credentials and generating new QR code...';
           clearAuthSession();
           setTimeout(connectToWhatsApp, 1500);
-        } else if (shouldReconnect) {
-          currentStatus = `Reconnecting to WhatsApp (Code: ${statusCode || 'unknown'})...`;
-          setTimeout(connectToWhatsApp, 3000);
         } else {
-          console.log('⚠️ Disconnected. Resetting session to generate fresh QR...');
-          currentStatus = 'Disconnected. Resetting and generating new QR code...';
-          clearAuthSession();
-          setTimeout(connectToWhatsApp, 2000);
+          currentStatus = `Reconnecting to WhatsApp (Code: ${statusCode || 'unknown'})...`;
+          console.log(`🔄 Transient disconnect (Code: ${statusCode || 'unknown'}). Reconnecting in 3s...`);
+          setTimeout(connectToWhatsApp, 3000);
         }
       } else if (connection === 'open') {
         isClientReady = true;
@@ -489,15 +485,37 @@ async function connectToWhatsApp() {
 
           const modeIntentEarly = detectModeSwitchIntent(body);
 
+          // Check if message quotes the bot or @mentions the bot in a group
+          const contextInfo = innerMsg.extendedTextMessage?.contextInfo ||
+            innerMsg.imageMessage?.contextInfo ||
+            innerMsg.videoMessage?.contextInfo ||
+            innerMsg.audioMessage?.contextInfo;
+
+          const myJid = sock.user?.id || '';
+          const myDigits = myJid.replace(/\D/g, '').slice(0, 10);
+
+          const isQuotingBot = Boolean(
+            contextInfo?.quotedMessage && (
+              (contextInfo.stanzaId && sentByBotIds.has(contextInfo.stanzaId)) ||
+              (myDigits && contextInfo.participant && contextInfo.participant.includes(myDigits))
+            )
+          );
+
+          const isMentioningBot = Boolean(
+            contextInfo?.mentionedJid &&
+            myDigits &&
+            contextInfo.mentionedJid.some(j => j.includes(myDigits))
+          );
+
           // Decide whether to reply
           if (isGroup) {
             if (!enableGroups && !modeIntentEarly) continue;
             
-            // Smart MEP Group Bypass: In plumber mode, auto-reply to site photos, audio voice notes, or site/worker queries
+            // Smart MEP Group Bypass: In plumber mode, auto-reply to site photos, audio voice notes, quotes to bot, mentions, or site/worker/chat queries
             const activeMode = personaManager.getActiveMode();
             const isPlumberMode = (activeMode === 'plumber');
-            const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|வேலை|விவரம்|லிஸ்ட்|டிரைவ்|கூகுள்|ஷீட்|லிங்க்|ஃபோல்டர்|அப்டேட்|ஸ்டேட்டஸ்|செக்|அரசன்|photo|pipe|plumb|electr|roof|concrete|chasing|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|details|list|drive|google|sheet|link|folder|update|status|check|add|added|arasan|mep/i.test(body);
-            const allowGroupBypass = isPlumberMode && (Boolean(mediaPayload) || hasPlumbingKeyword);
+            const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|படங்கள்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|எலக்ட்ரிக்கல்|ஒயரிங்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|சுவர்|தரை|டைல்ஸ்|டிரைனேஜ்|சேம்பர்|மெயின்\s*டிபி|எர்திங்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|தொழிலாளி|வேலை|விவரம்|விபரம்|லிஸ்ட்|டிரைவ்|கூகுள்|ஷீட்|லிங்க்|ஃபோல்டர்|அப்டேட்|ஸ்டேட்டஸ்|செக்|அரசன்|சாட்|பழைய|மெசேஜ்|படி|காட்டு|அனுப்பு|உதவி|எப்படி|என்ன|எங்கே|photo|pic|picture|pipe|plumb|electr|wir|roof|concrete|slab|chasing|wall|floor|tile|bath|drain|sewage|chamber|main\s*db|earth|mcb|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|phone|mobile|number|details|list|drive|google|sheet|link|folder|update|status|check|add|added|save|saved|store|stored|record|archive|doc|file|arasan|mep|chat|chats|old|history|read|view|send|show|tell|help|how|what|where|who|can\s*u|can\s*you|able|super/i.test(body);
+            const allowGroupBypass = isPlumberMode && (Boolean(mediaPayload) || isQuotingBot || isMentioningBot || hasPlumbingKeyword);
 
             if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly && !allowGroupBypass) continue;
           } else {
@@ -1463,16 +1481,16 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // 24/7 Keep-Alive Self-Ping (Prevents Render Free Tier from going to sleep after 15m)
   const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || 'https://whatsapp-assistant-iqpi.onrender.com';
-  console.log(`⏰ Starting 24/7 Keep-Alive monitor for ${keepAliveUrl} (Every 8 minutes)`);
+  console.log(`⏰ Starting 24/7 Keep-Alive monitor for ${keepAliveUrl} (Every 3 minutes)`);
   setInterval(() => {
     try {
       const client = keepAliveUrl.startsWith('https') ? https : http;
-      client.get(`${keepAliveUrl}/healthz`, (res) => {
+      client.get(`${keepAliveUrl}/healthz`, { timeout: 10000 }, (res) => {
         // Resets Render idle timer and releases socket
         res.resume();
       }).on('error', () => {
         // Ignore errors during spin-up
       });
     } catch (e) {}
-  }, 8 * 60 * 1000);
+  }, 3 * 60 * 1000);
 });
