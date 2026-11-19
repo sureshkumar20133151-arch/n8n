@@ -247,6 +247,108 @@ class GoogleDriveService {
     }
   }
 
+  async fetchLatestSitePhotoFromDrive(siteQuery, stageQuery = 'All') {
+    try {
+      const token = await this.getAccessToken();
+      const rootId = '1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
+
+      // 1. Find site folder matching siteQuery
+      const listRes = await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files?q='${rootId}'+in+parents+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false&fields=files(id,name,webViewLink)`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const folders = JSON.parse(listRes).files || [];
+      const cleanSite = (siteQuery || '').trim().toLowerCase();
+      const targetSite = folders.find(f => {
+        const name = f.name.toLowerCase();
+        return name.includes(cleanSite) || cleanSite.includes(name);
+      });
+
+      if (!targetSite) {
+        console.log(`[fetchLatestSitePhotoFromDrive] Site "${siteQuery}" not found among folders:`, folders.map(f => f.name));
+        return null;
+      }
+
+      // 2. Find subfolders & images
+      const subRes = await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files?q='${targetSite.id}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,webViewLink)`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const children = JSON.parse(subRes).files || [];
+
+      let targetFile = null;
+      let stageName = 'General_Work';
+      let stageFolderLink = targetSite.webViewLink || `https://drive.google.com/drive/folders/${targetSite.id}`;
+
+      // Check subfolders matching stageQuery
+      const subfolders = children.filter(c => c.mimeType === 'application/vnd.google-apps.folder');
+      for (const sub of subfolders) {
+        if (stageQuery && stageQuery !== 'all' && stageQuery !== 'general') {
+          const matchStage = sub.name.toLowerCase().includes(stageQuery.toLowerCase());
+          if (!matchStage) continue;
+        }
+        const imgRes = await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files?q='${sub.id}'+in+parents+and+mimeType+contains+'image/'+and+trashed=false&fields=files(id,name,createdTime,webViewLink)&orderBy=createdTime+desc`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const imgs = JSON.parse(imgRes).files || [];
+        if (imgs.length > 0) {
+          targetFile = imgs[0];
+          stageName = sub.name;
+          stageFolderLink = sub.webViewLink || `https://drive.google.com/drive/folders/${sub.id}`;
+          break;
+        }
+      }
+
+      // If no image found in specific subfolder, search all subfolders
+      if (!targetFile) {
+        for (const sub of subfolders) {
+          const imgRes = await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files?q='${sub.id}'+in+parents+and+mimeType+contains+'image/'+and+trashed=false&fields=files(id,name,createdTime,webViewLink)&orderBy=createdTime+desc`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const imgs = JSON.parse(imgRes).files || [];
+          if (imgs.length > 0) {
+            targetFile = imgs[0];
+            stageName = sub.name;
+            stageFolderLink = sub.webViewLink || `https://drive.google.com/drive/folders/${sub.id}`;
+            break;
+          }
+        }
+      }
+
+      if (!targetFile) {
+        return null;
+      }
+
+      // 3. Download binary to local cache
+      const mediaDir = path.resolve(__dirname, 'data', 'site_media');
+      if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
+      const localPath = path.join(mediaDir, targetFile.name);
+
+      await new Promise((resolve, reject) => {
+        const fileStream = fs.createWriteStream(localPath);
+        https.get(`https://www.googleapis.com/drive/v3/files/${targetFile.id}?alt=media`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }, res => {
+          res.pipe(fileStream);
+          fileStream.on('finish', () => {
+            fileStream.close();
+            resolve();
+          });
+        }).on('error', reject);
+      });
+
+      console.log(`📸 [Live Drive Download] Downloaded ${targetFile.name} (${fs.statSync(localPath).size} bytes) for ${targetSite.name}`);
+      return {
+        siteName: targetSite.name,
+        stage: stageName,
+        fileName: targetFile.name,
+        localFilePath: localPath,
+        driveFolderUrl: stageFolderLink
+      };
+    } catch (err) {
+      console.warn('[fetchLatestSitePhotoFromDrive] Error:', err.message);
+      return null;
+    }
+  }
+
   async uploadSitePhotoViaAppsScript(siteName, stage, fileName, imageBuffer) {
     const url = process.env.APPS_SCRIPT_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbwQvR4FHoG1abqy7pJDYlfAlkS1lcS0CNrFEPy9KwfOIjsJKTDYmdKIYI6DjqHWwrIa/exec';
     const payload = JSON.stringify({

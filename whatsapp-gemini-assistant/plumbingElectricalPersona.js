@@ -13,6 +13,7 @@ const LABORERS_FILE = path.resolve(DATA_DIR, 'laborers_list.json');
 
 // Memory queue for on-demand image dispatch to WhatsApp
 const queuedImages = new Map();
+let lastActiveSiteName = 'Ponmeni';
 
 function queueImage(chatId, filePath, caption) {
   queuedImages.set(chatId, { filePath, caption });
@@ -332,9 +333,9 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
 
 2. **INSTANT ON-DEMAND PHOTO RETRIEVAL (போட்டோக்கள் தேவைப்படும்போது):**
    - Whenever ANYONE in the WhatsApp Group (Laborer, Mason, Supervisor, Client, or Owner) or in DM asks:
-     * e.g., "ராம் நகர் பாத்ரூம் பிளம்பிங் போட்டோஸ் அனுப்பு", "கான்கிரீட் பைப் போட்டோஸ் வேணும்", "Send plumbing pictures for Anna Nagar".
-     * Call the \`fetchSitePhotos\` tool immediately.
-     * Reply with the direct Google Drive photo access folder link, summary of photos on file, and confirmation that images are being dispatched.
+     * e.g., "Send picture not link", "ராம் நகர் பாத்ரூம் பிளம்பிங் போட்டோஸ் அனுப்பு", "Send photo of Ponmeni", "Send Ramnad concrete pipe photo", "HMS Colony photo".
+     * You MUST ALWAYS call the \`fetchSitePhotos\` tool immediately with the siteName!
+     * NEVER say "I cannot send images" or "no photos found" without calling \`fetchSitePhotos\`. Calling this tool automatically connects to Google Drive live, downloads the high-resolution photo file, and dispatches the actual image directly into WhatsApp!
 
 3. **10-MEMBER LABORERS / WORKERS DIRECTORY:**
    - Whenever anyone asks for the laborer list ("லேபர்ஸ் லிஸ்ட்", "பிளம்பர் நம்பர் கொடு", "எலக்ட்ரீசியன் யார்"):
@@ -371,6 +372,9 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
   // 1. Log Site Photos
   if (fnName === 'logSitePhotos') {
     const siteName = args.siteName || 'General Site';
+    if (siteName && siteName !== 'General Site') {
+      lastActiveSiteName = siteName;
+    }
     const stage = args.stage || 'General_Work';
     const workType = args.workType || 'Both';
     const notes = args.notes || 'Site progress photo upload';
@@ -468,7 +472,13 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
 
   // 2. Fetch Site Photos
   if (fnName === 'fetchSitePhotos') {
-    const rawSite = (args.siteName || '').toLowerCase().trim();
+    let siteNameParam = (args.siteName || '').trim();
+    if (!siteNameParam || siteNameParam.toLowerCase() === 'site' || siteNameParam.toLowerCase() === 'all' || siteNameParam.toLowerCase() === 'current') {
+      siteNameParam = lastActiveSiteName;
+    } else {
+      lastActiveSiteName = siteNameParam;
+    }
+    const rawSite = siteNameParam.toLowerCase().trim();
     const stageQuery = (args.stage || 'All').toLowerCase().trim();
 
     const photosList = loadPhotosArchive();
@@ -518,34 +528,38 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       return true;
     });
 
-    if (matches.length === 0) {
-      const safeSite = args.siteName || 'Site';
-      const driveFolderUrl = 'https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
+    // 2. If not found in local memory or local file doesn't exist on disk, fetch live from Google Drive!
+    let latest = matches[0];
+    if (!latest || !latest.localFilePath || !fs.existsSync(latest.localFilePath)) {
+      console.log(`☁️ [Drive Live Fetch] Querying Google Drive directly for "${args.siteName || rawSite}" (${stageQuery})...`);
+      const drivePhoto = await googleDriveService.fetchLatestSitePhotoFromDrive(args.siteName || rawSite, stageQuery);
+      if (drivePhoto && drivePhoto.localFilePath && fs.existsSync(drivePhoto.localFilePath)) {
+        latest = drivePhoto;
+      }
+    }
+
+    if (latest && latest.localFilePath && fs.existsSync(latest.localFilePath)) {
+      queueImage(chatId, latest.localFilePath, `📸 ${latest.siteName} (${latest.stage})`);
+      const folderUrl = latest.driveFolderUrl || 'https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
       return {
         success: true,
-        foundCount: 0,
-        siteName: args.siteName,
-        driveFolderUrl,
-        messageTamil: `📂 *${args.siteName}* சைட் போட்டோக்கள் தேடப்பட்டன.\n\n📁 *நேரடி Google Drive லிங்க்:* ${driveFolderUrl}\n_குறிப்பு: புதிய போட்டோக்கள் அப்லோட் செய்யப்பட்டவுடன் உடனடியாக வாட்ஸ்அப்பில் அனுப்பப்படும்._`
+        foundCount: 1,
+        siteName: latest.siteName,
+        stage: latest.stage,
+        driveFolderUrl: folderUrl,
+        notes: latest.notes || 'Site progress photo',
+        messageTamil: `📸 *${latest.siteName} (${latest.stage}) - சைட் போட்டோ தயார்!*\n\n📁 *Google Drive Folder:* ${folderUrl}\n\n_உடனடியாக வாட்ஸ்அப் குரூப்பில் அசல் போட்டோ அனுப்பப்படுகிறது..._`
       };
     }
 
-    const latest = matches[0];
-    if (latest && latest.localFilePath && fs.existsSync(latest.localFilePath)) {
-      queueImage(chatId, latest.localFilePath, `📸 ${latest.siteName} (${latest.stage})`);
-    }
-    const allMatchesSummary = matches.slice(0, 3).map((m, idx) => 
-      `*${idx + 1}. ${m.siteName}*\n   🛠️ பிரிவு: ${m.stage}\n   📅 தேதி: ${m.date} (${m.photoCount || 1} போட்டோக்கள்)\n   📝 விபரம்: ${m.notes}\n   📁 Drive: ${m.driveFolderUrl}`
-    ).join('\n\n');
-
+    const safeSite = args.siteName || 'Site';
+    const driveFolderUrl = 'https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
     return {
-      success: true,
-      foundCount: matches.length,
-      siteName: latest.siteName,
-      stage: latest.stage,
-      driveFolderUrl: latest.driveFolderUrl,
-      notes: latest.notes,
-      messageTamil: `📸 *${latest.siteName} - சைட் ஆய்வு போட்டோக்கள் தயார்!*\n\n${allMatchesSummary}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📁 *முழுமையான ஹை-ரெசல்யூஷன் Google Drive ஆல்பம்:* ${latest.driveFolderUrl}\n_அரசு மற்றும் சைட் ஓனர் ஆய்விற்காக அனைத்து அசல் போட்டோக்களும் பாதுகாப்பாகப் பதிவு செய்யப்பட்டுள்ளன._`
+      success: false,
+      foundCount: 0,
+      siteName: args.siteName,
+      driveFolderUrl,
+      messageTamil: `📂 *${args.siteName}* சைட் போட்டோக்கள் Google Drive-ல் தேடப்பட்டன.\n\n📁 *நேரடி Google Drive லிங்க்:* ${driveFolderUrl}\n_குறிப்பு: புதிய போட்டோக்கள் அப்லோட் செய்யப்பட்டவுடன் உடனடியாக வாட்ஸ்அப்பில் அனுப்பப்படும்._`
     };
   }
 
