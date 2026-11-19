@@ -200,6 +200,14 @@ function detectModeSwitchIntent(rawText) {
     return { target: 'dev' };
   }
 
+  if (
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:plumber|plumbing|electrical|electrician|mep|pipes)/i.test(cleaned) ||
+    /(?:plumber|plumbing|electrical|electrician|mep)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(plumber\s*mode|plumbing\s*mode|electrical\s*mode|mep\s*mode)$/i.test(cleaned)
+  ) {
+    return { target: 'plumber' };
+  }
+
   return null;
 }
 
@@ -478,7 +486,14 @@ async function connectToWhatsApp() {
           // Decide whether to reply
           if (isGroup) {
             if (!enableGroups && !modeIntentEarly) continue;
-            if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly) continue;
+            
+            // Smart MEP Group Bypass: In plumber mode, auto-reply to site photos, audio voice notes, or site/worker queries
+            const activeMode = personaManager.getActiveMode();
+            const isPlumberMode = (activeMode === 'plumber');
+            const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|லேபர்|லேபர்ஸ்|ஆட்கள்|photo|pipe|plumb|electr|roof|concrete|chasing|labor|worker|site/i.test(body);
+            const allowGroupBypass = isPlumberMode && (Boolean(mediaPayload) || hasPlumbingKeyword);
+
+            if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly && !allowGroupBypass) continue;
           } else {
             // Live Dashboard Toggle: Pause WhatsApp AI Auto-Reply when turned OFF (owner mode switch still allowed)
             if (!modeIntentEarly && !channelControls.isWhatsappEnabled()) {
@@ -576,6 +591,19 @@ async function connectToWhatsApp() {
             // Send message safely using sendBotMessage
             await sendBotMessage(sock, replyJid, { text: reply }, quoteOption);
             console.log(`✅ [Gemini] Reply sent to ${senderName} (${replyJid})!\n`);
+
+            // If an on-demand site photo was requested and queued, dispatch the image file directly to WhatsApp!
+            try {
+              const { getQueuedImage } = require('./plumbingElectricalPersona');
+              const queuedImg = getQueuedImage(replyJid) || getQueuedImage(remoteJid);
+              if (queuedImg && queuedImg.filePath && fs.existsSync(queuedImg.filePath)) {
+                const imgBuf = fs.readFileSync(queuedImg.filePath);
+                await sendBotMessage(sock, replyJid, { image: imgBuf, caption: queuedImg.caption || '📸 சைட் போட்டோ' }, quoteOption);
+                console.log(`🖼️ [Photo Dispatched to WhatsApp] Sent: ${queuedImg.filePath} to ${replyJid}`);
+              }
+            } catch (imgDispatchErr) {
+              console.warn('[Photo Dispatch] Warning:', imgDispatchErr.message);
+            }
           } finally {
             activeChatLocks.delete(remoteJid);
           }

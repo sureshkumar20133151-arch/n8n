@@ -11,6 +11,10 @@ meta_whatsapp_credentials.json
 .env*
 .baileys_auth/
 **/cred_data.json
+*key.json
+**/*key.json
+google_drive_key.json
+**/google_drive_key.json
 
 
 # Temporary image scratch files

@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "name": "Muthuvel (முத்துவேல்)",
+    "role": "Head Plumber (தலைமை பிளம்பர்)",
+    "skill": "PPR / CPVC / Concealed Diverter Piping",
+    "phone": "+91 98421 11001",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "Anna Nagar Villa"
+  },
+  {
+    "id": 2,
+    "name": "Senthil Kumar (செந்தில் குமார்)",
+    "role": "Senior Electrician (சீனியர் எலக்ட்ரீசியன்)",
+    "skill": "3-Phase DB / Conduit / Concealed Wiring",
+    "phone": "+91 98421 11002",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "Ram Nagar Site"
+  },
+  {
+    "id": 3,
+    "name": "Murugan (முருகன்)",
+    "role": "Wall Chasing Specialist (கார்டி & பாக்ஸ் ஸ்பெஷலிஸ்ட்)",
+    "skill": "Chaser Machine / Brick Cutting / Concealed Box Fixing",
+    "phone": "+91 98421 11003",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "Ram Nagar Site"
+  },
+  {
+    "id": 4,
+    "name": "Karthi (கார்த்தி)",
+    "role": "Plumbing Pipe Fitter (பிளம்பிங் ஃபிட்டர்)",
+    "skill": "PVC Drainage & Rainwater Line / Manhole Connection",
+    "phone": "+91 98421 11004",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "K.Pudur Commercial"
+  },
+  {
+    "id": 5,
+    "name": "Velu (வேலு)",
+    "role": "Roof Conduit Layer (ரூஃப் ஸ்லாப் கான்கிரீட் பைப்)",
+    "skill": "Slab Electrical Conduit / Fan Box Tying / Wire Guiding",
+    "phone": "+91 98421 11005",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "Anna Nagar Villa"
+  },
+  {
+    "id": 6,
+    "name": "Ramu (ராமு)",
+    "role": "Bathroom Plumbing Technician (பாத்ரூம் ஃபிட்டிங்)",
+    "skill": "Wall Concealed Mixer / Wall Hung EWC / Water Heater Line",
+    "phone": "+91 98421 11006",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "Selvapuram House"
+  },
+  {
+    "id": 7,
+    "name": "Dinesh (தினேஷ்)",
+    "role": "Wireman (வயர்மேன்)",
+    "skill": "Cable Pulling / Inverter Line / Earthing Pit",
+    "phone": "+91 98421 11007",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "Selvapuram House"
+  },
+  {
+    "id": 8,
+    "name": "Saravanan (சரவணன்)",
+    "role": "Chasing & Plaster Assistant (கார்டி ஹெல்பர்)",
+    "skill": "Grooving / Pipe Clamping / Cement Patching",
+    "phone": "+91 98421 11008",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "Ram Nagar Site"
+  },
+  {
+    "id": 9,
+    "name": "Pandian (பாண்டியன்)",
+    "role": "Senior Site Supervisor (சைட் சூப்பர்வைசர்)",
+    "skill": "Material Inspection / Daily Labour Attendance / Quality Check",
+    "phone": "+91 98421 11009",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "All Sites (Madurai)"
+  },
+  {
+    "id": 10,
+    "name": "Mani (மணி)",
+    "role": "Helper / Material Handler (ஹெல்பர் / லோடு மேன்)",
+    "skill": "Pipe & Wire Unloading / Tool Maintenance / Cleaning",
+    "phone": "+91 98421 11010",
+    "status": "Active (ஆன்-சைட்)",
+    "assignedSite": "K.Pudur Commercial"
+  }
+]

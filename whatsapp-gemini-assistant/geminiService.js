@@ -12,6 +12,7 @@ const personaManager = require('./personaManager');
 const { WHOLESALE_TOOLS, buildWholesaleSystemPrompt, executeWholesaleToolCall } = require('./wholesalePersona');
 const { RESTAURANT_TOOLS, buildRestaurantSystemPrompt, executeRestaurantToolCall } = require('./restaurantPersona');
 const { BUILDER_TOOLS, buildBuilderSystemPrompt, executeBuilderToolCall } = require('./builderPersona');
+const { PLUMBING_ELECTRICAL_TOOLS, buildPlumbingElectricalSystemPrompt, executePlumbingElectricalToolCall } = require('./plumbingElectricalPersona');
 const builderCustomerMemory = require('./builderCustomerMemory');
 
 const LEAD_TOOLS = [{
@@ -330,6 +331,8 @@ class GeminiService {
       base = buildRestaurantSystemPrompt(chatId);
     } else if (mode === 'builder') {
       base = buildBuilderSystemPrompt();
+    } else if (mode === 'plumber') {
+      base = buildPlumbingElectricalSystemPrompt();
     } else {
       base = buildSystemPrompt();
     }
@@ -360,6 +363,9 @@ class GeminiService {
     }
     if (mode === 'builder') {
       return BUILDER_TOOLS;
+    }
+    if (mode === 'plumber') {
+      return PLUMBING_ELECTRICAL_TOOLS;
     }
     return isOwner ? OWNER_TOOLS : LEAD_TOOLS;
   }
@@ -600,7 +606,7 @@ class GeminiService {
   /**
    * Execute a single function call triggered by Gemini AI
    */
-  async executeToolCall(fnCall, chatId, cleanId, isOwner = false, overrideMode = null) {
+  async executeToolCall(fnCall, chatId, cleanId, isOwner = false, overrideMode = null, media = null) {
     const fnName = fnCall.name;
     const args = fnCall.args || {};
     const mode = overrideMode || personaManager.getActiveMode();
@@ -615,6 +621,10 @@ class GeminiService {
 
     if (mode === 'builder') {
       return await executeBuilderToolCall(fnCall, chatId);
+    }
+
+    if (mode === 'plumber') {
+      return await executePlumbingElectricalToolCall(fnCall, chatId, media);
     }
 
     if (fnName === 'saveLeadDetails') {
@@ -1036,7 +1046,7 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
         const toolResults = [];
         for (const fnCall of currentCalls) {
           console.log(`  ↪ Executing tool: ${fnCall.name}`);
-          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner, mode);
+          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner, mode, media);
           toolResults.push({ fnCall, result });
         }
 

@@ -44,6 +44,16 @@ const PERSONAS = {
     badge: 'Default Developer Mode',
     icon: '💻',
     switchMessage: '✅ *Switched!* Mode is now active: 💻 *Suresh Kumar SoloDeveloper.pro Sales Operating System*.\n• Hormozi 3-Way Qualification, Proposal Engine & Demo Booking active.\nReady for web & AI automation prospects!'
+  },
+  plumber: {
+    id: 'plumber',
+    name: 'Arasan Electrical & Plumbing Site Assistant',
+    client: 'Arasan Electrical & Plumbing Works',
+    proprietor: 'Arasan Team / Suresh',
+    tagline: 'Site Photo Vault (Roof Concrete & Wall Chasing) • 10-Laborers Dispatch • Group & DM On-Demand Access',
+    badge: 'Electrical & Plumbing Mode',
+    icon: '⚡🔧',
+    switchMessage: '✅ *Switched!* Mode is now active: ⚡🔧 *Arasan Electrical & Plumbing Site Assistant*.\n• Site photo archiving (Roof Concrete pipes, Wall Chasing/கார்டி, Bathroom plumbing) active.\n• 10 Laborers directory & auto-dispatch ready.\n• Group & DM on-demand photo retrieval active!'
   }
 };
 
@@ -122,12 +132,14 @@ class PersonaManager {
       selectedKey = 'builder';
     } else if (normalized === 'dev' || normalized === 'developer' || normalized === 'sales' || normalized === 'suresh' || normalized === 'solodeveloper') {
       selectedKey = 'dev';
+    } else if (normalized === 'plumber' || normalized === 'plumbing' || normalized === 'electrical' || normalized === 'electrician' || normalized === 'mep' || normalized === 'pipes') {
+      selectedKey = 'plumber';
     }
 
     if (!selectedKey || !PERSONAS[selectedKey]) {
       return {
         success: false,
-        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev.`
+        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev, plumber.`
       };
     }
 
@@ -152,6 +164,7 @@ class PersonaManager {
       `• *Client / Business:* ${p.client}\n` +
       `• *Specialty:* ${p.tagline}\n\n` +
       `*Switch commands anytime:*\n` +
+      `👉 \`!mode plumber\` ➔ Electrical & Plumbing Site Photos & Laborers\n` +
       `👉 \`!mode wholesale\` ➔ Annamaliyar Oil Store (Stock & Box Rates)\n` +
       `👉 \`!mode restaurant\` ➔ Taj Hotel Biryani (Pre-Orders & Tokens)\n` +
       `👉 \`!mode dev\` ➔ SoloDeveloper.pro (Web & AI Automation Sales)`;

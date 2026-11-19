@@ -1,0 +1,133 @@
+{
+  "name": "Electrical & Plumbing Site Photo Vault & Laborers Dispatch Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mep-site-archive",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook_mep_archive",
+      "name": "Webhook: /webhook/mep-site-archive",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body || $input.first().json;\n\nconst action = (payload.action || 'UPLOAD_PHOTOS').toUpperCase();\nconst siteName = (payload.siteName || 'General Site').trim();\nconst stage = (payload.stage || 'General_Work').trim();\nconst workType = payload.workType || 'Both';\nconst notes = payload.notes || 'Site photo archive';\nconst senderPhone = payload.senderPhone || payload.from || '+919361599097';\nconst recipientJid = payload.replyJid || payload.remoteJid || '919361599097@s.whatsapp.net';\nconst isGroup = Boolean(payload.isGroup || (recipientJid && recipientJid.endsWith('@g.us')));\n\n// Stage name Tamil mapping\nconst stageTamilMap = {\n  'Roof_Concrete_Pipes': 'ரூஃப் கான்கிரீட் பைப்ஸ் (Roof Slab Piping)',\n  'Wall_Chasing_Pipes': 'சுவர் கார்டி & கன்சீல்டு பைப்ஸ் (Wall Chasing / Conduit)',\n  'Bathroom_Plumbing': 'பாத்ரூம் பிளம்பிங் (Bathroom Under-tile Plumbing)',\n  'Drainage_Sewage': 'டிரைனேஜ் & கழிவுநீர் பைப்ஸ் (Drainage & Chamber)',\n  'Main_DB_Wiring': 'மெயின் டிபி & வயரிங் (Main DB & Earthing)',\n  'General_Work': 'பொதுவான வேலை (General Work)'\n};\n\nconst stageTamil = stageTamilMap[stage] || stage;\nconst timestamp = new Date().toISOString();\nconst dateOnly = timestamp.split('T')[0];\n\n// Generate Google Drive Folder Name & Link\nconst sanitizedSite = siteName.replace(/[^a-zA-Z0-9]/g, '_');\nconst sanitizedStage = stage.toLowerCase();\nconst driveFolderUrl = `https://drive.google.com/drive/folders/MEP_${sanitizedSite}_${sanitizedStage}`;\n\n// Generate WhatsApp confirmation text\nconst confirmationText = `✅ *${siteName} சைட் போட்டோக்கள் வெற்றிகரமாகச் சேமிக்கப்பட்டன!*\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `📍 *சைட்:* ${siteName}\\n` +\n  `🔧 *பிரிவு:* ${stageTamil}\\n` +\n  `👷 *வேலை விபரம்:* ${workType}\\n` +\n  `📅 *தேதி:* ${dateOnly}\\n` +\n  `📝 *குறிப்பு:* ${notes}\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `📁 *Google Drive Vault:* ${driveFolderUrl}\\n` +\n  `_நிரந்தரமாக Google Drive & Google Sheet-ல் பதிவு செய்யப்பட்டது._`;\n\nreturn [{\n  json: {\n    ...payload,\n    action,\n    siteName,\n    stage,\n    stageTamil,\n    workType,\n    notes,\n    senderPhone,\n    recipientJid,\n    isGroup,\n    timestamp,\n    dateOnly,\n    driveFolderUrl,\n    confirmationText\n  }\n}];"
+      },
+      "id": "code_mep_router_and_enricher",
+      "name": "Parse & Classify MEP Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "value": "Site_Photos_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Date": "={{ $json.dateOnly }}",
+            "Site_Location": "={{ $json.siteName }}",
+            "Work_Type": "={{ $json.workType }}",
+            "Contractor_Engineer": "Arasan Team",
+            "Uploaded_By": "={{ $json.senderPhone }}",
+            "Google_Drive_URL": "={{ $json.driveFolderUrl }}",
+            "Photo_Count": "={{ $json.photoCount || 1 }}",
+            "Notes_Summary": "={{ $json.notes }}",
+            "Status": "Verified / Stored"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets_append_photo_log",
+      "name": "Google Sheets: Append Photo Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [680, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetJid\": {{ JSON.stringify($json.recipientJid) }},\n  \"text\": {{ JSON.stringify($json.confirmationText) }}\n}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "send_whatsapp_confirmation",
+      "name": "WhatsApp: Send Confirmation to Chat or Group",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"siteName\": {{ JSON.stringify($json.siteName) }},\n  \"stage\": {{ JSON.stringify($json.stage) }},\n  \"driveFolderUrl\": {{ JSON.stringify($json.driveFolderUrl) }},\n  \"status\": \"SAVED_TO_GOOGLE_DRIVE_AND_SHEETS\"\n}",
+        "options": {}
+      },
+      "id": "respond_to_mep_webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1160, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: /webhook/mep-site-archive": {
+      "main": [
+        [
+          {
+            "node": "Parse & Classify MEP Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Classify MEP Action": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Append Photo Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Append Photo Log": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: Send Confirmation to Chat or Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

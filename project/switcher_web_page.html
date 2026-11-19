@@ -483,6 +483,7 @@
         <table>
           <thead><tr><th>Command</th><th>Action</th></tr></thead>
           <tbody>
+            <tr><td><code>switch to plumber</code></td><td>Activates <b>Arasan Electrical & Plumbing Site Vault</b></td></tr>
             <tr><td><code>switch to builder</code></td><td>Activates <b>Danam Holdings House Construction</b></td></tr>
             <tr><td><code>switch to dev</code></td><td>Activates <b>SoloDeveloper.pro Sales OS</b></td></tr>
             <tr><td><code>switch to restaurant</code></td><td>Activates <b>Taj Hotel Madurai Biryani</b></td></tr>
@@ -526,6 +527,12 @@
     const API_BASE = window.location.origin;
 
     const AGENTS = [
+      {
+        id: 'plumber',
+        icon: '⚡🔧',
+        name: 'Arasan Electrical & Plumbing',
+        desc: 'Site Photo Vault (Roof Concrete & Wall Chasing) • 10-Laborers Dispatch • Group Queries'
+      },
       {
         id: 'builder',
         icon: '🏗️',

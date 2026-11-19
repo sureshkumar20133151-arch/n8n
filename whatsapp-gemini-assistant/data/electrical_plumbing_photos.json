@@ -1,0 +1,76 @@
+[
+  {
+    "id": "MEP-1795119675559",
+    "timestamp": "2026-11-19T20:21:15.559Z",
+    "date": "2026-11-19",
+    "siteName": "Ram Nagar Villa",
+    "stage": "Roof_Concrete_Pipes",
+    "workType": "Both",
+    "notes": "லைவ் டெஸ்ட் ரூஃப் கான்கிரீட் பைப் போட்டோ",
+    "photoCount": 1,
+    "driveFolderUrl": "https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo",
+    "fileId": null,
+    "fileViewUrl": null,
+    "loggedByChat": "919361599097@s.whatsapp.net"
+  },
+  {
+    "id": "MEP-101",
+    "timestamp": "2026-11-18T10:30:00.000Z",
+    "date": "2026-11-18",
+    "siteName": "அண்ணா நகர் சைட் (Anna Nagar Villa)",
+    "stage": "Bathroom_Plumbing",
+    "workType": "Plumbing",
+    "notes": "பாத்ரூம் அண்டர்-டைல் கன்சீல்டு பைப்லைன்கள், Jaquar டைவர்ஷன் ஃபிட்டிங் மற்றும் 10 Bar பிரஷர் டெஸ்டிங் முடிவடைந்த போட்டோக்கள் (டைல்ஸ் ஒட்டுவதற்கு முன்).",
+    "photoCount": 6,
+    "driveFolderUrl": "https://drive.google.com/drive/folders/MEP_Anna_Nagar_Bathroom_Plumbing",
+    "status": "Verified / Ready for Inspection"
+  },
+  {
+    "id": "MEP-103",
+    "timestamp": "2026-11-19T14:45:00.000Z",
+    "date": "2026-11-19",
+    "siteName": "கே.புதூர் சைட் (K.Pudur Commercial)",
+    "stage": "Window_And_Chasing",
+    "workType": "Electrical & Civil",
+    "notes": "UPVC விண்டோ பிரேம்கள் பொருத்திய நிலை, விண்டோ சுவரில் எலக்ட்ரிக்கல் கார்டி எடுத்து பைப் மற்றும் ஜங்ஷன் பாக்ஸ் பதித்த போட்டோக்கள்.",
+    "photoCount": 5,
+    "driveFolderUrl": "https://drive.google.com/drive/folders/MEP_KPudur_Window_Frames_Chasing",
+    "status": "Verified"
+  },
+  {
+    "id": "MEP-104",
+    "timestamp": "2026-11-17T11:20:00.000Z",
+    "date": "2026-11-17",
+    "siteName": "செல்வபுரம் சைட் (Selvapuram Residence)",
+    "stage": "Wall_Chasing_Pipes",
+    "workType": "Electrical",
+    "notes": "ஹால் மற்றும் பெட்ரூம் சுவர்களில் கார்டி (Wall Chasing) எடுத்து கன்சீல்டு பைப் மற்றும் 8-Module, 12-Module சுவிட்ச் பாக்ஸ் பொருத்திய போட்டோக்கள் (பூச்சுக்கு முன்).",
+    "photoCount": 7,
+    "driveFolderUrl": "https://drive.google.com/drive/folders/MEP_Selvapuram_Concealed_Chasing",
+    "status": "Verified"
+  },
+  {
+    "id": "MEP-105",
+    "timestamp": "2026-11-16T16:00:00.000Z",
+    "date": "2026-11-16",
+    "siteName": "திருநகர் சைட் (Tirunagar Project)",
+    "stage": "Main_DB_Wiring",
+    "workType": "Electrical",
+    "notes": "3-Phase மெயின் டிபி போர்டு, சேஞ்ச் ஓவர் சுவிட்ச், இன்வெர்ட்டர் பாயிண்ட் மற்றும் 10 அடி ஆழ காப்பர் பிளேட் எர்திங் பிட் (Earthing Pit) அமைத்த போட்டோக்கள்.",
+    "photoCount": 4,
+    "driveFolderUrl": "https://drive.google.com/drive/folders/MEP_Tirunagar_Main_DB_Earthing",
+    "status": "Verified / Ready for EB Inspection"
+  },
+  {
+    "id": "MEP-106",
+    "timestamp": "2026-11-15T09:30:00.000Z",
+    "date": "2026-11-15",
+    "siteName": "மதுரை அரசு சைட் (Madurai Municipal / PWD Project)",
+    "stage": "Drainage_Sewage",
+    "workType": "Plumbing",
+    "notes": "அரசு ஆய்வு: மழைநீர் சேகரிப்பு லைன், 4-இன்ச் கழிவுநீர் PVC சேம்பர் லைன், மற்றும் வாட்டர் சப்ளை மெயின் இன்புட் ஹெடர் பைப் போட்டோக்கள்.",
+    "photoCount": 9,
+    "driveFolderUrl": "https://drive.google.com/drive/folders/MEP_Madurai_Govt_PWD_Inspection",
+    "status": "Govt Approved / Verified"
+  }
+]

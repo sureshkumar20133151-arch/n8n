@@ -1,0 +1,22 @@
+{
+  "name": "danam-tamil-voice-agent",
+  "version": "1.0.0",
+  "description": "Autonomous Tamil AI Voice Calling Agent for Danam Holdings Madurai",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@deepgram/sdk": "^3.3.0",
+    "@google/genai": "^0.1.1",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "twilio": "^5.0.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

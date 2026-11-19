@@ -1,0 +1,9 @@
+{
+  "whatsappEnabled": true,
+  "instagramDmEnabled": true,
+  "instagramCommentEnabled": true,
+  "syncPersonas": true,
+  "instagramPersona": "dev",
+  "lastUpdated": "2026-11-17T22:04:12.914Z",
+  "updatedBy": "Dashboard Toggle"
+}
