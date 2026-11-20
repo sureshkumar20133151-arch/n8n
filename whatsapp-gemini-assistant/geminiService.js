@@ -921,17 +921,16 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
         }
       }
 
-      // Ultra-fast active models (<1.1s latency)
+      // Ultra-fast active models (gemini-2.5-flash responds in ~1.0s with thinkingBudget: 0)
       const modelsToTry = [
-        'gemini-flash-lite-latest',
         'gemini-2.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-flash-latest'
+        'gemini-flash-lite-latest',
+        'gemini-3.5-flash-lite'
       ].filter((m, i, arr) => arr.indexOf(m) === i);
 
       let response = null;
       let lastErr = null;
-      let chosenModel = this.modelName;
+      let chosenModel = 'gemini-2.5-flash';
       const activeTools = this.getActiveTools(isOwner, mode);
 
       for (const m of modelsToTry) {
@@ -946,13 +945,9 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
             systemInstruction: systemInstruction,
             temperature: 0.2,
             maxOutputTokens: 1000,
+            thinkingConfig: { thinkingBudget: 0 },
             tools: activeTools
           };
-
-          // Only models supporting thinking config can receive thinkingBudget
-          if (!m.includes('lite')) {
-            requestConfig.thinkingConfig = { thinkingBudget: 0 };
-          }
 
           const genPromise = this.ai.models.generateContent({
             model: m,
