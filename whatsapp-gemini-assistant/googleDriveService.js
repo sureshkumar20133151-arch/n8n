@@ -645,6 +645,56 @@ class GoogleDriveService {
     }
   }
 
+  async getDailyAttendanceLogs(date = null, workerName = null, siteName = null, statusFilter = null) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A2:G`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+
+      const cleanDate = (date || '').trim();
+      const cleanWorker = (workerName || '').toLowerCase().trim();
+      const cleanSite = (siteName || '').toLowerCase().trim();
+      const cleanStatus = (statusFilter || '').toLowerCase().trim();
+
+      const matchedRows = [];
+      for (const r of rows) {
+        const [rDate, laborId, name, site, salary, status, advance] = r;
+        if (!name) continue;
+
+        if (cleanDate && cleanDate !== 'all' && rDate !== cleanDate) {
+          continue;
+        }
+        if (cleanWorker && cleanWorker !== 'all' && !name.toLowerCase().includes(cleanWorker) && !cleanWorker.includes(name.toLowerCase())) {
+          continue;
+        }
+        if (cleanSite && cleanSite !== 'all' && !(site || '').toLowerCase().includes(cleanSite)) {
+          continue;
+        }
+        if (cleanStatus && cleanStatus !== 'all' && !(status || '').toLowerCase().includes(cleanStatus)) {
+          continue;
+        }
+
+        matchedRows.push({
+          date: rDate,
+          laborId,
+          name: (name || '').trim(),
+          site: (site || '-').trim(),
+          salary: salary || '0',
+          status: (status || 'Present').trim(),
+          advance: advance || '0'
+        });
+      }
+
+      return matchedRows;
+    } catch (e) {
+      console.warn('[GoogleSheet] Error reading daily attendance logs:', e.message);
+      return [];
+    }
+  }
+
   async makePublicReadable(fileId) {
     try {
       const token = await this.getAccessToken();

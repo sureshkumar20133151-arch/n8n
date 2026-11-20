@@ -412,6 +412,31 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           }
         }
       }
+    },
+    {
+      name: 'queryDailyAttendance',
+      description: 'Call this tool whenever Suresh or anyone asks ANY question about attendance, site assignments, leaves, or daily advances (e.g. "who went to Aanaiyur site today?", "இன்னைக்கு யார் லீவ்?", "show today attendance", "20 Nov attendance status", "Prabhu எந்த சைட் போனாரு?", "யார் யார் வேலைக்கு வந்தாங்க?"). Reads live from Daily_Attendance_Site_Log sheet.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          date: {
+            type: 'STRING',
+            description: 'Date to query (e.g. "2026-11-20", or defaults to today YYYY-MM-DD)'
+          },
+          siteName: {
+            type: 'STRING',
+            description: 'Optional filter by site name (e.g. "Aanaiyur", "Sevugan 2nd street")'
+          },
+          workerName: {
+            type: 'STRING',
+            description: 'Optional filter by worker name (e.g. "Prabhu", "Sanjay")'
+          },
+          statusFilter: {
+            type: 'STRING',
+            description: 'Optional filter by status: "Present", "Leave" / "Absent", or "All"'
+          }
+        }
+      }
     }
   ]
 }];
@@ -475,6 +500,9 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
      * e.g., "இன்னைக்கு பிரபு ராம்நாடு சைட் போனார்", "Prabhu and Paal Pandi at Ramnad today", "Vicky present at HMS Colony", "Easwaren half day".
      * You MUST immediately call \`recordDailyAttendance\`.
      * Automatically log into Google Sheet (\`Daily_Attendance_Site_Log\` tab): Date, Labor_ID, Name, Role, Site Allocated, Attendance Status (Present/Half Day), Daily Rate (₹850 for Fitters, ₹550 for Helpers, ₹1,100 for Supervisors), and any daily advance cash.
+   - **ATTENDANCE QUESTIONS & INQUIRIES (வருகை விபர கேள்விகளுக்கு பதிலளித்தல்):**
+     * Whenever anyone asks ANY question about attendance, site assignments, who worked where, who is on leave, or daily advances (e.g., "இன்னைக்கு யார் லீவ்?", "யார் யார் வேலைக்கு வந்தாங்க?", "20 Nov attendance காட்டு", "who is at Aanaiyur site?", "Prabhu எந்த சைட் போனாரு?"):
+     * You MUST IMMEDIATELY call \`queryDailyAttendance\`! It reads live from Google Sheet \`Daily_Attendance_Site_Log\` and gives an instant, transparent, and accurate answer in Tamil!
 
 6. **💵 DAILY ADVANCES & AUTOMATIC DEDUCTION ON WEEKEND SALARY (அட்வான்ஸ் பதிவு & வார சம்பளத்தில் தானாகக் கழித்தல்):**
    - **Daily Advances (டெய்லி அட்வான்ஸ்):**
@@ -974,6 +1002,66 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
         messageTamil: `⚠️ சம்பளப் பதிவை 'Paid' என மாற்றுவதில் தகவல் பொருந்தவில்லை அல்லது ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது.`
       };
     }
+  }
+
+  // 10. Query Daily Attendance & Site Allocation
+  if (fnName === 'queryDailyAttendance') {
+    const targetDate = args.date || new Date().toISOString().split('T')[0];
+    const workerName = args.workerName || null;
+    const siteName = args.siteName || null;
+    const statusFilter = args.statusFilter || null;
+
+    console.log(`📋 [Query Attendance Tool] Querying attendance for date: ${targetDate}, worker: ${workerName}, site: ${siteName}`);
+    const logs = await googleDriveService.getDailyAttendanceLogs(targetDate, workerName, siteName, statusFilter);
+
+    if (!logs || logs.length === 0) {
+      return {
+        success: true,
+        total: 0,
+        messageTamil: `ℹ️ *${targetDate}* தேதிக்கான வருகைப் பதிவுகள் எதுவும் Google Sheet-ல் காணப்படவில்லை.`
+      };
+    }
+
+    const presentList = logs.filter(l => l.status.toLowerCase().includes('present') || l.status.toLowerCase().includes('on'));
+    const leaveList = logs.filter(l => l.status.toLowerCase().includes('leave') || l.status.toLowerCase().includes('absent') || l.status.toLowerCase().includes('off'));
+
+    let reply = `📋 *அரசன் எலக்ட்ரிக்கல் & பிளம்பிங் - வருகை விபரம் (${targetDate})*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+    if (presentList.length > 0) {
+      reply += `\n🟢 *வேலைக்கு வந்தவர்கள் (${presentList.length} பேர்):*\n`;
+      const siteMap = new Map();
+      for (const p of presentList) {
+        const s = p.site || 'General Site';
+        if (!siteMap.has(s)) siteMap.set(s, []);
+        siteMap.get(s).push(p);
+      }
+
+      for (const [sName, workers] of siteMap.entries()) {
+        reply += `\n📍 *${sName}:*\n`;
+        workers.forEach(w => {
+          const advText = Number(w.advance) > 0 ? ` _(அட்வான்ஸ்: ₹${w.advance})_` : '';
+          reply += `   • ${w.name} (கூலி: ₹${w.salary})${advText}\n`;
+        });
+      }
+    }
+
+    if (leaveList.length > 0) {
+      reply += `\n🔴 *விடுப்பு / லீவ் (${leaveList.length} பேர்):*\n`;
+      leaveList.forEach(w => {
+        reply += `   • ${w.name}\n`;
+      });
+    }
+
+    reply += `\n━━━━━━━━━━━━━━━━━━━━━━\n📊 *Google Sheet:* \`Daily_Attendance_Site_Log\` ஷீட்டிலிருந்து நேரடியாகப் பெறப்பட்டது.`;
+
+    return {
+      success: true,
+      totalCount: logs.length,
+      presentCount: presentList.length,
+      leaveCount: leaveList.length,
+      logs,
+      messageTamil: reply
+    };
   }
 
   return { error: `Unknown tool function: ${fnName}` };
