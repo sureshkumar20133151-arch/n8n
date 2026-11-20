@@ -395,6 +395,23 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           }
         }
       }
+    },
+    {
+      name: 'markSalaryAsPaid',
+      description: 'Call this tool whenever Suresh (owner/contractor) sends a message in WhatsApp confirming that wages/salary have been paid or settled (e.g. "salary paid", "சம்பளம் கொடுத்தாச்சு", "paid", "Prabhu salary paid", "weekend salary settled", "all salary paid"). Updates Weekly_Salary_Settlement in Google Sheets so Payment Status becomes "Paid" and Paid Date is recorded.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          workerName: {
+            type: 'STRING',
+            description: 'Name of the worker whose salary was paid, or "All" if all workers were paid'
+          },
+          paidDate: {
+            type: 'STRING',
+            description: 'The date payment was issued (defaults to today or weekend date in YYYY-MM-DD format)'
+          }
+        }
+      }
     }
   ]
 }];
@@ -475,6 +492,15 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
        - 📈 மொத்த சம்பளம் (Gross)
        - 🔻 கழிக்கப்பட்ட அட்வான்ஸ் (Total Advance Deducted)
        - ✨ வழங்க வேண்டிய நிகர சம்பளம் (Net Payable)
+
+7. **💳 OWNER SALARY PAYMENT CONFIRMATION (சம்பளம் கொடுத்தாச்சு உறுதிசெய்தல்):**
+   - The initial Payment Status in \`Weekly_Salary_Settlement\` MUST ALWAYS be \`Pending\` and \`Paid Date\` MUST BE EMPTY!
+   - ONLY when Suresh (owner/contractor) sends a message in the WhatsApp group or chat saying salary is paid (e.g., "salary paid", "paid", "சம்பளம் கொடுத்தாச்சு", "செட்டில் பண்ணியாச்சு", "all salary paid", "Prabhu salary paid"):
+     * Immediately call \`markSalaryAsPaid\`!
+     * This updates Google Sheet \`Weekly_Salary_Settlement\`:
+       - \`Payment Status\` -> **\`Paid\`**
+       - \`Paid Date\` -> That weekend date (e.g. \`YYYY-MM-DD\`)
+     * Courteously confirm in the WhatsApp group that the settlement has been marked as Paid!
 
 ## 👥 CURRENT REGISTERED TEAM:
 ${laborersSummary}
@@ -926,6 +952,28 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       summaryList,
       messageTamil: summaryTextTamil
     };
+  }
+
+  // 9. Mark Salary As Paid after Owner Confirmation
+  if (fnName === 'markSalaryAsPaid') {
+    const workerName = args.workerName || 'All';
+    const paidDate = args.paidDate || new Date().toISOString().split('T')[0];
+
+    console.log(`💳 [Salary Paid Tool] Marking salary as Paid for: ${workerName} on ${paidDate}`);
+    const res = await googleDriveService.markWeeklySalaryPaid(workerName, paidDate);
+
+    if (res && res.success && res.updatedCount > 0) {
+      const namesList = res.updatedStatusList.map(u => `• ${u.name}`).join('\n');
+      return {
+        success: true,
+        messageTamil: `✅ *சம்பளம் வழங்கப்பட்டதாகப் பதிவு செய்யப்பட்டது! (Payment Confirmed)*\n\n📅 *வழங்கப்பட்ட தேதி (Paid Date):* ${res.paidDate}\n🔘 *Payment Status:* *Paid (வழங்கப்பட்டது)*\n\n👷 *பயனாளிகள்:*\n${namesList}\n\n📊 *Google Sheet:* \`Weekly_Salary_Settlement\` ஷீட்டில் Payment Status 'Paid' எனவும் Paid Date-ம் துல்லியமாகப் பதிவு செய்யப்பட்டுவிட்டது!`
+      };
+    } else {
+      return {
+        success: false,
+        messageTamil: `⚠️ சம்பளப் பதிவை 'Paid' என மாற்றுவதில் தகவல் பொருந்தவில்லை அல்லது ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது.`
+      };
+    }
   }
 
   return { error: `Unknown tool function: ${fnName}` };

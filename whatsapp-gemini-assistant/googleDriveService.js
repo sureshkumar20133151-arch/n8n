@@ -579,8 +579,8 @@ class GoogleDriveService {
         String(record.grossSalary || 0),
         String(record.totalAdvanceDeducted || 0),
         String(record.netPayable || 0),
-        record.paymentStatus || 'Calculated / Due',
-        new Date().toISOString().split('T')[0]
+        record.paymentStatus || 'Pending',
+        record.paidDate || ''
       ];
       const appendBody = JSON.stringify({ values: [row] });
       await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Weekly_Salary_Settlement!A:J:append?valueInputOption=USER_ENTERED`, {
@@ -596,6 +596,52 @@ class GoogleDriveService {
     } catch (e) {
       console.warn('[GoogleSheet] Error recording salary settlement:', e.message);
       return false;
+    }
+  }
+
+  async markWeeklySalaryPaid(workerName = 'All', paidDate = null) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const actualPaidDate = paidDate || new Date().toISOString().split('T')[0];
+
+      // Read current rows from Weekly_Salary_Settlement
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Weekly_Salary_Settlement!A2:J`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanTarget = (workerName || '').toLowerCase().trim();
+
+      const updatedStatusList = [];
+      let updatedCount = 0;
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const name = (row[2] || '').trim();
+        const currentStatus = row[8] || 'Pending';
+        const isMatch = (cleanTarget === 'all' || cleanTarget === '' || name.toLowerCase().includes(cleanTarget) || cleanTarget.includes(name.toLowerCase()));
+
+        if (isMatch && currentStatus !== 'Leave') {
+          const rowIndex = i + 2; // 1-based, skipping header
+          const updateBody = JSON.stringify({ values: [['Paid', actualPaidDate]] });
+          await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Weekly_Salary_Settlement!I${rowIndex}:J${rowIndex}?valueInputOption=USER_ENTERED`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(updateBody)
+            }
+          }, updateBody);
+          updatedStatusList.push({ name, paidDate: actualPaidDate });
+          updatedCount++;
+        }
+      }
+
+      console.log(`✅ [GoogleSheet] Marked ${updatedCount} worker(s) salary as Paid on ${actualPaidDate}`);
+      return { success: true, updatedCount, updatedStatusList, paidDate: actualPaidDate };
+    } catch (e) {
+      console.warn('[GoogleSheet] Error marking salary paid:', e.message);
+      return { success: false, error: e.message };
     }
   }
 
