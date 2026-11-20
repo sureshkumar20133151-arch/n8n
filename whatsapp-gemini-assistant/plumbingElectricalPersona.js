@@ -149,6 +149,23 @@ function saveLaborers(list) {
   }
 }
 
+function findLaborerByName(name) {
+  if (!name) return null;
+  const laborers = loadLaborers();
+  const clean = name.toLowerCase().trim();
+  return laborers.find(l => {
+    const lName = l.name.toLowerCase();
+    return lName.includes(clean) || clean.includes(lName) || clean.split(/\s+/).some(part => part.length >= 3 && lName.includes(part));
+  }) || null;
+}
+
+function getDefaultDailyRate(role) {
+  const r = (role || '').toLowerCase();
+  if (r.includes('supervisor')) return 1100;
+  if (r.includes('helper')) return 550;
+  return 850; // default fitter / technician
+}
+
 function loadPhotosArchive() {
   try {
     if (fs.existsSync(PHOTOS_ARCHIVE_FILE)) {
@@ -293,6 +310,91 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
         },
         required: ['name', 'phone', 'role']
       }
+    },
+    {
+      name: 'recordDailyAttendance',
+      description: 'Call this tool when Suresh or supervisors report daily attendance, which worker went to which site (e.g. "Prabhu went to Ramnad today", "Vicky at HMS Colony"), attendance status (Full Day / Half Day), and any cash advance taken that day.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          workerName: {
+            type: 'STRING',
+            description: 'Name of the worker (e.g. Prabhu, Pandi, Paal Pandi, Sanjay, Vicky, Easwaren, Kumareson, Suresh, Aswin, Muthu, Dhilip)'
+          },
+          siteName: {
+            type: 'STRING',
+            description: 'Name of the site they worked at (e.g. Ramnad, HMS Colony, Ponmeni, Anna Nagar)'
+          },
+          status: {
+            type: 'STRING',
+            description: 'Attendance status: "Present" (Full day), "Half Day", or "Absent"'
+          },
+          dailyRate: {
+            type: 'NUMBER',
+            description: 'Daily wage rate in Rs (default ₹850 for Fitters, ₹550 for Helpers, ₹1,100 for Supervisors unless specified)'
+          },
+          advanceAmount: {
+            type: 'NUMBER',
+            description: 'Cash/UPI advance taken on that day in Rs (0 if none)'
+          },
+          advanceNotes: {
+            type: 'STRING',
+            description: 'Reason for advance (e.g. Tea & snacks, petrol, personal)'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Date in YYYY-MM-DD format (defaults to today)'
+          }
+        },
+        required: ['workerName', 'siteName']
+      }
+    },
+    {
+      name: 'recordLaborAdvance',
+      description: 'Call this tool when any worker is given a cash or UPI advance on any day (e.g. "பிரபுவுக்கு 500 அட்வான்ஸ் கொடுத்தேன்", "Paal Pandi advance 300"). Logs to Google Sheet so it is automatically deducted from their weekend salary.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          workerName: {
+            type: 'STRING',
+            description: 'Name of the worker receiving the advance'
+          },
+          advanceAmount: {
+            type: 'NUMBER',
+            description: 'Amount in Rupees given as advance'
+          },
+          reason: {
+            type: 'STRING',
+            description: 'Reason for advance (e.g. Tea, lunch, petrol, personal)'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Date in YYYY-MM-DD format (defaults to today)'
+          }
+        },
+        required: ['workerName', 'advanceAmount']
+      }
+    },
+    {
+      name: 'calculateWeeklySalarySettlement',
+      description: 'Call this tool when Suresh or anyone asks for weekend salary, wages, or settlement (e.g. "பிரபு சம்பளம் எவ்வளவு", "வாரம் சம்பள கணக்கு போடு", "Prabhu salary settlement", "calculate weekend wages for all"). Automatically sums days worked, calculates gross wages, subtracts all advances taken during the period, logs the finalized settlement into Google Sheet, and gives a complete Tamil breakdown.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          workerName: {
+            type: 'STRING',
+            description: 'Name of the specific worker (or "All" for all workers)'
+          },
+          weekPeriod: {
+            type: 'STRING',
+            description: 'Week label or date range (e.g. "This Week", "Nov 17 - Nov 23")'
+          },
+          autoRecord: {
+            type: 'BOOLEAN',
+            description: 'Whether to append this calculation into the Weekly_Salary_Settlement sheet (default true)'
+          }
+        }
+      }
     }
   ]
 }];
@@ -350,6 +452,29 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
    - **"Previously shared photos / பழைய போட்டோக்கள் எங்கே?":**
      * புதிய போட்டோக்கள் (உதாரணமாக Ramnad கான்கிரீட் பைப் போட்டோ) Google Drive மற்றும் Google Sheets-ல் பாதுகாப்பாகப் பதியப்பட்டுவிட்டன.
      * முந்தைய பழைய போட்டோக்கள் ஏதேனும் மிஸ் ஆகியிருந்தால், அதை மீண்டும் ஒருமுறை இந்த குரூப்பில் ஷேர் செய்தால் உடனடியாக அதற்கான சைட் மற்றும் பிரிவில் (Roof Concrete, Wall Chasing, Bathroom Plumbing) வகைப்படுத்தி Drive-ல் நிரந்தரமாகச் சேமித்துவிடுவேன்.
+
+5. **📋 DAILY ATTENDANCE & SITE ALLOCATION (தினசரி வருகை & எந்த சைட் போனாங்க பதிவு):**
+   - Whenever Suresh (contractor) or a supervisor/worker mentions attendance or where someone worked today:
+     * e.g., "இன்னைக்கு பிரபு ராம்நாடு சைட் போனார்", "Prabhu and Paal Pandi at Ramnad today", "Vicky present at HMS Colony", "Easwaren half day".
+     * You MUST immediately call \`recordDailyAttendance\`.
+     * Automatically log into Google Sheet (\`Daily_Attendance_Site_Log\` tab): Date, Labor_ID, Name, Role, Site Allocated, Attendance Status (Present/Half Day), Daily Rate (₹850 for Fitters, ₹550 for Helpers, ₹1,100 for Supervisors), and any daily advance cash.
+
+6. **💵 DAILY ADVANCES & AUTOMATIC DEDUCTION ON WEEKEND SALARY (அட்வான்ஸ் பதிவு & வார சம்பளத்தில் தானாகக் கழித்தல்):**
+   - **Daily Advances (டெய்லி அட்வான்ஸ்):**
+     * Whenever a worker takes cash or UPI advance on any day (e.g., "பிரபுவுக்கு 500 அட்வான்ஸ் கொடுத்தேன்", "Paal Pandi advance ₹300 for tea/lunch/petrol"):
+     * Call \`recordLaborAdvance\` (or provide \`advanceAmount\` in \`recordDailyAttendance\`).
+     * Confirms clearly in Tamil that the advance is logged into the Google Sheet and will be automatically deducted from their weekend salary!
+   - **Weekend Salary Settlement (வார இறுதி சம்பள கணக்கு):**
+     * Whenever Suresh or anyone asks for weekly settlement or wages (e.g., "பிரபு சம்பளம் எவ்வளவு", "இந்த வாரம் சம்பள கணக்கு போடு", "weekend salary settlement", "salary calculation for all"):
+     * You MUST immediately call \`calculateWeeklySalarySettlement\`.
+     * It sums days worked, calculates gross wages, finds all advances taken during the week, automatically deducts total advances (Net Payable = Gross - Advance), and records the settlement into Google Sheet (\`Weekly_Salary_Settlement\` tab)!
+     * Responds with a crystal-clear Tamil breakdown:
+       - 👷 தொழிலாளி பெயர் & பணி
+       - 📍 பணிபுரிந்த சைட்டுகள்
+       - 📅 பணிபுரிந்த நாட்கள் & தினக்கூலி
+       - 📈 மொத்த சம்பளம் (Gross)
+       - 🔻 கழிக்கப்பட்ட அட்வான்ஸ் (Total Advance Deducted)
+       - ✨ வழங்க வேண்டிய நிகர சம்பளம் (Net Payable)
 
 ## 👥 CURRENT REGISTERED TEAM:
 ${laborersSummary}
@@ -667,6 +792,140 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
         messageTamil: `⚠️ Google Drive-ல் "${oldStage}" ஃபோல்டரை "${newStage}" என மாற்றுவதில் சிறு தடங்கல்: ${renameRes?.error || 'Folder not found'}`
       };
     }
+  }
+
+  // 6. Record Daily Attendance & Site Allocation
+  if (fnName === 'recordDailyAttendance') {
+    const workerName = args.workerName || 'Worker';
+    const siteName = args.siteName || 'General Site';
+    const status = args.status || 'Present';
+    const advanceAmount = Number(args.advanceAmount) || 0;
+    const advanceNotes = args.advanceNotes || (advanceAmount > 0 ? 'Daily advance' : '-');
+    const date = args.date || new Date().toISOString().split('T')[0];
+
+    const workerObj = findLaborerByName(workerName);
+    const role = workerObj ? workerObj.role : 'Technician';
+    const laborId = workerObj ? workerObj.id : '';
+    const dailyRate = Number(args.dailyRate) || (workerObj ? getDefaultDailyRate(workerObj.role) : 850);
+
+    const entry = {
+      date,
+      laborId,
+      name: workerObj ? workerObj.name : workerName,
+      role,
+      siteAllocated: siteName,
+      attendanceStatus: status,
+      dailyRate,
+      advanceAmount,
+      advanceNotes
+    };
+
+    console.log(`📋 [Attendance Tool] Logging ${entry.name} at ${siteName} (${status}) - Adv: ₹${advanceAmount}`);
+    await googleDriveService.recordDailyAttendanceAndAdvance(entry);
+
+    let advanceMsg = advanceAmount > 0
+      ? `\n💵 *அட்வான்ஸ் தொகை:* ₹${advanceAmount} (${advanceNotes})\n_குறிப்பு: இந்த அட்வான்ஸ் தொகை வார சம்பளத்தில் தானாகக் கழிக்கப்படும்._`
+      : '';
+
+    return {
+      success: true,
+      entry,
+      messageTamil: `📋 *தினசரி வருகை & சைட் ஒதுக்கீடு பதிவு செய்யப்பட்டது!*\n\n👷 *பெயர்:* ${entry.name} (${entry.role})\n📍 *ஒதுக்கப்பட்ட சைட்:* ${siteName}\n📅 *தேதி:* ${date}\n🔘 *வருகை நிலை:* ${status}\n💰 *தினக்கூலி:* ₹${dailyRate}${advanceMsg}\n\n📊 *Google Sheet:* \`Daily_Attendance_Site_Log\` ஷீட்டில் பாதுகாப்பாகச் சேர்க்கப்பட்டது.`
+    };
+  }
+
+  // 7. Record Labor Advance
+  if (fnName === 'recordLaborAdvance') {
+    const workerName = args.workerName || 'Worker';
+    const advanceAmount = Number(args.advanceAmount) || 0;
+    const reason = args.reason || 'Personal / Tea / Travel';
+    const date = args.date || new Date().toISOString().split('T')[0];
+
+    const workerObj = findLaborerByName(workerName);
+    const role = workerObj ? workerObj.role : 'Technician';
+    const laborId = workerObj ? workerObj.id : '';
+    const dailyRate = workerObj ? getDefaultDailyRate(workerObj.role) : 850;
+
+    const entry = {
+      date,
+      laborId,
+      name: workerObj ? workerObj.name : workerName,
+      role,
+      siteAllocated: 'General / Advance Entry',
+      attendanceStatus: 'Advance Only',
+      dailyRate,
+      advanceAmount,
+      advanceNotes: reason
+    };
+
+    console.log(`💵 [Advance Tool] Logging advance of ₹${advanceAmount} for ${entry.name}: ${reason}`);
+    await googleDriveService.recordDailyAttendanceAndAdvance(entry);
+
+    return {
+      success: true,
+      entry,
+      messageTamil: `💵 *அட்வான்ஸ் தொகை பதிவு செய்யப்பட்டது!*\n\n👷 *பெயர்:* ${entry.name} (${entry.role})\n📅 *தேதி:* ${date}\n💸 *அட்வான்ஸ் தொகை:* ₹${advanceAmount}\n📝 *காரணம்:* ${reason}\n\n✅ *வார சம்பளக் கணக்கு:* இந்த ₹${advanceAmount} வார இறுதி சம்பளம் போடும் போது மொத்த சம்பளத்திலிருந்து தானாகக் கழித்து கணக்கிடப்படும்!`
+    };
+  }
+
+  // 8. Calculate Weekly Salary Settlement with Automatic Advance Deduction
+  if (fnName === 'calculateWeeklySalarySettlement') {
+    const targetWorker = args.workerName || 'All';
+    const weekPeriod = args.weekPeriod || 'This Week';
+    const autoRecord = args.autoRecord !== false;
+
+    console.log(`💰 [Salary Settlement Tool] Calculating settlement for: ${targetWorker}`);
+    const summaryList = await googleDriveService.getAttendanceAndAdvanceSummary(targetWorker);
+
+    if (!summaryList || summaryList.length === 0) {
+      return {
+        success: false,
+        messageTamil: `⚠️ *சம்பள விபரம் கிடைக்கவில்லை:* ${targetWorker !== 'All' ? targetWorker : 'தொழிலாளர்கள்'} குறித்த வருகை அல்லது அட்வான்ஸ் பதிவுகள் தற்போதைக்கு Google Sheet-ல் இல்லை.\n\n_முதலில் தினசரி வருகையை அல்லது அட்வான்ஸை பதிவு செய்யவும்._`
+      };
+    }
+
+    const recordedEntries = [];
+    let summaryTextTamil = `💰 *அரசன் எலக்ட்ரிக்கல் & பிளம்பிங் - வார சம்பள செட்டில்மென்ட் (${weekPeriod})*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+    for (const item of summaryList) {
+      if (autoRecord) {
+        await googleDriveService.recordWeeklySalarySettlement({
+          weekPeriod,
+          laborId: item.laborId,
+          name: item.name,
+          role: item.role,
+          daysWorked: item.daysWorked,
+          dailyRate: item.dailyRate,
+          grossSalary: item.grossSalary,
+          totalAdvanceDeducted: item.totalAdvanceDeducted,
+          netPayable: item.netPayable,
+          paymentStatus: 'Calculated / Due'
+        });
+        recordedEntries.push(item);
+      }
+
+      summaryTextTamil += `\n👷 *${item.name}* (${item.role})\n`;
+      summaryTextTamil += `   📍 *பணிபுரிந்த சைட்டுகள்:* ${item.sitesVisited}\n`;
+      summaryTextTamil += `   📅 *பணிபுரிந்த நாட்கள்:* ${item.daysWorked} நாட்கள்\n`;
+      summaryTextTamil += `   💵 *தினக்கூலி:* ₹${item.dailyRate}\n`;
+      summaryTextTamil += `   📈 *மொத்த சம்பளம் (Gross):* ₹${item.grossSalary}\n`;
+      summaryTextTamil += `   🔻 *கழிக்கப்பட்ட அட்வான்ஸ் (Advance):* -₹${item.totalAdvanceDeducted}\n`;
+      summaryTextTamil += `   ━━━━━━━━━━━━━━━━━━━━\n`;
+      summaryTextTamil += `   ✨ *வழங்க வேண்டிய நிகர தொகை (Net Payable):* *₹${item.netPayable}*\n`;
+      if (item.advanceDetails && item.advanceDetails.length > 0) {
+        const advList = item.advanceDetails.map(a => `     • ${a.date}: ₹${a.amount} (${a.notes})`).join('\n');
+        summaryTextTamil += `   _அட்வான்ஸ் விபரம்:_\n${advList}\n`;
+      }
+    }
+
+    summaryTextTamil += `\n━━━━━━━━━━━━━━━━━━━━━━\n📊 *Google Sheet:* \`Weekly_Salary_Settlement\` ஷீட்டில் அனைத்து கணக்குகளும் துல்லியமாகச் சேமிக்கப்பட்டுவிட்டன!`;
+
+    return {
+      success: true,
+      weekPeriod,
+      summaryList,
+      messageTamil: summaryTextTamil
+    };
   }
 
   return { error: `Unknown tool function: ${fnName}` };

@@ -449,6 +449,156 @@ class GoogleDriveService {
     }
   }
 
+  async recordDailyAttendanceAndAdvance(entry) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const dateStr = entry.date || new Date().toISOString().split('T')[0];
+      const row = [
+        dateStr,
+        String(entry.laborId || ''),
+        entry.name || 'Worker',
+        entry.siteAllocated || 'General Site',
+        String(entry.dailyRate || 850),
+        entry.attendanceStatus || 'Present',
+        String(entry.advanceAmount || 0)
+      ];
+      const appendBody = JSON.stringify({ values: [row] });
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A:G:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+      console.log(`📋 [GoogleSheet] Appended attendance/site log for ${entry.name} (${entry.siteAllocated})`);
+      return JSON.parse(res);
+    } catch (e) {
+      console.warn('[GoogleSheet] Error appending attendance:', e.message);
+      return null;
+    }
+  }
+
+  async getAttendanceAndAdvanceSummary(laborName = null) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const resData = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A2:G`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(resData).values || [];
+
+      // Group by laborer
+      const summaryMap = new Map();
+      const cleanTarget = (laborName || '').toLowerCase().trim();
+
+      for (const r of rows) {
+        const [date, laborId, name, site, rateStr, status, advanceStr] = r;
+        if (!name) continue;
+        const normName = name.trim();
+        if (cleanTarget && cleanTarget !== 'all' && !normName.toLowerCase().includes(cleanTarget) && !cleanTarget.includes(normName.toLowerCase())) {
+          continue;
+        }
+
+        if (!summaryMap.has(normName)) {
+          summaryMap.set(normName, {
+            name: normName,
+            laborId: laborId || '',
+            daysWorked: 0,
+            dailyRate: Number(rateStr) || 850,
+            totalGross: 0,
+            totalAdvance: 0,
+            sitesVisited: new Set(),
+            advanceDetails: []
+          });
+        }
+
+        const item = summaryMap.get(normName);
+        if (site && !site.toLowerCase().includes('leave') && !site.toLowerCase().includes('off') && site !== '-') {
+          item.sitesVisited.add(site);
+        }
+        const dailyRate = Number(rateStr) || item.dailyRate || 850;
+        item.dailyRate = dailyRate;
+
+        // Attendance day weight
+        const st = (status || '').toLowerCase();
+        let dayWeight = 0;
+        if (st.includes('present') || st.includes('on') || st.includes('முழு நாள்')) {
+          dayWeight = 1;
+        } else if (st.includes('half') || st.includes('அரை')) {
+          dayWeight = 0.5;
+        } else if (st.includes('leave') || st.includes('absent') || st.includes('off')) {
+          dayWeight = 0;
+        }
+
+        item.daysWorked += dayWeight;
+        item.totalGross += (dayWeight * dailyRate);
+
+        const adv = Number(advanceStr) || 0;
+        if (adv > 0) {
+          item.totalAdvance += adv;
+          item.advanceDetails.push({ date, amount: adv });
+        }
+      }
+
+      // Compute Net Payable for each worker
+      const results = [];
+      for (const [name, data] of summaryMap.entries()) {
+        const netPayable = Math.max(0, data.totalGross - data.totalAdvance);
+        results.push({
+          name: data.name,
+          laborId: data.laborId,
+          daysWorked: data.daysWorked,
+          dailyRate: data.dailyRate,
+          grossSalary: data.totalGross,
+          totalAdvanceDeducted: data.totalAdvance,
+          netPayable: netPayable,
+          sitesVisited: Array.from(data.sitesVisited).join(', ') || '-',
+          advanceDetails: data.advanceDetails
+        });
+      }
+
+      return results;
+    } catch (e) {
+      console.warn('[GoogleSheet] Error reading attendance summary:', e.message);
+      return [];
+    }
+  }
+
+  async recordWeeklySalarySettlement(record) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const row = [
+        record.weekPeriod || 'This Week',
+        String(record.laborId || ''),
+        record.name || 'Worker',
+        String(record.daysWorked || 0),
+        String(record.dailyRate || 850),
+        String(record.grossSalary || 0),
+        String(record.totalAdvanceDeducted || 0),
+        String(record.netPayable || 0),
+        record.paymentStatus || 'Calculated / Due',
+        new Date().toISOString().split('T')[0]
+      ];
+      const appendBody = JSON.stringify({ values: [row] });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Weekly_Salary_Settlement!A:J:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+      console.log(`💰 [GoogleSheet] Appended weekly salary settlement for ${record.name}: Net ₹${record.netPayable}`);
+      return true;
+    } catch (e) {
+      console.warn('[GoogleSheet] Error recording salary settlement:', e.message);
+      return false;
+    }
+  }
+
   async makePublicReadable(fileId) {
     try {
       const token = await this.getAccessToken();
@@ -516,6 +666,10 @@ class GoogleDriveService {
         method: options.method || 'GET',
         headers: options.headers || {}
       };
+
+      if (data && !reqOptions.headers['Content-Length'] && !reqOptions.headers['content-length']) {
+        reqOptions.headers['Content-Length'] = Buffer.byteLength(data);
+      }
 
       const req = https.request(reqOptions, res => {
         let responseBody = '';
