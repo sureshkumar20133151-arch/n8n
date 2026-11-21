@@ -505,7 +505,7 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
     },
     {
       name: 'recordSiteBill',
-      description: 'Call this tool whenever a site bill photo or purchase details are shared in the WhatsApp group (e.g. "Aanaiyur site bill 1250 paid by house owner Prabhu bought", or when an image of a bill/receipt/invoice is uploaded). Extracts date, site name, worker who purchased, paid by (Contractor / House Owner / Arasan Electrical Owner), amount in ₹, and bill details. Uploads image to Google Drive and appends row to Site_Bills_Log tab.',
+      description: 'Call this tool whenever a site bill photo or purchase details are shared in the WhatsApp group (e.g. "Aanaiyur site bill 1800 paid by Suresh contractor account", or when an image of a bill/receipt/invoice is uploaded). Extracts date, site name, worker who purchased, who paid out at the shop (paidOutBy: Arasan Owner / Worker / Contractor / House Owner), whose expense it is / who owes this money (billOwedBy: Contractor / House Owner / Arasan Self), amount in ₹, collection status (collectionStatus: "Pending Collection" or "Received"), and bill details. Uploads image to Google Drive and appends row to Site_Bills_Log tab.',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -515,19 +515,27 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           },
           amount: {
             type: 'NUMBER',
-            description: 'Total bill amount in Rupees (e.g. 1250, 480)'
+            description: 'Total bill amount in Rupees (e.g. 1800, 3500)'
           },
           workerName: {
             type: 'STRING',
-            description: 'Name of worker who made the purchase (e.g. Prabhu, Vicky)'
+            description: 'Name of worker who made the purchase (e.g. Prabhu, Vicky, Suresh)'
           },
-          paidBy: {
+          paidOutBy: {
             type: 'STRING',
-            description: 'Who paid for this bill: "Contractor", "House Owner", or "Arasan Electrical Owner"'
+            description: 'Who paid money at the shop right now: "Arasan Owner", "Worker", "Contractor", or "House Owner"'
+          },
+          billOwedBy: {
+            type: 'STRING',
+            description: 'Whose expense is this / Who owes this money: "Contractor" (e.g. Rama chandran, Sabiek), "House Owner", or "Arasan Self"'
+          },
+          collectionStatus: {
+            type: 'STRING',
+            description: 'Collection status: "Pending Collection" (if Arasan owner paid and money needs to be collected from contractor/owner) or "Received" (if already collected/paid directly or amount received)'
           },
           details: {
             type: 'STRING',
-            description: 'Materials or items purchased (e.g. PVC pipes, bend, switch box, wire)'
+            description: 'Materials or items purchased (e.g. CPVC pipes, bend, modular box, wire)'
           },
           date: {
             type: 'STRING',
@@ -535,6 +543,49 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           }
         },
         required: ['siteName', 'amount']
+      }
+    },
+    {
+      name: 'markBillAsReceived',
+      description: 'Call this tool whenever Suresh (owner) or anyone confirms that money for a site bill has been collected or received from Contractor or House Owner (e.g. "Aanaiyur bill Rama chandran காசு குடுத்துட்டாரு", "கான்ட்ராக்டர்ட்ட காசு வாங்கியாச்சு", "பில் அமௌன்ட் ரிசீவ்டு", "settled bill 1800", "received bill money"). Updates Collection Status in Site_Bills_Log from Pending Collection to Received.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Name of the site (e.g. Aanaiyur, Sevugan 2nd street)'
+          },
+          billOwedBy: {
+            type: 'STRING',
+            description: 'Who gave the money: Contractor name (e.g. Rama chandran, Sabiek) or "Contractor" or "House Owner"'
+          },
+          amount: {
+            type: 'NUMBER',
+            description: 'Bill amount settled/received in ₹ (optional, e.g. 1800)'
+          },
+          notes: {
+            type: 'STRING',
+            description: 'Optional remarks or payment mode (cash, gpay)'
+          }
+        },
+        required: ['siteName']
+      }
+    },
+    {
+      name: 'querySiteBillsAndBalances',
+      description: 'Call this tool whenever someone asks how much bill money is pending to be collected, or asks for a breakdown of expenses/balances by site or contractor/house owner (e.g. "Aanaiyur சைட்ல கான்ட்ராக்டர்ட்ட இன்னும் எவ்வளவு காசு வாங்கணும்?", "யாரெல்லாம் காசு தரணும்?", "pending bills summary", "ஹவுஸ் ஓனர் எவ்வளவு தரணும்?"). Summarizes pending and settled bills from Site_Bills_Log.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Optional site name to filter by (or "all" for all sites)'
+          },
+          statusFilter: {
+            type: 'STRING',
+            description: 'Filter: "pending", "received", or "all"'
+          }
+        }
       }
     },
     {
@@ -653,13 +704,29 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
      * You MUST IMMEDIATELY call \`correctAttendanceRecord\` with wrongWorkerName and correctWorkerName!
      * This physically edits the existing row in Google Sheet \`Daily_Attendance_Site_Log\`, updating the name, Labor ID, and daily rate!
 
-9. **🧾 SITE BILLS & EXPENSES TRACKING (சைட் பில்கள் & கொள்முதல் செலவுகள்):**
-   - When a site bill image, receipt, or invoice is sent in the WhatsApp group (with text/voice note like "Aanaiyur bill 1250 paid by house owner Prabhu bought", or "கடையில பைப் வாங்கின பில்"):
+9. **🧾 SITE BILLS & CASH RECOVERY TRACKING (சைட் பில்கள் & காசு வசூல் கணக்கு):**
+   - **When a bill photo or purchase details are sent in WhatsApp:**
+     * Identify:
+       - **Site Name:** e.g. Aanaiyur, Sevugan 2nd street.
+       - **Worker (who bought):** e.g. Prabhu, Vicky, Suresh.
+       - **Paid Out By (கடையில காசு போட்டது யார்):** "Arasan Owner" (Suresh hand cash) / "Worker" / "Contractor" / "House Owner".
+       - **Bill Owed By (செலவு யாருக்கு / கணக்கு):** "Contractor" (e.g. Rama chandran, Sabiek) / "House Owner" / "Arasan Self".
+       - **Collection Status (காசு வாங்கியாச்சா இல்லையா):**
+         - If Suresh or Worker paid from pocket and money needs to be recovered from Contractor or House Owner -> **"Pending Collection"** (இன்னும் காசு வாங்கல / பாக்கி).
+         - If Contractor or House Owner paid directly or gave cash upfront, or sender says "காசு வாங்கியாச்சு / அமௌன்ட் ரிசீவ்டு / paid" -> **"Received"**.
+       - **Amount & Details:** Materials purchased and bill total.
      * Call \`recordSiteBill\` tool!
-     * Automatically extracts: Date, Site Name, Worker (who bought), Paid By (Contractor / House Owner / Arasan Electrical Owner), Bill Amount, and Details.
-     * Uploads the image to Google Drive and logs row into \`Site_Bills_Log\` tab in Google Sheet!
-   - When anyone asks to see bills or bill photos (e.g. "Aanaiyur bill காட்டு", "send bill photo", "yesterday bill picture"):
-     * Call \`fetchSiteBills\` tool! It downloads the bill photo directly from Google Drive and sends the real image file into WhatsApp!
+     * Confirms clearly in Tamil: Amount, Site, Paid Out By, Owed By, and Status (⏳ Pending Collection vs ✅ Received).
+   - **When Suresh or contractor confirms bill payment received:**
+     * e.g. "Aanaiyur-ல ராமச்சந்திரன் ₹1,800 பில் காசு குடுத்துட்டாரு", "கான்ட்ராக்டர்ட்ட காசு வாங்கியாச்சு", "பில் அமௌன்ட் ரிசீவ்டு", "Aanaiyur bill settled", "amount received from contractor/owner":
+     * Call \`markBillAsReceived\` tool!
+     * Updates Google Sheet from "Pending Collection" to "Received" with today's date!
+   - **When someone asks pending bills / balances:**
+     * e.g. "Aanaiyur சைட்ல கான்ட்ராக்டர்ட்ட இன்னும் எவ்வளவு காசு வாங்கணும்?", "யாரெல்லாம் காசு தரணும்?", "pending bills summary", "balance bill list":
+     * Call \`querySiteBillsAndBalances\` tool!
+     * Reports total pending from Contractor, total pending from House Owner, and list of pending bills!
+   - **When anyone asks to see bills or bill photos:**
+     * Call \`fetchSiteBills\` tool! It downloads the real bill image file and dispatches it directly into WhatsApp!
 
 ## 👥 CURRENT REGISTERED TEAM:
 ${laborersSummary}
@@ -1237,7 +1304,23 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const siteName = args.siteName || 'General Site';
     const amount = Number(args.amount) || 0;
     const workerName = args.workerName || 'Worker';
-    const paidBy = args.paidBy || 'Arasan Electrical Owner';
+    const paidOutBy = args.paidOutBy || args.paidBy || 'Arasan Owner';
+    const billOwedBy = args.billOwedBy || 'Contractor';
+
+    // Smart status deduction if not explicitly provided
+    let collectionStatus = args.collectionStatus;
+    if (!collectionStatus) {
+      const owedLower = (billOwedBy || '').toLowerCase();
+      const paidLower = (paidOutBy || '').toLowerCase();
+      if (paidLower.includes('contractor') || (paidLower.includes('owner') && !paidLower.includes('arasan'))) {
+        collectionStatus = 'Received';
+      } else if (owedLower.includes('arasan') || owedLower.includes('self')) {
+        collectionStatus = 'Received';
+      } else {
+        collectionStatus = 'Pending Collection';
+      }
+    }
+
     const details = args.details || 'Site materials purchase';
     const dateStr = args.date || new Date().toISOString().split('T')[0];
 
@@ -1253,21 +1336,27 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       }
     }
 
-    console.log(`🧾 [Record Bill Tool] Logging ₹${amount} for ${siteName} by ${workerName} (Paid by: ${paidBy})`);
+    console.log(`🧾 [Record Bill Tool] Logging ₹${amount} for ${siteName} by ${workerName} (Paid out: ${paidOutBy}, Owed by: ${billOwedBy}, Status: ${collectionStatus})`);
     const res = await googleDriveService.recordSiteBill({
       date: dateStr,
       siteName,
       workerName,
-      paidBy,
+      paidOutBy,
+      billOwedBy,
       amount,
+      collectionStatus,
       details
     }, imageBuffer, fileName);
 
     if (res && res.success) {
       const driveInfo = res.driveLink ? `\n📁 *Drive Link:* ${res.driveLink}` : '';
+      const statusText = collectionStatus.toLowerCase().includes('pending')
+        ? `⏳ *Pending Collection (இன்னும் காசு வரல / வசூலிக்கப்பட வேண்டும்)*`
+        : `✅ *Received / Settled (காசு வாங்கியாச்சு)*`;
+
       return {
         success: true,
-        messageTamil: `🧾 *சைட் பில் வெற்றிகரமாகப் பதிவு செய்யப்பட்டது!*\n\n📍 *சைட்:* ${siteName}\n📅 *தேதி:* ${dateStr}\n💰 *தொகை:* *₹${amount}*\n👷 *பொருள் வாங்கியவர்:* ${workerName}\n💳 *பணம் செலுத்தியவர் (Paid By):* ${paidBy}\n📝 *விபரம்:* ${details}${driveInfo}\n\n📊 *Google Sheet:* \`Site_Bills_Log\` ஷீட்டில் பாதுகாப்பாகச் சேர்க்கப்பட்டது!`
+        messageTamil: `🧾 *சைட் பில் வெற்றிகரமாகப் பதிவு செய்யப்பட்டது!*\n\n📍 *சைட்:* ${siteName}\n📅 *தேதி:* ${dateStr}\n💰 *தொகை:* *₹${amount}*\n👷 *பொருள் வாங்கியவர்:* ${workerName}\n💳 *கடையில காசு போட்டவர்:* ${paidOutBy}\n👤 *கணக்கு / செலவு யாருக்கு:* *${billOwedBy}*\n📌 *வசூல் நிலை (Status):* ${statusText}\n📝 *விபரம்:* ${details}${driveInfo}\n\n📊 *Google Sheet:* \`Site_Bills_Log\` ஷீட்டில் பாதுகாப்பாகச் சேர்க்கப்பட்டது!`
       };
     } else {
       return {
@@ -1275,6 +1364,51 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
         messageTamil: `⚠️ சைட் பில் பதிவு செய்வதில் சிறு தடங்கல் ஏற்பட்டது.`
       };
     }
+  }
+
+  // 12b. Mark Bill As Received
+  if (fnName === 'markBillAsReceived') {
+    const siteName = args.siteName || 'General Site';
+    const billOwedBy = args.billOwedBy || '';
+    const amount = args.amount ? Number(args.amount) : null;
+    console.log(`💰 [Mark Bill Received Tool] Marking bill as received for ${siteName} from ${billOwedBy} (Amount: ${amount})`);
+
+    const res = await googleDriveService.updateBillCollectionStatus(siteName, billOwedBy, amount, 'Received');
+    if (res && res.success) {
+      return {
+        success: true,
+        messageTamil: `✅ *சைட் பில் தொகை வெற்றிகரமாகப் பெறப்பட்டது (Received/Settled)!*\n\n📍 *சைட்:* ${siteName}\n💰 *தொகை:* *₹${res.matchedBill.amount}*\n👤 *பணம் கொடுத்தவர்:* ${res.matchedBill.owedBy || billOwedBy || 'கான்ட்ராக்டர்'}\n📅 *பெறப்பட்ட தேதி:* ${res.receivedDate}\n📝 *பில் விவரம்:* ${res.matchedBill.details}\n\n📊 Google Sheet \`Site_Bills_Log\`-ல் நிலை **Received** என அப்டேட் செய்யப்பட்டது!`
+      };
+    } else {
+      return {
+        success: false,
+        messageTamil: `⚠️ பில் நிலையை மாற்றுவதில் குறிப்பு: ${res?.error || 'பொருத்தமான நிலுவை பில் கிடைக்கவில்லை.'}`
+      };
+    }
+  }
+
+  // 12c. Query Site Bills and Balances
+  if (fnName === 'querySiteBillsAndBalances') {
+    const siteName = args.siteName || 'all';
+    console.log(`📊 [Query Bills Tool] Summarizing pending bills for ${siteName}`);
+    const summary = await googleDriveService.getPendingBillsSummary(siteName);
+
+    if (!summary || !summary.success || summary.pendingCount === 0) {
+      return {
+        success: true,
+        messageTamil: `🎉 *${siteName === 'all' ? 'அனைத்து சைட்களிலும்' : siteName + ' சைட்டில்'}* நிலுவையில் உள்ள பில்கள் (Pending Bills) எதுவும் இல்லை! அனைத்து தொகைகளும் வசூலிக்கப்பட்டுவிட்டன.`
+      };
+    }
+
+    const itemsText = summary.pendingList.map((p, idx) =>
+      `*${idx + 1}. ₹${p.amount}* - ${p.details}\n   📍 சைட்: ${p.site} | 📅 ${p.date} | 👤 கணக்கு: *${p.owedBy}* (போட்டவர்: ${p.paidOutBy})`
+    ).join('\n\n');
+
+    return {
+      success: true,
+      summary,
+      messageTamil: `📊 *${siteName === 'all' ? 'அனைத்து சைட்கள்' : siteName} - நிலுவை பில்கள் & வசூல் அறிக்கை:*\n━━━━━━━━━━━━━━━━━━━━━━\n👷 *கான்ட்ராக்டரிடம் வசூலிக்க வேண்டியது:* *₹${summary.totalPendingContractor}*\n🏠 *ஹவுஸ் ஓனரிடம் வசூலிக்க வேண்டியது:* *₹${summary.totalPendingHouseOwner}*\n💰 *மொத்த நிலுவைத் தொகை (Grand Total):* *₹${summary.grandTotalPending}* (${summary.pendingCount} பில்கள்)\n━━━━━━━━━━━━━━━━━━━━━━\n\n📌 *நிலுவை பில்களின் பட்டியல்:*\n${itemsText}\n\n━━━━━━━━━━━━━━━━━━━━━━\n_💡 குறிப்பு: பணம் வசூலானதும் 'கான்ட்ராக்டர்ட்ட காசு வாங்கியாச்சு' என்று சொன்னால் Status உடனடியாக 'Received' என அப்டேட் செய்யப்படும்._`
+    };
   }
 
   // 13. Fetch Site Bills

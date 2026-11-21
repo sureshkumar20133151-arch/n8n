@@ -779,8 +779,11 @@ class GoogleDriveService {
         dateStr,
         entry.siteName || 'General Site',
         entry.workerName || 'Worker',
-        entry.paidBy || 'Arasan Electrical Owner',
+        entry.paidOutBy || entry.paidBy || 'Arasan Owner',
+        entry.billOwedBy || 'Contractor',
         String(entry.amount || 0),
+        entry.collectionStatus || 'Pending Collection',
+        entry.receivedDate || (entry.collectionStatus === 'Received' ? dateStr : ''),
         entry.details || 'Site materials purchase',
         driveLink || entry.driveLink || '',
         fileId || entry.fileId || '',
@@ -788,7 +791,7 @@ class GoogleDriveService {
       ];
 
       const appendBody = JSON.stringify({ values: [row] });
-      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A:I:append?valueInputOption=USER_ENTERED`, {
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A:L:append?valueInputOption=USER_ENTERED`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -797,11 +800,152 @@ class GoogleDriveService {
         }
       }, appendBody);
 
-      console.log(`🧾 [GoogleSheet] Appended bill of ₹${entry.amount} for ${entry.siteName} (Paid by: ${entry.paidBy})`);
-      return { success: true, row, driveLink, fileId };
+      console.log(`🧾 [GoogleSheet] Appended bill of ₹${entry.amount} for ${entry.siteName} (Paid out: ${entry.paidOutBy || entry.paidBy}, Owed by: ${entry.billOwedBy}, Status: ${entry.collectionStatus || 'Pending Collection'})`);
+      return { success: true, row, driveLink, fileId, status: entry.collectionStatus || 'Pending Collection' };
     } catch (e) {
       console.warn('[GoogleSheet] Error recording bill:', e.message);
       return { success: false, error: e.message };
+    }
+  }
+
+  async updateBillCollectionStatus(siteName, billOwedBy = '', amount = null, newStatus = 'Received') {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A2:L`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanSite = (siteName || '').toLowerCase().trim();
+      const cleanOwed = (billOwedBy || '').toLowerCase().trim();
+      const targetAmount = amount ? Number(amount) : null;
+
+      let targetRowIndex = -1;
+      let matchedBill = null;
+
+      // Look backwards for most recent matching pending bill
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const r = rows[i];
+        const [rDate, rSite, rWorker, rPaidOut, rOwedBy, rAmount, rStatus] = r;
+        const statusLower = (rStatus || '').toLowerCase();
+        if (!statusLower.includes('pending')) continue; // already received
+
+        const siteMatch = !cleanSite || cleanSite === 'all' || (rSite || '').toLowerCase().includes(cleanSite);
+        const owedMatch = !cleanOwed || (rOwedBy || '').toLowerCase().includes(cleanOwed) || (rPaidOut || '').toLowerCase().includes(cleanOwed);
+        const amtMatch = !targetAmount || Math.abs((Number(rAmount) || 0) - targetAmount) < 10;
+
+        if (siteMatch && (owedMatch || amtMatch)) {
+          targetRowIndex = i + 2;
+          matchedBill = {
+            date: rDate,
+            site: rSite,
+            worker: rWorker,
+            paidOutBy: rPaidOut,
+            owedBy: rOwedBy,
+            amount: rAmount,
+            details: r[8] || ''
+          };
+          break;
+        }
+      }
+
+      // Fallback: match by site if only 1 pending bill exists for that site
+      if (targetRowIndex === -1 && cleanSite && cleanSite !== 'all') {
+        for (let i = rows.length - 1; i >= 0; i--) {
+          const r = rows[i];
+          const [rDate, rSite, rWorker, rPaidOut, rOwedBy, rAmount, rStatus] = r;
+          if ((rStatus || '').toLowerCase().includes('pending') && (rSite || '').toLowerCase().includes(cleanSite)) {
+            targetRowIndex = i + 2;
+            matchedBill = { date: rDate, site: rSite, worker: rWorker, paidOutBy: rPaidOut, owedBy: rOwedBy, amount: rAmount, details: r[8] || '' };
+            break;
+          }
+        }
+      }
+
+      if (targetRowIndex === -1) {
+        return { success: false, error: 'பொருத்தமான நிலுவையில் உள்ள பில் (Pending Bill) எதுவும் காணப்படவில்லை.' };
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const updateBody = JSON.stringify({
+        values: [[newStatus, todayStr]]
+      });
+
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!G${targetRowIndex}:H${targetRowIndex}?valueInputOption=USER_ENTERED`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(updateBody)
+        }
+      }, updateBody);
+
+      console.log(`✅ [GoogleSheet] Marked bill in row ${targetRowIndex} as ${newStatus} (₹${matchedBill.amount})`);
+      return { success: true, matchedBill, targetRowIndex, newStatus, receivedDate: todayStr };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error updating bill collection status:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async getPendingBillsSummary(siteName = null) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A2:L`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanSite = (siteName || '').toLowerCase().trim();
+
+      let totalPendingContractor = 0;
+      let totalPendingHouseOwner = 0;
+      let totalPendingOther = 0;
+      const pendingList = [];
+
+      for (const r of rows) {
+        const [rDate, rSite, rWorker, rPaidOut, rOwedBy, rAmount, rStatus, rRecDate, rDetails, rLink] = r;
+        if (!rSite && !rAmount) continue;
+        if (cleanSite && cleanSite !== 'all' && !(rSite || '').toLowerCase().includes(cleanSite)) continue;
+
+        const status = (rStatus || 'Pending Collection').trim();
+        const amt = Number(rAmount) || 0;
+        const owed = (rOwedBy || 'Contractor').trim();
+
+        if (status.toLowerCase().includes('pending')) {
+          if (owed.toLowerCase().includes('contractor')) {
+            totalPendingContractor += amt;
+          } else if (owed.toLowerCase().includes('house') || owed.toLowerCase().includes('owner')) {
+            totalPendingHouseOwner += amt;
+          } else {
+            totalPendingOther += amt;
+          }
+          pendingList.push({
+            date: rDate,
+            site: rSite,
+            worker: rWorker,
+            paidOutBy: rPaidOut,
+            owedBy: owed,
+            amount: amt,
+            details: rDetails,
+            driveLink: rLink
+          });
+        }
+      }
+
+      return {
+        success: true,
+        siteName: siteName || 'All Sites',
+        totalPendingContractor,
+        totalPendingHouseOwner,
+        totalPendingOther,
+        grandTotalPending: totalPendingContractor + totalPendingHouseOwner + totalPendingOther,
+        pendingCount: pendingList.length,
+        pendingList
+      };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error summarizing pending bills:', err.message);
+      return { success: false, error: err.message, pendingList: [] };
     }
   }
 
@@ -809,7 +953,7 @@ class GoogleDriveService {
     try {
       const token = await this.getAccessToken();
       const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
-      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A2:I`, {
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A2:L`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const rows = JSON.parse(res).values || [];
@@ -819,7 +963,7 @@ class GoogleDriveService {
 
       const results = [];
       for (const r of rows) {
-        const [rDate, rSite, rWorker, rPaidBy, rAmount, rDetails, rLink, rFileId, rLogged] = r;
+        const [rDate, rSite, rWorker, rPaidOut, rOwedBy, rAmount, rStatus, rRecDate, rDetails, rLink, rFileId, rLogged] = r;
         if (!rSite && !rAmount) continue;
 
         if (cleanDate && cleanDate !== 'all' && rDate !== cleanDate) continue;
@@ -829,8 +973,11 @@ class GoogleDriveService {
           date: rDate,
           siteName: rSite,
           worker: rWorker,
-          paidBy: rPaidBy,
+          paidOutBy: rPaidOut,
+          billOwedBy: rOwedBy,
           amount: Number(rAmount) || 0,
+          collectionStatus: rStatus || 'Pending Collection',
+          receivedDate: rRecDate || '',
           details: rDetails,
           driveLink: rLink,
           fileId: rFileId,
