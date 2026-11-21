@@ -11,15 +11,43 @@ if (!fs.existsSync(DATA_DIR)) {
 const PHOTOS_ARCHIVE_FILE = path.resolve(DATA_DIR, 'electrical_plumbing_photos.json');
 const LABORERS_FILE = path.resolve(DATA_DIR, 'laborers_list.json');
 
-// Memory queue for on-demand image dispatch to WhatsApp
+function getISTDateString(d = new Date()) {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+  } catch {
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    return new Date(d.getTime() + istOffset).toISOString().split('T')[0];
+  }
+}
+
+// Memory queue for on-demand image dispatch to WhatsApp (supports file paths & direct image buffers)
 const queuedImages = new Map();
 let lastActiveSiteName = 'Ponmeni';
 
-function queueImage(chatId, filePath, caption) {
-  queuedImages.set(chatId, { filePath, caption });
+function queueImage(chatId, imgData, caption = '') {
+  if (!chatId) return;
+  // Cleanup stale entries older than 5 minutes
+  const now = Date.now();
+  for (const [k, v] of queuedImages.entries()) {
+    if (v.queuedAt && now - v.queuedAt > 5 * 60 * 1000) {
+      queuedImages.delete(k);
+    }
+  }
+
+  if (typeof imgData === 'string') {
+    queuedImages.set(chatId, { filePath: imgData, buffer: null, caption, queuedAt: now });
+  } else if (imgData && typeof imgData === 'object') {
+    queuedImages.set(chatId, {
+      filePath: imgData.filePath || null,
+      buffer: imgData.buffer || null,
+      caption: caption || imgData.caption || '',
+      queuedAt: now
+    });
+  }
 }
 
 function getQueuedImage(chatId) {
+  if (!chatId) return null;
   const item = queuedImages.get(chatId);
   queuedImages.delete(chatId);
   return item;
@@ -272,20 +300,19 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
     },
     {
       name: 'fetchSitePhotos',
-      description: 'Call this tool whenever anyone (owner, client, supervisor, or laborer in WhatsApp DM or Group) requests photos for a specific site or stage (e.g. "Ram Nagar bathroom plumbing photos", "HMS Colony profile LED work photos").',
+      description: 'Call this tool whenever anyone (owner, client, supervisor, or laborer in WhatsApp DM or Group) requests photos for a site or stage, or says "Send picture not link", "போட்டோ அனுப்பு", "latest photo காட்டு". If the user does not specify a site name, omit it or pass empty string, and the tool will automatically use the current active site (e.g. Ponmeni, Aanaiyur).',
       parameters: {
         type: 'OBJECT',
         properties: {
           siteName: {
             type: 'STRING',
-            description: 'Name or part of the site name'
+            description: 'Name of the site (e.g. Ponmeni, Aanaiyur, Ramnad, HMS Colony). If not mentioned by user, leave blank to use the active site.'
           },
           stage: {
             type: 'STRING',
             description: 'Specific stage requested or All (e.g. Profile_LED_Work, Roof_Concrete_Pipes, All)'
           }
-        },
-        required: ['siteName']
+        }
       }
     },
     {
@@ -756,7 +783,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const workType = args.workType || 'Both';
     const notes = args.notes || 'Site progress photo upload';
     const count = Number(args.photoCount) || 1;
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = getISTDateString();
 
     // Real Root Folder: "Arasan electrical & plumbing "
     let driveFolderUrl = 'https://drive.google.com/drive/folders/1kFr-vNqFYDBbraiu11YD1Marn2siMcFo';
@@ -1053,7 +1080,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const status = args.status || 'Present';
     const advanceAmount = Number(args.advanceAmount) || 0;
     const advanceNotes = args.advanceNotes || (advanceAmount > 0 ? 'Daily advance' : '-');
-    const date = args.date || new Date().toISOString().split('T')[0];
+    const date = args.date || getISTDateString();
 
     const workerObj = findLaborerByName(workerName);
     const role = workerObj ? workerObj.role : 'Technician';
@@ -1091,7 +1118,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const workerName = args.workerName || 'Worker';
     const advanceAmount = Number(args.advanceAmount) || 0;
     const reason = args.reason || 'Personal / Tea / Travel';
-    const date = args.date || new Date().toISOString().split('T')[0];
+    const date = args.date || getISTDateString();
 
     const workerObj = findLaborerByName(workerName);
     const role = workerObj ? workerObj.role : 'Technician';
@@ -1183,7 +1210,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
   // 9. Mark Salary As Paid after Owner Confirmation
   if (fnName === 'markSalaryAsPaid') {
     const workerName = args.workerName || 'All';
-    const paidDate = args.paidDate || new Date().toISOString().split('T')[0];
+    const paidDate = args.paidDate || getISTDateString();
 
     console.log(`💳 [Salary Paid Tool] Marking salary as Paid for: ${workerName} on ${paidDate}`);
     const res = await googleDriveService.markWeeklySalaryPaid(workerName, paidDate);
@@ -1204,7 +1231,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
 
   // 10. Query Daily Attendance & Site Allocation
   if (fnName === 'queryDailyAttendance') {
-    const targetDate = args.date || new Date().toISOString().split('T')[0];
+    const targetDate = args.date || getISTDateString();
     const workerName = args.workerName || null;
     const siteName = args.siteName || null;
     const statusFilter = args.statusFilter || null;
@@ -1264,7 +1291,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
 
   // 11. Correct Attendance Record
   if (fnName === 'correctAttendanceRecord') {
-    const targetDate = args.date || new Date().toISOString().split('T')[0];
+    const targetDate = args.date || getISTDateString();
     const wrongWorker = args.wrongWorkerName;
     const correctWorkerName = args.correctWorkerName;
 
@@ -1322,7 +1349,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     }
 
     const details = args.details || 'Site materials purchase';
-    const dateStr = args.date || new Date().toISOString().split('T')[0];
+    const dateStr = args.date || getISTDateString();
 
     let imageBuffer = null;
     let fileName = null;
@@ -1433,7 +1460,7 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
         console.log(`📥 [Fetch Bills Tool] Downloading bill image for ${siteName} (File ID: ${latestWithImage.fileId})...`);
         const imageBytes = await googleDriveService.downloadFileBinary(latestWithImage.fileId);
         if (imageBytes && imageBytes.length > 0) {
-          globalSitePhotoQueue.set(chatId, {
+          queueImage(chatId, {
             buffer: imageBytes,
             caption: `🧾 *${siteName} - சைட் பில் (₹${latestWithImage.amount})*\n📅 தேதி: ${latestWithImage.date} | வாங்கியவர்: ${latestWithImage.worker}\n💳 Paid by: ${latestWithImage.paidBy}`
           });

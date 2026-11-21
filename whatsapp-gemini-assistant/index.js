@@ -632,14 +632,21 @@ async function connectToWhatsApp() {
             await sendBotMessage(sock, replyJid, { text: reply }, quoteOption);
             console.log(`✅ [Gemini] Reply sent to ${senderName} (${replyJid})!\n`);
 
-            // If an on-demand site photo was requested and queued, dispatch the image file directly to WhatsApp!
+            // If an on-demand site photo or bill was requested and queued, dispatch the image file directly to WhatsApp!
             try {
               const { getQueuedImage } = require('./plumbingElectricalPersona');
               const queuedImg = getQueuedImage(replyJid) || getQueuedImage(remoteJid);
-              if (queuedImg && queuedImg.filePath && fs.existsSync(queuedImg.filePath)) {
-                const imgBuf = fs.readFileSync(queuedImg.filePath);
-                await sendBotMessage(sock, replyJid, { image: imgBuf, caption: queuedImg.caption || '📸 சைட் போட்டோ' }, quoteOption);
-                console.log(`🖼️ [Photo Dispatched to WhatsApp] Sent: ${queuedImg.filePath} to ${replyJid}`);
+              if (queuedImg) {
+                let imgBuf = null;
+                if (queuedImg.buffer && Buffer.isBuffer(queuedImg.buffer)) {
+                  imgBuf = queuedImg.buffer;
+                } else if (queuedImg.filePath && fs.existsSync(queuedImg.filePath)) {
+                  imgBuf = fs.readFileSync(queuedImg.filePath);
+                }
+                if (imgBuf) {
+                  await sendBotMessage(sock, replyJid, { image: imgBuf, caption: queuedImg.caption || '📸 சைட் போட்டோ' }, quoteOption);
+                  console.log(`🖼️ [Photo Dispatched to WhatsApp] Sent direct image to ${replyJid}`);
+                }
               }
             } catch (imgDispatchErr) {
               console.warn('[Photo Dispatch] Warning:', imgDispatchErr.message);

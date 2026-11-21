@@ -44,6 +44,15 @@ class GoogleDriveService {
     }
   }
 
+  getISTDateString(d = new Date()) {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+    } catch {
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      return new Date(d.getTime() + istOffset).toISOString().split('T')[0];
+    }
+  }
+
   isConfigured() {
     return Boolean(this.keyData && this.keyData.client_email && this.keyData.private_key);
   }
@@ -422,7 +431,7 @@ class GoogleDriveService {
       const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
       const row = [
         record.timestamp || new Date().toISOString(),
-        record.date || new Date().toISOString().split('T')[0],
+        record.date || this.getISTDateString(),
         record.siteName || 'Site',
         record.workType || 'Roof Concrete Electrical Pipes',
         'Arasan MEP Team',
@@ -453,7 +462,7 @@ class GoogleDriveService {
     try {
       const token = await this.getAccessToken();
       const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
-      const dateStr = entry.date || new Date().toISOString().split('T')[0];
+      const dateStr = entry.date || this.getISTDateString();
       const row = [
         dateStr,
         String(entry.laborId || ''),
@@ -603,7 +612,7 @@ class GoogleDriveService {
     try {
       const token = await this.getAccessToken();
       const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
-      const actualPaidDate = paidDate || new Date().toISOString().split('T')[0];
+      const actualPaidDate = paidDate || this.getISTDateString();
 
       // Read current rows from Weekly_Salary_Settlement
       const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Weekly_Salary_Settlement!A2:J`, {
@@ -699,7 +708,7 @@ class GoogleDriveService {
     try {
       const token = await this.getAccessToken();
       const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
-      const cleanDate = date || new Date().toISOString().split('T')[0];
+      const cleanDate = date || this.getISTDateString();
       const cleanTarget = (targetWorker || '').toLowerCase().trim();
 
       const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A2:G`, {
@@ -758,7 +767,7 @@ class GoogleDriveService {
     try {
       const token = await this.getAccessToken();
       const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
-      const dateStr = entry.date || new Date().toISOString().split('T')[0];
+      const dateStr = entry.date || this.getISTDateString();
 
       let driveLink = '';
       let fileId = '';
@@ -866,7 +875,7 @@ class GoogleDriveService {
         return { success: false, error: 'பொருத்தமான நிலுவையில் உள்ள பில் (Pending Bill) எதுவும் காணப்படவில்லை.' };
       }
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = this.getISTDateString();
       const updateBody = JSON.stringify({
         values: [[newStatus, todayStr]]
       });

@@ -12,3 +12,7 @@ construction_site_visits.json
 pending_n8n_orders.json
 *key.json
 google_drive_key.json
+data/site_media/
+*.jpg
+*.png
+*.jpeg
