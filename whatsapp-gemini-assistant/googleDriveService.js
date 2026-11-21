@@ -695,6 +695,156 @@ class GoogleDriveService {
     }
   }
 
+  async updateDailyAttendanceRecord(date, targetWorker, updates = {}) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const cleanDate = date || new Date().toISOString().split('T')[0];
+      const cleanTarget = (targetWorker || '').toLowerCase().trim();
+
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A2:G`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+
+      let updatedRowIndex = -1;
+      let existingRow = null;
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const rDate = (r[0] || '').trim();
+        const rName = (r[2] || '').trim().toLowerCase();
+
+        if (rDate === cleanDate && (rName.includes(cleanTarget) || cleanTarget.includes(rName))) {
+          updatedRowIndex = i + 2; // 1-based, skipping header
+          existingRow = r;
+          break;
+        }
+      }
+
+      if (updatedRowIndex === -1) {
+        return { success: false, error: `Row not found for ${targetWorker} on ${cleanDate}` };
+      }
+
+      const newRow = [
+        updates.date || existingRow[0],
+        String(updates.laborId !== undefined ? updates.laborId : existingRow[1]),
+        updates.name || existingRow[2],
+        updates.site || existingRow[3],
+        String(updates.dailyRate !== undefined ? updates.dailyRate : existingRow[4]),
+        updates.status || existingRow[5],
+        String(updates.advance !== undefined ? updates.advance : existingRow[6])
+      ];
+
+      const putBody = JSON.stringify({ values: [newRow] });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A${updatedRowIndex}:G${updatedRowIndex}?valueInputOption=USER_ENTERED`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(putBody)
+        }
+      }, putBody);
+
+      console.log(`✅ [GoogleSheet] Corrected attendance row ${updatedRowIndex} for ${newRow[2]} on ${cleanDate}`);
+      return { success: true, rowIndex: updatedRowIndex, updatedRow: newRow };
+    } catch (e) {
+      console.warn('[GoogleSheet] Error updating attendance record:', e.message);
+      return { success: false, error: e.message };
+    }
+  }
+
+  async recordSiteBill(entry, imageBuffer = null, fileName = null) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const dateStr = entry.date || new Date().toISOString().split('T')[0];
+
+      let driveLink = '';
+      let fileId = '';
+
+      if (imageBuffer && fileName) {
+        try {
+          const uploadRes = await this.uploadSitePhotoViaAppsScript(entry.siteName || 'General', 'Bills', fileName, imageBuffer);
+          if (uploadRes && uploadRes.success) {
+            driveLink = uploadRes.fileUrl || uploadRes.folderUrl || '';
+            fileId = uploadRes.fileId || '';
+          }
+        } catch (upErr) {
+          console.warn('[GoogleDriveService] Bill image upload warning:', upErr.message);
+        }
+      }
+
+      const row = [
+        dateStr,
+        entry.siteName || 'General Site',
+        entry.workerName || 'Worker',
+        entry.paidBy || 'Arasan Electrical Owner',
+        String(entry.amount || 0),
+        entry.details || 'Site materials purchase',
+        driveLink || entry.driveLink || '',
+        fileId || entry.fileId || '',
+        new Date().toISOString()
+      ];
+
+      const appendBody = JSON.stringify({ values: [row] });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A:I:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+
+      console.log(`🧾 [GoogleSheet] Appended bill of ₹${entry.amount} for ${entry.siteName} (Paid by: ${entry.paidBy})`);
+      return { success: true, row, driveLink, fileId };
+    } catch (e) {
+      console.warn('[GoogleSheet] Error recording bill:', e.message);
+      return { success: false, error: e.message };
+    }
+  }
+
+  async getSiteBills(siteName = null, date = null) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A2:I`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+
+      const cleanSite = (siteName || '').toLowerCase().trim();
+      const cleanDate = (date || '').trim();
+
+      const results = [];
+      for (const r of rows) {
+        const [rDate, rSite, rWorker, rPaidBy, rAmount, rDetails, rLink, rFileId, rLogged] = r;
+        if (!rSite && !rAmount) continue;
+
+        if (cleanDate && cleanDate !== 'all' && rDate !== cleanDate) continue;
+        if (cleanSite && cleanSite !== 'all' && !(rSite || '').toLowerCase().includes(cleanSite)) continue;
+
+        results.push({
+          date: rDate,
+          siteName: rSite,
+          worker: rWorker,
+          paidBy: rPaidBy,
+          amount: Number(rAmount) || 0,
+          details: rDetails,
+          driveLink: rLink,
+          fileId: rFileId,
+          loggedAt: rLogged
+        });
+      }
+
+      return results;
+    } catch (e) {
+      console.warn('[GoogleSheet] Error fetching bills:', e.message);
+      return [];
+    }
+  }
+
   async makePublicReadable(fileId) {
     try {
       const token = await this.getAccessToken();

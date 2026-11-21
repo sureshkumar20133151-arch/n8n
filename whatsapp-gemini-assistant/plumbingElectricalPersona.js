@@ -152,11 +152,42 @@ function saveLaborers(list) {
 function findLaborerByName(name) {
   if (!name) return null;
   const laborers = loadLaborers();
-  const clean = name.toLowerCase().trim();
-  return laborers.find(l => {
-    const lName = l.name.toLowerCase();
-    return lName.includes(clean) || clean.includes(lName) || clean.split(/\s+/).some(part => part.length >= 3 && lName.includes(part));
-  }) || null;
+  const cleanInput = name.toLowerCase().replace(/[\(\)\[\]\{\}]/g, ' ').replace(/[\u0B80-\u0BFF]/g, '').trim().replace(/\s+/g, ' ');
+  const cleanTamilInput = (name.match(/[\u0B80-\u0BFF]+/g) || []).join(' ').trim();
+
+  // 1. Exact English or Tamil match on full name
+  for (const l of laborers) {
+    const lEng = l.name.toLowerCase().replace(/[\(\)\[\]\{\}]/g, ' ').replace(/[\u0B80-\u0BFF]/g, '').trim().replace(/\s+/g, ' ');
+    const lTam = (l.name.match(/[\u0B80-\u0BFF]+/g) || []).join(' ').trim();
+
+    if (cleanInput && lEng === cleanInput) return l;
+    if (cleanTamilInput && lTam === cleanTamilInput) return l;
+  }
+
+  // 2. Specific multi-word check: 'paal pandi' must match 'Paal Pandi', NEVER 'Pandi'
+  if (cleanInput.includes('paal') || cleanInput.includes('பால்')) {
+    const paal = laborers.find(l => l.name.toLowerCase().includes('paal') || l.name.includes('பால்'));
+    if (paal) return paal;
+  }
+
+  // 3. Exact word match
+  for (const l of laborers) {
+    const lEng = l.name.toLowerCase().replace(/[\(\)\[\]\{\}]/g, ' ').replace(/[\u0B80-\u0BFF]/g, '').trim().replace(/\s+/g, ' ');
+    const words = lEng.split(' ');
+    if (cleanInput && words.includes(cleanInput)) {
+      if (lEng !== cleanInput && words.length > 1) continue;
+      return l;
+    }
+  }
+
+  // 4. Substring fallback (min 4 chars)
+  for (const l of laborers) {
+    const lEng = l.name.toLowerCase();
+    if (cleanInput.length >= 4 && lEng.includes(cleanInput)) return l;
+    if (cleanTamilInput.length >= 4 && l.name.includes(cleanTamilInput)) return l;
+  }
+
+  return null;
 }
 
 function getDefaultDailyRate(role) {
@@ -437,6 +468,92 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           }
         }
       }
+    },
+    {
+      name: 'correctAttendanceRecord',
+      description: 'Call this tool whenever Suresh or a supervisor corrects an attendance mistake (e.g. "Pandi இல்ல Paal Pandi", "correct attendance for Paal Pandi", "change Pandi to Paal Pandi for Aanaiyur site"). Directly updates and corrects the row in Google Sheet Daily_Attendance_Site_Log.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          date: {
+            type: 'STRING',
+            description: 'Date of the record to correct (defaults to today YYYY-MM-DD)'
+          },
+          wrongWorkerName: {
+            type: 'STRING',
+            description: 'The name that was wrongly recorded (e.g. Pandi)'
+          },
+          correctWorkerName: {
+            type: 'STRING',
+            description: 'The correct worker name (e.g. Paal Pandi)'
+          },
+          siteName: {
+            type: 'STRING',
+            description: 'Site name (optional, keeps existing if not passed)'
+          },
+          status: {
+            type: 'STRING',
+            description: 'Attendance status (optional, defaults to Present)'
+          },
+          advanceAmount: {
+            type: 'NUMBER',
+            description: 'Advance amount if any (optional)'
+          }
+        },
+        required: ['wrongWorkerName', 'correctWorkerName']
+      }
+    },
+    {
+      name: 'recordSiteBill',
+      description: 'Call this tool whenever a site bill photo or purchase details are shared in the WhatsApp group (e.g. "Aanaiyur site bill 1250 paid by house owner Prabhu bought", or when an image of a bill/receipt/invoice is uploaded). Extracts date, site name, worker who purchased, paid by (Contractor / House Owner / Arasan Electrical Owner), amount in ₹, and bill details. Uploads image to Google Drive and appends row to Site_Bills_Log tab.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Name of the site (e.g. Aanaiyur, Sevugan 2nd street)'
+          },
+          amount: {
+            type: 'NUMBER',
+            description: 'Total bill amount in Rupees (e.g. 1250, 480)'
+          },
+          workerName: {
+            type: 'STRING',
+            description: 'Name of worker who made the purchase (e.g. Prabhu, Vicky)'
+          },
+          paidBy: {
+            type: 'STRING',
+            description: 'Who paid for this bill: "Contractor", "House Owner", or "Arasan Electrical Owner"'
+          },
+          details: {
+            type: 'STRING',
+            description: 'Materials or items purchased (e.g. PVC pipes, bend, switch box, wire)'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Date on bill (defaults to today YYYY-MM-DD)'
+          }
+        },
+        required: ['siteName', 'amount']
+      }
+    },
+    {
+      name: 'fetchSiteBills',
+      description: 'Call this tool whenever anyone asks for site bills, expense reports, or asks to see bill photos (e.g. "Aanaiyur bill photo காட்டு", "send site bills for Aanaiyur", "show yesterday bills", "bill picture அனுப்பு"). Queries Site_Bills_Log and dispatches the actual bill image to WhatsApp.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Name of the site (e.g. Aanaiyur, Sevugan 2nd street)'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Optional date filter (YYYY-MM-DD)'
+          }
+        },
+        required: ['siteName']
+      }
     }
   ]
 }];
@@ -529,6 +646,20 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
        - \`Payment Status\` -> **\`Paid\`**
        - \`Paid Date\` -> That weekend date (e.g. \`YYYY-MM-DD\`)
      * Courteously confirm in the WhatsApp group that the settlement has been marked as Paid!
+
+8. **🔧 ATTENDANCE CORRECTION & ERROR RECTIFICATION (வருகைப் பதிவில் தவறு திருத்துதல்):**
+   - When Suresh or anyone mentions an attendance mistake (e.g. "Paal pandi ku attendance poda sonna pandi ku pottrukka", "Pandi இல்ல Paal Pandi", "change Pandi to Paal Pandi", "mistake in attendance"):
+     * NEVER just apologize with words or claim it is updated without executing a tool!
+     * You MUST IMMEDIATELY call \`correctAttendanceRecord\` with wrongWorkerName and correctWorkerName!
+     * This physically edits the existing row in Google Sheet \`Daily_Attendance_Site_Log\`, updating the name, Labor ID, and daily rate!
+
+9. **🧾 SITE BILLS & EXPENSES TRACKING (சைட் பில்கள் & கொள்முதல் செலவுகள்):**
+   - When a site bill image, receipt, or invoice is sent in the WhatsApp group (with text/voice note like "Aanaiyur bill 1250 paid by house owner Prabhu bought", or "கடையில பைப் வாங்கின பில்"):
+     * Call \`recordSiteBill\` tool!
+     * Automatically extracts: Date, Site Name, Worker (who bought), Paid By (Contractor / House Owner / Arasan Electrical Owner), Bill Amount, and Details.
+     * Uploads the image to Google Drive and logs row into \`Site_Bills_Log\` tab in Google Sheet!
+   - When anyone asks to see bills or bill photos (e.g. "Aanaiyur bill காட்டு", "send bill photo", "yesterday bill picture"):
+     * Call \`fetchSiteBills\` tool! It downloads the bill photo directly from Google Drive and sends the real image file into WhatsApp!
 
 ## 👥 CURRENT REGISTERED TEAM:
 ${laborersSummary}
@@ -1061,6 +1192,132 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       leaveCount: leaveList.length,
       logs,
       messageTamil: reply
+    };
+  }
+
+  // 11. Correct Attendance Record
+  if (fnName === 'correctAttendanceRecord') {
+    const targetDate = args.date || new Date().toISOString().split('T')[0];
+    const wrongWorker = args.wrongWorkerName;
+    const correctWorkerName = args.correctWorkerName;
+
+    const workerObj = findLaborerByName(correctWorkerName);
+    const correctName = workerObj ? workerObj.name : correctWorkerName;
+    const correctLaborId = workerObj ? workerObj.id : '';
+    const correctRole = workerObj ? workerObj.role : 'Technician';
+    const dailyRate = Number(args.dailyRate) || (workerObj ? getDefaultDailyRate(workerObj.role) : 850);
+
+    const updates = {
+      laborId: correctLaborId,
+      name: correctName,
+      dailyRate: dailyRate
+    };
+    if (args.siteName) updates.site = args.siteName;
+    if (args.status) updates.status = args.status;
+    if (args.advanceAmount !== undefined) updates.advance = args.advanceAmount;
+
+    console.log(`🔧 [Correct Attendance Tool] Correcting ${wrongWorker} -> ${correctName} for ${targetDate}`);
+    const res = await googleDriveService.updateDailyAttendanceRecord(targetDate, wrongWorker, updates);
+
+    if (res && res.success) {
+      return {
+        success: true,
+        messageTamil: `✅ *வருகைப் பதிவு வெற்றிகரமாகத் திருத்தப்பட்டது!*\n\n📅 *தேதி:* ${targetDate}\n🔄 *தவறான பெயர்:* ${wrongWorker}\n✨ *சரியான பெயர்:* ${correctName} (${correctRole})\n💰 *தினக்கூலி:* ₹${dailyRate}\n\n📊 *Google Sheet:* \`Daily_Attendance_Site_Log\` ஷீட்டில் தவறு திருத்தப்பட்டு அப்டேட் செய்யப்பட்டுவிட்டது!`
+      };
+    } else {
+      return {
+        success: false,
+        messageTamil: `⚠️ வருகைப் பதிவைத் திருத்துவதில் தடங்கல்: ${res?.error || 'பதிவு கிடைக்கவில்லை'}`
+      };
+    }
+  }
+
+  // 12. Record Site Bill
+  if (fnName === 'recordSiteBill') {
+    const siteName = args.siteName || 'General Site';
+    const amount = Number(args.amount) || 0;
+    const workerName = args.workerName || 'Worker';
+    const paidBy = args.paidBy || 'Arasan Electrical Owner';
+    const details = args.details || 'Site materials purchase';
+    const dateStr = args.date || new Date().toISOString().split('T')[0];
+
+    let imageBuffer = null;
+    let fileName = null;
+    if (media && media.data) {
+      try {
+        imageBuffer = Buffer.from(media.data, 'base64');
+        const cleanSite = siteName.replace(/[^a-zA-Z0-9]/g, '_');
+        fileName = `Bill_${cleanSite}_${dateStr}_${Date.now()}.jpg`;
+      } catch (err) {
+        console.warn('[SiteBill] Media decode error:', err.message);
+      }
+    }
+
+    console.log(`🧾 [Record Bill Tool] Logging ₹${amount} for ${siteName} by ${workerName} (Paid by: ${paidBy})`);
+    const res = await googleDriveService.recordSiteBill({
+      date: dateStr,
+      siteName,
+      workerName,
+      paidBy,
+      amount,
+      details
+    }, imageBuffer, fileName);
+
+    if (res && res.success) {
+      const driveInfo = res.driveLink ? `\n📁 *Drive Link:* ${res.driveLink}` : '';
+      return {
+        success: true,
+        messageTamil: `🧾 *சைட் பில் வெற்றிகரமாகப் பதிவு செய்யப்பட்டது!*\n\n📍 *சைட்:* ${siteName}\n📅 *தேதி:* ${dateStr}\n💰 *தொகை:* *₹${amount}*\n👷 *பொருள் வாங்கியவர்:* ${workerName}\n💳 *பணம் செலுத்தியவர் (Paid By):* ${paidBy}\n📝 *விபரம்:* ${details}${driveInfo}\n\n📊 *Google Sheet:* \`Site_Bills_Log\` ஷீட்டில் பாதுகாப்பாகச் சேர்க்கப்பட்டது!`
+      };
+    } else {
+      return {
+        success: false,
+        messageTamil: `⚠️ சைட் பில் பதிவு செய்வதில் சிறு தடங்கல் ஏற்பட்டது.`
+      };
+    }
+  }
+
+  // 13. Fetch Site Bills
+  if (fnName === 'fetchSiteBills') {
+    const siteName = args.siteName || 'General Site';
+    const date = args.date || null;
+
+    console.log(`🧾 [Fetch Bills Tool] Fetching bills for ${siteName}`);
+    const bills = await googleDriveService.getSiteBills(siteName, date);
+
+    if (!bills || bills.length === 0) {
+      return {
+        success: true,
+        bills: [],
+        messageTamil: `ℹ️ *${siteName}* சைட்டிற்கு பில்கள் எதுவும் Google Sheet-ல் பதிவாகவில்லை.`
+      };
+    }
+
+    const latestWithImage = bills.find(b => b.fileId);
+    if (latestWithImage && latestWithImage.fileId) {
+      try {
+        console.log(`📥 [Fetch Bills Tool] Downloading bill image for ${siteName} (File ID: ${latestWithImage.fileId})...`);
+        const imageBytes = await googleDriveService.downloadFileBinary(latestWithImage.fileId);
+        if (imageBytes && imageBytes.length > 0) {
+          globalSitePhotoQueue.set(chatId, {
+            buffer: imageBytes,
+            caption: `🧾 *${siteName} - சைட் பில் (₹${latestWithImage.amount})*\n📅 தேதி: ${latestWithImage.date} | வாங்கியவர்: ${latestWithImage.worker}\n💳 Paid by: ${latestWithImage.paidBy}`
+          });
+          console.log(`📸 [Fetch Bills Tool] Queued bill photo for direct WhatsApp delivery! (${imageBytes.length} bytes)`);
+        }
+      } catch (imgErr) {
+        console.warn('[Fetch Bills Tool] Bill photo download warning:', imgErr.message);
+      }
+    }
+
+    const totalAmount = bills.reduce((sum, b) => sum + (b.amount || 0), 0);
+    const billList = bills.map((b, idx) => `*${idx + 1}. ₹${b.amount}* - ${b.details}\n   📅 ${b.date} | 👷 ${b.worker} | 💳 Paid by: ${b.paidBy}`).join('\n\n');
+
+    return {
+      success: true,
+      totalAmount,
+      count: bills.length,
+      messageTamil: `🧾 *${siteName} - சைட் பில்கள் அறிக்கை (${bills.length} பில்கள்):*\n━━━━━━━━━━━━━━━━━━━━━━\n${billList}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💵 *மொத்த செலவு (Total):* *₹${totalAmount}*\n\n_குறிப்பு: பில் போட்டோ நேரடியாக வாட்ஸ்அப்பில் அனுப்பப்படுகிறது._`
     };
   }
 
