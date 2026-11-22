@@ -5,7 +5,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const MCP_ENDPOINT = process.env.BUDGET_TRACKER_MCP_URL || 'https://personal-finance-app-mauve.vercel.app/api/mcp?user=suresh';
+const MCP_ENDPOINT = process.env.BUDGET_TRACKER_MCP_URL || 'https://personal-finance-app-mauve.vercel.app/api/mcp?uid=mlbLQkDo0Ef95hns8p8iTkQdUK83';
 const MCP_API_KEY = process.env.BUDGET_TRACKER_MCP_KEY || 'e6318d93-0d54-4230-b16a-500dd23129db';
 
 // ─── Gemini Tool Definitions ─────────────────────────────────────────────────
