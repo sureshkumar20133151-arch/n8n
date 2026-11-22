@@ -27,8 +27,10 @@ const restaurantCart = require('./restaurantCartService');
 const sessionPersistence = require('./sessionPersistence');
 const instagramService = require('./instagramService');
 const channelControls = require('./channelControls');
+const MultiSessionManager = require('./multiSessionManager');
 
 const gemini = new GeminiService();
+const multiSession = new MultiSessionManager(gemini);
 
 
 const triggerPrefix = (process.env.TRIGGER_PREFIX || '!ai').toLowerCase();
@@ -206,6 +208,14 @@ function detectModeSwitchIntent(rawText) {
     /^(plumber\s*mode|plumbing\s*mode|electrical\s*mode|mep\s*mode)$/i.test(cleaned)
   ) {
     return { target: 'plumber' };
+  }
+
+  if (
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:finance|budget|kanakku|money|expense|selavu)/i.test(cleaned) ||
+    /(?:finance|budget|kanakku|money|expense|selavu)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(finance\s*mode|budget\s*mode|kanakku\s*mode|expense\s*mode)$/i.test(cleaned)
+  ) {
+    return { target: 'finance' };
   }
 
   return null;
@@ -731,6 +741,66 @@ const server = http.createServer((req, res) => {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     return res.end();
+  }
+
+  // ============================================================
+  // MULTI-SESSION WHATSAPP API (FOR BUDGET TRACKER APP)
+  // ============================================================
+  if (req.url.startsWith('/api/whatsapp/')) {
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const pathname = parsedUrl.pathname;
+    const uid = (parsedUrl.searchParams.get('uid') || '').trim();
+
+    if (!uid) {
+      res.writeHead(400, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(JSON.stringify({ error: 'Missing required parameter: uid' }));
+    }
+
+    if (pathname === '/api/whatsapp/status') {
+      const status = multiSession.getSessionStatus(uid);
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(JSON.stringify({ success: true, uid, ...status }));
+    }
+
+    if (pathname === '/api/whatsapp/start') {
+      multiSession.startSession(uid).then(result => {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ success: true, uid, ...result }));
+      }).catch(err => {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+      return;
+    }
+
+    if (pathname === '/api/whatsapp/disconnect') {
+      multiSession.disconnectSession(uid).then(result => {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ success: true, uid, ...result }));
+      }).catch(err => {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+      return;
+    }
   }
 
   // ============================================================

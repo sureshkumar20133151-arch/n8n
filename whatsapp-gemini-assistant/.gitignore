@@ -2,6 +2,7 @@ node_modules/
 .wwebjs_auth/
 .wwebjs_cache/
 .baileys_auth/
+user_sessions/
 .env
 scan-qr.html
 *.log

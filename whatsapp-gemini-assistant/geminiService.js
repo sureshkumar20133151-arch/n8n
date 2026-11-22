@@ -13,6 +13,7 @@ const { WHOLESALE_TOOLS, buildWholesaleSystemPrompt, executeWholesaleToolCall } 
 const { RESTAURANT_TOOLS, buildRestaurantSystemPrompt, executeRestaurantToolCall } = require('./restaurantPersona');
 const { BUILDER_TOOLS, buildBuilderSystemPrompt, executeBuilderToolCall } = require('./builderPersona');
 const { PLUMBING_ELECTRICAL_TOOLS, buildPlumbingElectricalSystemPrompt, executePlumbingElectricalToolCall } = require('./plumbingElectricalPersona');
+const { FINANCE_TOOLS, buildFinanceSystemPrompt, executeFinanceToolCall } = require('./financePersona');
 const builderCustomerMemory = require('./builderCustomerMemory');
 
 const LEAD_TOOLS = [{
@@ -333,6 +334,8 @@ class GeminiService {
       base = buildBuilderSystemPrompt();
     } else if (mode === 'plumber') {
       base = buildPlumbingElectricalSystemPrompt();
+    } else if (mode === 'finance') {
+      base = buildFinanceSystemPrompt();
     } else {
       base = buildSystemPrompt();
     }
@@ -366,6 +369,9 @@ class GeminiService {
     }
     if (mode === 'plumber') {
       return PLUMBING_ELECTRICAL_TOOLS;
+    }
+    if (mode === 'finance') {
+      return FINANCE_TOOLS;
     }
     return isOwner ? OWNER_TOOLS : LEAD_TOOLS;
   }
@@ -606,7 +612,7 @@ class GeminiService {
   /**
    * Execute a single function call triggered by Gemini AI
    */
-  async executeToolCall(fnCall, chatId, cleanId, isOwner = false, overrideMode = null, media = null) {
+  async executeToolCall(fnCall, chatId, cleanId, isOwner = false, overrideMode = null, media = null, targetUid = null) {
     const fnName = fnCall.name;
     const args = fnCall.args || {};
     const mode = overrideMode || personaManager.getActiveMode();
@@ -625,6 +631,10 @@ class GeminiService {
 
     if (mode === 'plumber') {
       return await executePlumbingElectricalToolCall(fnCall, chatId, media);
+    }
+
+    if (mode === 'finance') {
+      return await executeFinanceToolCall(fnCall, chatId, targetUid);
     }
 
     if (fnName === 'saveLeadDetails') {
@@ -779,9 +789,21 @@ class GeminiService {
       }
 
       if (media && media.isAudio) {
-        const audioInstruction = (userText && userText.trim().length > 0)
-          ? `The user sent this voice note with additional text: "${userText.trim()}". Listen carefully to the voice note, understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply naturally, politely, and concisely in that same language following your knowledge base rules.`
-          : "Listen carefully to this voice note from the client. Understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply helpfully, politely, and concisely in that same language following your knowledge base rules.";
+        let audioInstruction = '';
+        if (mode === 'finance') {
+          audioInstruction = `[FINANCE VOICE NOTE FROM USER]: Listen carefully to this voice note where the user describes an expense, income, or financial query in Tamil, Tanglish, or English.
+1. If logging an expense or income (e.g. "Tea ₹20 kudichen", "petrol 500 potten", "received 5000 freelance"):
+   - Identify Amount, Category, Description, and Payment Mode.
+   - If all required details are present or easily inferred, call the "addTransaction" tool immediately!
+   - If any critical info is missing (e.g. amount is not mentioned), politely ask the user for the missing detail.
+2. If asking for balances or monthly summary:
+   - Call "getBalances" or "getMonthlySummary".
+Reply naturally in friendly spoken Tamil / Tanglish.`;
+        } else {
+          audioInstruction = (userText && userText.trim().length > 0)
+            ? `The user sent this voice note with additional text: "${userText.trim()}". Listen carefully to the voice note, understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply naturally, politely, and concisely in that same language following your knowledge base rules.`
+            : "Listen carefully to this voice note from the client. Understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply helpfully, politely, and concisely in that same language following your knowledge base rules.";
+        }
         userParts.push({ text: audioInstruction });
       } else if (media && media.isVideo) {
         const hasCaption = userText && userText.trim().length > 0;
@@ -832,6 +854,20 @@ The customer shared a house construction / elevation video or reel (${media.seco
 4. Seamlessly ask about their plot dimensions or locality to compute an exact preliminary estimate!`
             : '';
           contextualText = `${builderContext}${imagePrompt}\n[CUSTOMER INCOMING MESSAGE]: ${userText.trim()}`;
+        } else if (mode === 'finance') {
+          const imagePrompt = (media && !media.isAudio)
+            ? `\n[FINANCE RECEIPT / BILL / GPAY SCREENSHOT ATTACHED]: The user sent an image or screenshot along with text: "${userText.trim()}".
+1. Carefully inspect the image:
+   - If it is a Google Pay / PhonePe / Paytm / Bank payment screenshot:
+     Extract Amount, Recipient / Merchant name, Date & Time, Payment Mode (UPI).
+   - If it is a printed bill, receipt, or invoice (hotel, supermarket, fuel, pharmacy):
+     Extract Total Amount, Merchant / Shop name, Date, and purchased items / category.
+2. If all required details (Amount, Category, Description) are clearly visible:
+   Call the "addTransaction" tool immediately to record it into Budget Tracker!
+3. If ANY critical detail (like total amount) is unreadable or missing:
+   Politely ask Suresh to clarify before adding.`
+            : '';
+          contextualText = `${imagePrompt}\n[USER MESSAGE]: ${userText.trim()}`;
         } else {
           // Dev mode (SoloDeveloper)
           const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
@@ -896,6 +932,20 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
 4. Assure the customer that Danam Holdings in Madurai specializes in executing this exact turnkey elevation & construction with precision! Mention approved package rates (Standard ₹1,850–₹1,950/Sq.Ft or Premium Luxury ₹2,250–₹2,350/Sq.Ft).
 5. Seamlessly ask if they have a plot in Madurai or what their plot size is to calculate an instant preliminary estimate!`;
           userParts.push({ text: imageDirective });
+        } else if (mode === 'finance') {
+          const financeImageDirective = `[FINANCE RECEIPT / BILL / GPAY SCREENSHOT SHARED WITHOUT CAPTION]:
+The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank alert, or physical restaurant/store bill) without a text caption.
+1. Carefully inspect the image:
+   - If it is a Google Pay / PhonePe / Paytm / Bank payment screenshot:
+     Extract Amount, Recipient / Merchant name, Date & Time, Payment Mode (UPI).
+   - If it is a printed bill, receipt, or invoice:
+     Extract Total Amount, Merchant / Shop name, Date, and items summary.
+2. If all required details (Amount, Category, Description) are clearly visible:
+   Call the "addTransaction" tool immediately to record it into Budget Tracker!
+   After recording, provide a neat confirmation with WhatsApp formatting (*bold*, emojis).
+3. If ANY critical detail (like total amount) is unreadable or missing:
+   Politely ask Suresh in Tamil/Tanglish for the missing detail (e.g. "அண்ணா, பில்லில் மொத்த அமவுண்ட் தெளிவாக தெரியவில்லை, எவ்வளவு ஆச்சுன்னு சொல்றீங்களா?").`;
+          userParts.push({ text: financeImageDirective });
         } else {
           userParts.push({ text: "Please analyze this image and explain what you see in detail." });
         }
@@ -1041,7 +1091,7 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
         const toolResults = [];
         for (const fnCall of currentCalls) {
           console.log(`  ↪ Executing tool: ${fnCall.name}`);
-          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner, mode, media);
+          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner, mode, media, options.targetUid);
           toolResults.push({ fnCall, result });
         }
 

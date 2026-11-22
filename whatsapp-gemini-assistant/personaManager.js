@@ -54,6 +54,16 @@ const PERSONAS = {
     badge: 'Electrical & Plumbing Mode',
     icon: '⚡🔧',
     switchMessage: '✅ *Switched!* Mode is now active: ⚡🔧 *Arasan Electrical & Plumbing Site Assistant*.\n• Site photo archiving (Roof Concrete pipes, Wall Chasing/கார்டி, Bathroom plumbing) active.\n• 10 Laborers directory & auto-dispatch ready.\n• Group & DM on-demand photo retrieval active!'
+  },
+  finance: {
+    id: 'finance',
+    name: 'Personal Finance & Budget Tracker AI Assistant',
+    client: 'Budget Tracker Pro (Suresh)',
+    proprietor: 'Suresh Kumar',
+    tagline: 'Track Daily Expenses • Voice, Photo, Screenshot & Text • Live MCP Budget Sync',
+    badge: 'Personal Finance Mode',
+    icon: '💰📊',
+    switchMessage: '✅ *Switched!* Mode is now active: 💰 *Personal Finance & Budget Tracker Assistant*.\n• Connected to Budget Tracker Pro via MCP.\n• Send Voice Notes, Bills, GPay Screenshots, or Text to log expenses & income.\n• Ask balances, monthly breakdown, or category limits anytime!'
   }
 };
 
@@ -134,12 +144,14 @@ class PersonaManager {
       selectedKey = 'dev';
     } else if (normalized === 'plumber' || normalized === 'plumbing' || normalized === 'electrical' || normalized === 'electrician' || normalized === 'mep' || normalized === 'pipes') {
       selectedKey = 'plumber';
+    } else if (normalized === 'finance' || normalized === 'budget' || normalized === 'kanakku' || normalized === 'money' || normalized === 'expense' || normalized === 'selavu') {
+      selectedKey = 'finance';
     }
 
     if (!selectedKey || !PERSONAS[selectedKey]) {
       return {
         success: false,
-        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev, plumber.`
+        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev, plumber, finance.`
       };
     }
 
