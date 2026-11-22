@@ -98,6 +98,131 @@ const FINANCE_TOOLS = [{
         type: 'OBJECT',
         properties: {}
       }
+    },
+    {
+      name: 'setBankBalance',
+      description: 'Update or set the current balance of a bank account (e.g. Indian Bank ₹185.08, Canara Bank ₹10.36, SBI). Use this when Suresh states his current bank balance or wants to set bank balance.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          bank_name: { type: 'STRING', description: 'Name of the bank (e.g. "Indian Bank", "Canara Bank", "SBI")' },
+          amount: { type: 'NUMBER', description: 'Current available balance in ₹' },
+          account_ending: { type: 'STRING', description: 'Last 4 digits or "primary" (default: "primary")' }
+        },
+        required: ['bank_name', 'amount']
+      }
+    },
+    {
+      name: 'setCashBalance',
+      description: 'Set or update the physical cash-in-hand balance. Use this when Suresh says "cash on hand 3000 add pannu", "kai la 1500 irukku", or wants to update cash balance.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          amount: { type: 'NUMBER', description: 'Total physical cash in hand in ₹' }
+        },
+        required: ['amount']
+      }
+    },
+    {
+      name: 'setMonthlyBudget',
+      description: 'Set or update the overall monthly budget. Use this when Suresh says "set my monthly budget 20000", "intha maasam budget 25000 nu mathu".',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          amount: { type: 'NUMBER', description: 'Total monthly budget in ₹ (e.g. 20000)' }
+        },
+        required: ['amount']
+      }
+    },
+    {
+      name: 'addLent',
+      description: 'Record money lent to a friend or relative that they owe to Suresh (receivables / to collect). E.g. "dhilip 1000 and mani 1500 tharanum", "friend ku 2000 கடன் கொடுத்தேன்".',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING', description: 'Friend or person name (e.g. "Dhilip", "Mani")' },
+          amount: { type: 'NUMBER', description: 'Amount lent in ₹' },
+          note: { type: 'STRING', description: 'Optional reason or note (e.g. "Petrol", "Emergency")' },
+          due_date: { type: 'STRING', description: 'Expected return date in YYYY-MM-DD format (optional)' }
+        },
+        required: ['name', 'amount']
+      }
+    },
+    {
+      name: 'settleLent',
+      description: 'Mark money previously lent to a friend as returned / received / settled. E.g. "dhilip 1000 thandhutan", "mani returned 1500", "settle dhilip". Automatically marks the entry settled and records income into transactions and balance.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING', description: 'Friend name (e.g. "Dhilip", "Mani")' },
+          amount: { type: 'NUMBER', description: 'Amount returned in ₹ (optional, defaults to full lent amount)' }
+        },
+        required: ['name']
+      }
+    },
+    {
+      name: 'deleteTransaction',
+      description: 'Delete a transaction from the ledger. E.g. "kadaisi transaction delete pannu", "cancel last expense", "remove tea 20".',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          latest: { type: 'BOOLEAN', description: 'Set to true to delete the most recent transaction' },
+          search: { type: 'STRING', description: 'Search term for description to delete' },
+          amount: { type: 'NUMBER', description: 'Amount of transaction to delete' }
+        }
+      }
+    },
+    {
+      name: 'addRecurring',
+      description: 'Add a recurring monthly/weekly bill or subscription (e.g. "Netflix 199 monthly add pannu", "EB bill 500 recurring", "Rent 8000").',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING', description: 'Name of the bill or subscription' },
+          amount: { type: 'NUMBER', description: 'Amount in ₹' },
+          frequency: { type: 'STRING', enum: ['monthly', 'weekly', 'daily'], description: 'Frequency (default "monthly")' },
+          category_name: { type: 'STRING', description: 'Category name (optional)' }
+        },
+        required: ['name', 'amount']
+      }
+    },
+    {
+      name: 'deleteRecurring',
+      description: 'Delete a recurring bill or subscription by name. E.g. "delete netflix subscription".',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING', description: 'Name of the recurring item to delete' }
+        },
+        required: ['name']
+      }
+    },
+    {
+      name: 'addLoan',
+      description: 'Record an EMI or borrowing that Suresh owes (e.g. "Bike loan EMI 3500 add pannu", "personal loan 50000 vangunen").',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING', description: 'Loan or lender name (e.g. "HDFC Bike Loan")' },
+          type: { type: 'STRING', enum: ['emi', 'debt'], description: 'Type: "emi" for installment, "debt" for lump sum' },
+          principal: { type: 'NUMBER', description: 'Principal amount in ₹' },
+          monthly_amount: { type: 'NUMBER', description: 'Monthly EMI installment in ₹' },
+          tenure: { type: 'NUMBER', description: 'Tenure in months' },
+          interest_rate: { type: 'NUMBER', description: 'Annual interest rate % (optional)' }
+        },
+        required: ['name']
+      }
+    },
+    {
+      name: 'deleteLoan',
+      description: 'Delete a loan or EMI entry by name.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING', description: 'Name of the loan to delete' }
+        },
+        required: ['name']
+      }
     }
   ]
 }];
@@ -181,7 +306,17 @@ async function executeFinanceToolCall(fnCall, chatId, targetUid = null) {
     getMonthlySummary: 'get_monthly_summary',
     getTransactions: 'get_transactions',
     listCategories: 'list_categories',
-    getLoansAndRecurring: 'get_loans_and_recurring'
+    getLoansAndRecurring: 'get_loans_and_recurring',
+    setBankBalance: 'set_bank_balance',
+    setCashBalance: 'set_cash_balance',
+    setMonthlyBudget: 'set_monthly_budget',
+    addLent: 'add_lent',
+    settleLent: 'settle_lent',
+    deleteTransaction: 'delete_transaction',
+    addRecurring: 'add_recurring',
+    deleteRecurring: 'delete_recurring',
+    addLoan: 'add_loan',
+    deleteLoan: 'delete_loan'
   };
 
   const mcpName = toolMapping[fnName] || fnName;
@@ -205,7 +340,7 @@ PRIMARY ROLE & RESPONSIBILITIES:
    - Bill / Receipt Photos: Extract store/restaurant name, item details, bill total, and date.
    - Text Messages: E.g., "Tea ₹20 cash", "petrol 500 gpay", "Swiggy dinner 450", "received freelance 15000".
 
-2. CRITICAL CLARIFICATION RULE (DO NOT BLINDLY GUESS):
+2. CRITICAL CLARIFICATION RULE FOR DAILY EXPENSES (DO NOT BLINDLY GUESS):
    - Before calling the "addTransaction" tool, you MUST have:
      1) Exact Amount (₹)
      2) Category (Food, Transport, Utilities, Clothes, Coffee, Gym, Entertainment, etc.)
@@ -216,37 +351,60 @@ PRIMARY ROLE & RESPONSIBILITIES:
      Example: "அண்ணா, அமவுண்ட் ₹120-னு தெரியுது. இது Food-ஆ அல்லது Transport-ஆ? Cash-ஆ இல்ல GPay-ஆ?"
    - Once all details are clear or confirmed, IMMEDIATELY call "addTransaction".
 
-3. KNOWN BUDGET CATEGORIES (Match to these when possible):
-   - Food (Monthly Budget: ₹7,000) -> Breakfast, Lunch, Dinner, Groceries, Hotel, Swiggy, Zomato, Snacks.
-   - Coffee (Monthly Budget: ₹50) -> Tea, Coffee, Bakery tea shop.
-   - Transport (Monthly Budget: ₹200) -> Petrol, Diesel, Auto, Rapido, Uber, Bus, Train, Toll.
-   - Utilities (Monthly Budget: ₹150) -> EB bill, Mobile recharge, Wifi, Water, Gas cylinder.
-   - Clothes (Monthly Budget: ₹100) -> Clothing, Shoes, Accessories.
-   - Entertainment (Monthly Budget: ₹100) -> Movies, OTT, Outing, Gaming.
-   - Gym (Monthly Budget: ₹1,500) -> Fitness, Gym fees, Supplements, Sports.
-   - Beauty -> Salon, Grooming, Haircut.
-   - Other custom categories or new ones can be assigned as appropriate.
+3. CONTROL & EDIT ALL APP DATA DIRECTLY VIA WHATSAPP (SURESH'S FULL CONTROL):
+   Everything that Suresh can configure or edit in the mobile app, he can now command directly through WhatsApp:
+
+   A. BANK ACCOUNT BALANCES:
+      - When Suresh says "Now my Indian Bank account balance is 185.08, Canara Bank is 10.36" or "Indian bank balance 5000 nu mathu":
+        👉 Call "setBankBalance" for EACH bank mentioned! (bank_name: "Indian Bank", amount: 185.08, etc.)
+        DO NOT refuse or say you only add income/savings. Immediately set their balance!
+
+   B. CASH ON HAND:
+      - When Suresh says "cash on hand 3000 add pannu", "kai la 1500 irukku", or "update cash to 2000":
+        👉 Call "setCashBalance" with amount: 3000!
+
+   C. MONTHLY BUDGET:
+      - When Suresh says "set my monthly budget is 20,000", "budget 25000 nu mathu", or "monthly budget 30000":
+        👉 Call "setMonthlyBudget" with amount: 20000!
+
+   D. LENT TO FRIENDS (Money Friends Owe Suresh / வர வேண்டிய கடன்):
+      - When Suresh says "Friend enkitta dhilip 1000 and mani 1500 tharanum athaium update pannu" or "Dhilip ku 1000 கடன் கொடுத்தேன்":
+        👉 Call "addLent" for each person (e.g. name: "Dhilip", amount: 1000; name: "Mani", amount: 1500)!
+      - When Suresh says "Dhilip 1000 thandhutan", "Mani kaasu kuduthutan settle pannu", or "Settle Dhilip":
+        👉 Call "settleLent" with name: "Dhilip"! This automatically marks the pending loan settled AND adds income into his transaction ledger!
+
+   E. RECURRING BILLS & SUBSCRIPTIONS:
+      - When Suresh says "Netflix 199 monthly subscription add pannu", "EB bill 500 recurring", "Rent 8000":
+        👉 Call "addRecurring"!
+      - When Suresh says "Delete Netflix subscription":
+        👉 Call "deleteRecurring"!
+
+   F. LOANS & EMIs (Money Suresh Owes to Bank / Lenders):
+      - When Suresh says "Bike loan EMI 3500 add pannu", "Personal loan 50000 vangunen":
+        👉 Call "addLoan"!
+      - When Suresh says "Delete bike loan":
+        👉 Call "deleteLoan"!
+
+   G. DELETE / REVERT TRANSACTIONS:
+      - When Suresh says "Kadaisi transaction delete pannu", "Cancel last entry", "Tenth item mistake delete it":
+        👉 Call "deleteTransaction" with latest: true!
+      - When Suresh says "Delete tea 20" or "Remove swiggy 450":
+        👉 Call "deleteTransaction" with search: "tea", amount: 20!
 
 4. REAL-TIME QUERIES:
    - When Suresh asks for balance ("Balance evlo irukku?"): Call "getBalances".
    - When asked for monthly spend / summary ("Intha maasam evlo selavu?", "Monthly report"): Call "getMonthlySummary".
    - When asked about specific category balance ("Food-la evlo irukku?"): Call "listCategories".
    - When asked about recent expenses ("Kadaisiya enna selavu pannom?"): Call "getTransactions".
-   - When asked about EMIs or recurring bills: Call "getLoansAndRecurring".
+   - When asked about EMIs, loans or money to collect: Call "getLoansAndRecurring".
 
 5. TONE, STYLE & LANGUAGE:
    - Warm, respectful, proactive personal accountant for Suresh ("அண்ணா / Suresh").
    - Respond in natural spoken Tamil or friendly Tanglish (just like how Madurai / Tamil Nadu people talk on WhatsApp).
-   - After successfully adding a transaction, format the response cleanly with WhatsApp emojis and bullet points:
-     ✅ *செலவு பதிவு செய்யப்பட்டது!*
+   - Format confirmations cleanly with WhatsApp emojis and bullet points:
+     ✅ *அப்டேட் செய்யப்பட்டது!*
      ━━━━━━━━━━━━━━━━━━━
-     💵 *Amount:* ₹[amount]
-     🏷️ *Category:* [category]
-     📝 *Note:* [description]
-     💳 *Payment Mode:* [UPI / Cash / Card]
-     📅 *Date:* [date]
-
-     (Add a 1-line helpful note on remaining budget if available).
+     (Show exact updated details nicely).
    - Keep answers crisp, clean, and nicely formatted. Never dump raw code or raw JSON.`;
 }
 
