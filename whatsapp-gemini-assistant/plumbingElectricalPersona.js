@@ -632,6 +632,46 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
         },
         required: ['siteName']
       }
+    },
+    {
+      name: 'deleteAttendanceRecord',
+      description: 'Call this tool when Suresh or supervisor explicitly asks to delete/remove a mistaken attendance row from Google Sheets (e.g. "சஞ்சய் அட்ரன்டன்ஸை டெலீட் பண்ணு", "delete attendance for Prabhu today", "remove attendance row"). Physically deletes the row from Daily_Attendance_Site_Log.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          workerName: {
+            type: 'STRING',
+            description: 'Name of the worker whose attendance row should be deleted'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Date of attendance (defaults to today YYYY-MM-DD)'
+          }
+        },
+        required: ['workerName']
+      }
+    },
+    {
+      name: 'deleteSiteBill',
+      description: 'Call this tool when Suresh or supervisor asks to delete a wrongly entered site bill from Google Sheet and trash the bill photo in Drive (e.g. "அந்த 1800 பில்லை டெலீட் பண்ணு", "delete Aanaiyur bill", "remove bill"). Physically deletes row from Site_Bills_Log and trashes Drive file.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Site name of the bill to delete'
+          },
+          amount: {
+            type: 'NUMBER',
+            description: 'Bill amount in ₹'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Optional date of the bill'
+          }
+        },
+        required: ['siteName']
+      }
     }
   ]
 }];
@@ -1480,6 +1520,47 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       count: bills.length,
       messageTamil: `🧾 *${siteName} - சைட் பில்கள் அறிக்கை (${bills.length} பில்கள்):*\n━━━━━━━━━━━━━━━━━━━━━━\n${billList}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💵 *மொத்த செலவு (Total):* *₹${totalAmount}*\n\n_குறிப்பு: பில் போட்டோ நேரடியாக வாட்ஸ்அப்பில் அனுப்பப்படுகிறது._`
     };
+  }
+
+  // 14. Delete Attendance Record
+  if (fnName === 'deleteAttendanceRecord') {
+    const workerName = args.workerName;
+    const date = args.date || getISTDateString();
+    console.log(`🗑️ [Delete Attendance Tool] Deleting attendance for ${workerName} on ${date}`);
+
+    const res = await googleDriveService.deleteDailyAttendanceRecord(date, workerName);
+    if (res && res.success) {
+      return {
+        success: true,
+        messageTamil: `🗑️ *வருகைப் பதிவு வெற்றிகரமாக நீக்கப்பட்டது (Deleted)!*\n\n📅 *தேதி:* ${date}\n👷 *தொழிலாளி:* ${res.matchedRow?.name || workerName}\n📍 *சைட்:* ${res.matchedRow?.site || 'Site'}\n\n📊 Google Sheet \`Daily_Attendance_Site_Log\`-ல் இருந்து இந்த வரி முழுமையாக நீக்கப்பட்டுவிட்டது.`
+      };
+    } else {
+      return {
+        success: false,
+        messageTamil: `⚠️ வருகைப் பதிவை நீக்குவதில் தடங்கல்: ${res?.error || 'பதிவு கிடைக்கவில்லை'}`
+      };
+    }
+  }
+
+  // 15. Delete Site Bill
+  if (fnName === 'deleteSiteBill') {
+    const siteName = args.siteName || 'all';
+    const amount = args.amount ? Number(args.amount) : null;
+    const date = args.date || null;
+    console.log(`🗑️ [Delete Site Bill Tool] Deleting bill for ${siteName} (Amount: ${amount})`);
+
+    const res = await googleDriveService.deleteSiteBill(siteName, amount, date);
+    if (res && res.success) {
+      return {
+        success: true,
+        messageTamil: `🗑️ *சைட் பில் வெற்றிகரமாக நீக்கப்பட்டது (Deleted)!*\n\n📍 *சைட்:* ${res.matchedBill.site}\n💰 *தொகை:* *₹${res.matchedBill.amount}*\n📅 *தேதி:* ${res.matchedBill.date}\n📝 *விவரம்:* ${res.matchedBill.details}\n\n📊 Google Sheet \`Site_Bills_Log\`-ல் இருந்த வரியும், Google Drive-ல் இருந்த பில் போட்டோவும் நீக்கப்பட்டுவிட்டது.`
+      };
+    } else {
+      return {
+        success: false,
+        messageTamil: `⚠️ பில்லை நீக்குவதில் குறிப்பு: ${res?.error || 'பொருத்தமான பில் கிடைக்கவில்லை'}`
+      };
+    }
   }
 
   return { error: `Unknown tool function: ${fnName}` };

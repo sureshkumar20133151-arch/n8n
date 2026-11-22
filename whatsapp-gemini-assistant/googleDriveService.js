@@ -1092,6 +1092,156 @@ class GoogleDriveService {
       req.end();
     });
   }
+  async trashDriveFile(fileId) {
+    try {
+      const token = await this.getAccessToken();
+      const body = JSON.stringify({ trashed: true });
+      await this._makeHttpRequest(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      }, body);
+      console.log(`🗑️ [GoogleDrive] Moved file ${fileId} to trash.`);
+      return { success: true };
+    } catch (err) {
+      console.warn('[GoogleDrive] Error trashing file:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async deleteRowFromSheet(sheetTitle, zeroBasedRowIndex) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const metaRes = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const meta = JSON.parse(metaRes);
+      const cleanTitle = (sheetTitle || '').trim().toLowerCase();
+      const sheetObj = meta.sheets.find(s => s.properties.title.trim().toLowerCase() === cleanTitle);
+      if (!sheetObj) {
+        return { success: false, error: `Sheet tab "${sheetTitle}" not found.` };
+      }
+      const numericSheetId = sheetObj.properties.sheetId;
+
+      const batchBody = JSON.stringify({
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: numericSheetId,
+                dimension: 'ROWS',
+                startIndex: zeroBasedRowIndex,
+                endIndex: zeroBasedRowIndex + 1
+              }
+            }
+          }
+        ]
+      });
+
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(batchBody)
+        }
+      }, batchBody);
+
+      console.log(`🗑️ [GoogleSheet] Successfully deleted row ${zeroBasedRowIndex + 1} from ${sheetTitle}`);
+      return { success: true };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error deleting row from sheet:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async deleteDailyAttendanceRecord(date, workerName) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A2:G`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanDate = (date || this.getISTDateString()).trim();
+      const cleanWorker = (workerName || '').trim().toLowerCase();
+
+      let targetZeroIndex = -1;
+      let matchedRow = null;
+
+      for (let i = 0; i < rows.length; i++) {
+        const [rDate, rLaborId, rName, rSite, rSalary, rAttendance, rAdvance] = rows[i];
+        if (cleanDate && rDate !== cleanDate) continue;
+        if (cleanWorker && !(rName || '').toLowerCase().includes(cleanWorker)) continue;
+
+        targetZeroIndex = i + 1; // +1 because row 1 is headers
+        matchedRow = { date: rDate, name: rName, site: rSite };
+        break;
+      }
+
+      if (targetZeroIndex === -1) {
+        return { success: false, error: `${cleanDate}-ல் ${workerName}-க்கான வருகைப் பதிவு கிடைக்கவில்லை.` };
+      }
+
+      const delRes = await this.deleteRowFromSheet('Daily_Attendance_Site_Log', targetZeroIndex);
+      if (delRes && delRes.success) {
+        return { success: true, matchedRow };
+      }
+      return delRes;
+    } catch (err) {
+      console.warn('[GoogleSheet] Error deleting attendance record:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async deleteSiteBill(siteName, amount = null, date = null) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Bills_Log!A2:L`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanSite = (siteName || '').trim().toLowerCase();
+      const cleanDate = date ? date.trim() : null;
+      const targetAmt = amount ? Number(amount) : null;
+
+      let targetZeroIndex = -1;
+      let matchedBill = null;
+
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const [rDate, rSite, rWorker, rPaidOut, rOwedBy, rAmount, rStatus, rRecDate, rDetails, rLink, rFileId] = rows[i];
+        if (cleanSite && cleanSite !== 'all' && !(rSite || '').toLowerCase().includes(cleanSite)) continue;
+        if (cleanDate && rDate !== cleanDate) continue;
+        if (targetAmt && Math.abs((Number(rAmount) || 0) - targetAmt) > 10) continue;
+
+        targetZeroIndex = i + 1;
+        matchedBill = { date: rDate, site: rSite, amount: rAmount, details: rDetails, fileId: rFileId };
+        break;
+      }
+
+      if (targetZeroIndex === -1) {
+        return { success: false, error: `பொருத்தமான பில் எதுவும் கிடைக்கவில்லை.` };
+      }
+
+      if (matchedBill.fileId) {
+        await this.trashDriveFile(matchedBill.fileId).catch(() => {});
+      }
+
+      const delRes = await this.deleteRowFromSheet('Site_Bills_Log', targetZeroIndex);
+      if (delRes && delRes.success) {
+        return { success: true, matchedBill };
+      }
+      return delRes;
+    } catch (err) {
+      console.warn('[GoogleSheet] Error deleting bill:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
 }
 
 const googleDriveService = new GoogleDriveService();
