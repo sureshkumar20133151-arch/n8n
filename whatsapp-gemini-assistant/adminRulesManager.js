@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ADMIN_RULES_FILE = path.resolve('./.baileys_auth/admin_rules.json');
+const DATA_BACKUP_FILE = path.resolve('./data/admin_rules.json');
 
 class AdminRulesManager {
   constructor() {
@@ -12,6 +13,10 @@ class AdminRulesManager {
     try {
       if (fs.existsSync(ADMIN_RULES_FILE)) {
         const raw = fs.readFileSync(ADMIN_RULES_FILE, 'utf-8');
+        return JSON.parse(raw || '{}');
+      }
+      if (fs.existsSync(DATA_BACKUP_FILE)) {
+        const raw = fs.readFileSync(DATA_BACKUP_FILE, 'utf-8');
         return JSON.parse(raw || '{}');
       }
     } catch (e) {
@@ -27,10 +32,15 @@ class AdminRulesManager {
 
   saveRules() {
     try {
-      const dir = path.dirname(ADMIN_RULES_FILE);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const dir1 = path.dirname(ADMIN_RULES_FILE);
+      if (!fs.existsSync(dir1)) fs.mkdirSync(dir1, { recursive: true });
       fs.writeFileSync(ADMIN_RULES_FILE, JSON.stringify(this.rules, null, 2), 'utf-8');
-      console.log('💾 [AdminRules] Live rules saved to disk.');
+
+      const dir2 = path.dirname(DATA_BACKUP_FILE);
+      if (!fs.existsSync(dir2)) fs.mkdirSync(dir2, { recursive: true });
+      fs.writeFileSync(DATA_BACKUP_FILE, JSON.stringify(this.rules, null, 2), 'utf-8');
+
+      console.log('💾 [AdminRules] Live rules saved to disk and backup.');
     } catch (e) {
       console.error('❌ [AdminRules Save Error]:', e.message);
     }

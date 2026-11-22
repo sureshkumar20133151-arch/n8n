@@ -672,6 +672,29 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
         },
         required: ['siteName']
       }
+    },
+    {
+      name: 'manageLiveBehaviorRule',
+      description: 'Call this tool when Suresh (owner) asks in conversational Tamil or English to add, view, or remove a live behavior rule for the bot (e.g. "புது ரூல் ஆட் பண்ணு: தொழிலாளர்களின் நம்பரை தரக்கூடாது", "ரூல்ஸ் காட்டு", "rule தூக்கு/டெலீட் பண்ணு", "new rule: always greet with Vanakkam"). Updates live rules stored in admin_rules.json.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          action: {
+            type: 'STRING',
+            enum: ['add', 'list', 'delete', 'clear'],
+            description: 'Action to perform: add (add new rule), list (show all active rules), delete (remove rule by index), clear (remove all rules)'
+          },
+          ruleText: {
+            type: 'STRING',
+            description: 'The behavior rule text to add (for action="add")'
+          },
+          ruleIndex: {
+            type: 'NUMBER',
+            description: 'The rule number/index to remove (for action="delete")'
+          }
+        },
+        required: ['action']
+      }
     }
   ]
 }];
@@ -794,6 +817,12 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
      * Reports total pending from Contractor, total pending from House Owner, and list of pending bills!
    - **When anyone asks to see bills or bill photos:**
      * Call \`fetchSiteBills\` tool! It downloads the real bill image file and dispatches it directly into WhatsApp!
+
+10. **👑 LIVE BEHAVIOR RULES (நேரலை நடத்தை விதிகள்):**
+   - When Suresh (the boss/owner) asks to set, view, or remove a behavior rule (e.g. "புது ரூல் போடு: தொழிலாளர்களின் போன் நம்பரை தரக்கூடாது", "ரூல்ஸ் காட்டு", "rule தூக்கு/டெலீட் பண்ணு", "new rule: always greet with Vanakkam"):
+     * Call \`manageLiveBehaviorRule\` tool!
+     * Actions: \`add\`, \`list\`, \`delete\`, \`clear\`.
+     * Confirms clearly in Tamil that this rule is live and will govern all future customer chats!
 
 ## 👥 CURRENT REGISTERED TEAM:
 ${laborersSummary}
@@ -1559,6 +1588,51 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       return {
         success: false,
         messageTamil: `⚠️ பில்லை நீக்குவதில் குறிப்பு: ${res?.error || 'பொருத்தமான பில் கிடைக்கவில்லை'}`
+      };
+    }
+  }
+
+  // 16. Manage Live Behavior Rules
+  if (fnName === 'manageLiveBehaviorRule') {
+    const adminRules = require('./adminRulesManager');
+    const action = args.action || 'list';
+
+    if (action === 'add' && args.ruleText) {
+      adminRules.addDirective(args.ruleText);
+      return {
+        success: true,
+        messageTamil: `✅ *அண்ணே, புதிய நடத்தை விதி (Live Rule) வெற்றிகரமாக சேர்க்கப்பட்டது!*\n\n📌 *விதி:* "${args.ruleText}"\n\n_இனிமேல் வாட்ஸ்அப் மற்றும் இன்ஸ்டாகிராமில் வரும் அனைத்து வாடிக்கையாளர் மெசேஜ்களுக்கும் இந்த விதி உடனடியாகப் பின்பற்றப்படும்._`
+      };
+    }
+
+    if (action === 'list') {
+      const text = adminRules.getDirectivesText();
+      return {
+        success: true,
+        messageTamil: `📋 *தற்போது அமலில் உள்ள நேரலை விதிகள் (Active Live Rules):*\n\n${text}\n\n_💡 குறிப்பு: புதிய விதி சேர்க்க: '!rule <விதி>' அல்லது நீக்க: '!delrule <எண்>' என அனுப்பலாம்._`
+      };
+    }
+
+    if (action === 'delete' && args.ruleIndex) {
+      const ok = adminRules.removeDirective(Number(args.ruleIndex));
+      if (ok) {
+        return {
+          success: true,
+          messageTamil: `✅ *விதி #${args.ruleIndex} வெற்றிகரமாக நீக்கப்பட்டது!*`
+        };
+      } else {
+        return {
+          success: false,
+          messageTamil: `⚠️ விதி #${args.ruleIndex} கிடைக்கவில்லை.`
+        };
+      }
+    }
+
+    if (action === 'clear') {
+      adminRules.clearDirectives();
+      return {
+        success: true,
+        messageTamil: `✅ *அனைத்து தனிப்பயன் விதிகளும் நீக்கப்பட்டுவிட்டன. பாட் வழக்கமான நிலைக்குத் திரும்பியது.*`
       };
     }
   }
