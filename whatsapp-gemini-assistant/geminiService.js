@@ -341,7 +341,7 @@ class GeminiService {
     } else if (mode === 'dhanam_internal') {
       base = buildDhanamInternalSystemPrompt();
     } else if (mode === 'meenakshi_traders') {
-      base = buildSmtSystemPrompt();
+      base = buildSmtSystemPrompt(chatId);
     } else {
       base = buildSystemPrompt();
     }
