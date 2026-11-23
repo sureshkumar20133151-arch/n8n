@@ -14,6 +14,8 @@ const { RESTAURANT_TOOLS, buildRestaurantSystemPrompt, executeRestaurantToolCall
 const { BUILDER_TOOLS, buildBuilderSystemPrompt, executeBuilderToolCall } = require('./builderPersona');
 const { PLUMBING_ELECTRICAL_TOOLS, buildPlumbingElectricalSystemPrompt, executePlumbingElectricalToolCall } = require('./plumbingElectricalPersona');
 const { FINANCE_TOOLS, buildFinanceSystemPrompt, executeFinanceToolCall } = require('./financePersona');
+const { DHANAM_INTERNAL_TOOLS, buildDhanamInternalSystemPrompt, executeDhanamInternalToolCall } = require('./dhanamInternalPersona');
+const { SMT_TOOLS, buildSmtSystemPrompt, executeSmtToolCall } = require('./meenakshiTradersPersona');
 const builderCustomerMemory = require('./builderCustomerMemory');
 
 const LEAD_TOOLS = [{
@@ -336,6 +338,10 @@ class GeminiService {
       base = buildPlumbingElectricalSystemPrompt();
     } else if (mode === 'finance') {
       base = buildFinanceSystemPrompt();
+    } else if (mode === 'dhanam_internal') {
+      base = buildDhanamInternalSystemPrompt();
+    } else if (mode === 'meenakshi_traders') {
+      base = buildSmtSystemPrompt();
     } else {
       base = buildSystemPrompt();
     }
@@ -372,6 +378,12 @@ class GeminiService {
     }
     if (mode === 'finance') {
       return FINANCE_TOOLS;
+    }
+    if (mode === 'dhanam_internal') {
+      return DHANAM_INTERNAL_TOOLS;
+    }
+    if (mode === 'meenakshi_traders') {
+      return SMT_TOOLS;
     }
     return isOwner ? OWNER_TOOLS : LEAD_TOOLS;
   }
@@ -635,6 +647,14 @@ class GeminiService {
 
     if (mode === 'finance') {
       return await executeFinanceToolCall(fnCall, chatId, targetUid);
+    }
+
+    if (mode === 'dhanam_internal') {
+      return await executeDhanamInternalToolCall(fnCall, chatId);
+    }
+
+    if (mode === 'meenakshi_traders') {
+      return await executeSmtToolCall(fnCall, chatId);
     }
 
     if (fnName === 'saveLeadDetails') {

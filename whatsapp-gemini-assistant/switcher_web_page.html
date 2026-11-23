@@ -484,7 +484,9 @@
           <thead><tr><th>Command</th><th>Action</th></tr></thead>
           <tbody>
             <tr><td><code>switch to plumber</code></td><td>Activates <b>Arasan Electrical & Plumbing Site Vault</b></td></tr>
-            <tr><td><code>switch to builder</code></td><td>Activates <b>Danam Holdings House Construction</b></td></tr>
+            <tr><td><code>switch to builder</code></td><td>Activates <b>Danam Holdings House Construction (Customer-facing)</b></td></tr>
+            <tr><td><code>switch to dhanam internal</code></td><td>Activates <b>Dhanam Holdings Internal Site & Accounts Ops (Tally Prime)</b></td></tr>
+            <tr><td><code>switch to smt</code></td><td>Activates <b>Sri Meenakshi Traders (SMT Trading & Tally Invoicing)</b></td></tr>
             <tr><td><code>switch to dev</code></td><td>Activates <b>SoloDeveloper.pro Sales OS</b></td></tr>
             <tr><td><code>switch to restaurant</code></td><td>Activates <b>Taj Hotel Madurai Biryani</b></td></tr>
             <tr><td><code>switch to oil store</code></td><td>Activates <b>Annamaliyar Oil Store Wholesale</b></td></tr>
@@ -529,22 +531,28 @@
 
     const AGENTS = [
       {
-        id: 'plumber',
-        icon: '⚡🔧',
-        name: 'Arasan Electrical & Plumbing',
-        desc: 'Site Photo Vault (Roof Concrete & Wall Chasing) • 10-Laborers Dispatch • Group Queries'
+        id: 'dhanam_internal',
+        icon: '🏗️💼',
+        name: 'Dhanam Holdings Internal Ops',
+        desc: 'Site Expenses • Owner vs Contractor Bills • Labor Attendance • Tally Prime Vouchers'
       },
       {
-        id: 'finance',
-        icon: '💰📊',
-        name: 'Budget Tracker Pro Assistant',
-        desc: 'Personal Finance & Budgeting • Log Expenses via Voice, Bills & GPay • Live MCP Sync'
+        id: 'meenakshi_traders',
+        icon: '🏪⚡',
+        name: 'Sri Meenakshi Traders (SMT)',
+        desc: 'Electrical, Plumbing & Hardware Trading • Natural Voice Sales Billing • Tally Prime Port 9000'
       },
       {
         id: 'builder',
         icon: '🏗️',
         name: 'Danam Holdings Builder',
-        desc: 'Madurai Turnkey Construction • ₹1,850 – ₹2,850/sq.ft • BOQ & Site Visits'
+        desc: 'Madurai Turnkey Construction • ₹1,850 – ₹2,850/sq.ft • BOQ & Site Visits (Customer-facing)'
+      },
+      {
+        id: 'plumber',
+        icon: '⚡🔧',
+        name: 'Arasan Electrical & Plumbing',
+        desc: 'Site Photo Vault (Roof Concrete & Wall Chasing) • 10-Laborers Dispatch • Group Queries'
       },
       {
         id: 'dev',
@@ -563,6 +571,12 @@
         icon: '📦',
         name: 'Annamaliyar Oil Store',
         desc: 'Gold Winner Sunflower Oil Wholesale • Boxes & Tins • MOQ 1 Box'
+      },
+      {
+        id: 'finance',
+        icon: '💰📊',
+        name: 'Budget Tracker Pro Assistant',
+        desc: 'Personal Finance & Budgeting • Log Expenses via Voice, Bills & GPay • Live MCP Sync'
       }
     ];
 

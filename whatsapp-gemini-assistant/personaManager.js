@@ -64,6 +64,26 @@ const PERSONAS = {
     badge: 'Personal Finance Mode',
     icon: '💰📊',
     switchMessage: '✅ *Switched!* Mode is now active: 💰 *Personal Finance & Budget Tracker Assistant*.\n• Connected to Budget Tracker Pro via MCP.\n• Send Voice Notes, Bills, GPay Screenshots, or Text to log expenses & income.\n• Ask balances, monthly breakdown, or category limits anytime!'
+  },
+  dhanam_internal: {
+    id: 'dhanam_internal',
+    name: 'Dhanam Holdings Internal Site & Accounts Ops',
+    client: 'Dhanam Holdings (Er. Dhilip Kumar & Internal Team)',
+    proprietor: 'Er. Dhilip Kumar / Management',
+    tagline: 'Site Cash Flow • Owner vs Contractor Bills • Labor Attendance • Tally Prime Vouchers',
+    badge: 'Dhanam Ops & Accounts',
+    icon: '🏗️💼',
+    switchMessage: '✅ *Switched!* Mode is now active: 🏗️💼 *Dhanam Holdings Internal Site & Accounts Ops*.\n• Site expenses & contractor bill tracking (Owner paid vs Contractor paid) active.\n• Direct Tally Prime voucher generation (Receipt, Payment, Purchase) on Port 9000 ready.\n• Site attendance & labor advance ledger connected!'
+  },
+  meenakshi_traders: {
+    id: 'meenakshi_traders',
+    name: 'Sri Meenakshi Traders (SMT) Wholesale & Retail Counter',
+    client: 'Sri Meenakshi Traders, Madurai',
+    proprietor: 'Management',
+    tagline: 'Electrical, Plumbing & Hardware Material Trading • Voice Sales Billing • Tally Prime Invoicing',
+    badge: 'SMT Trading & Invoicing',
+    icon: '🏪⚡',
+    switchMessage: '✅ *Switched!* Mode is now active: 🏪⚡ *Sri Meenakshi Traders (SMT) Trading Assistant*.\n• Electrical, plumbing & hardware material sales billing active.\n• Tally Prime Sales, Purchase & Receipt Vouchers on Port 9000 connected.\n• Wholesale vs Retail rate catalog active!'
   }
 };
 
@@ -146,12 +166,16 @@ class PersonaManager {
       selectedKey = 'plumber';
     } else if (normalized === 'finance' || normalized === 'budget' || normalized === 'kanakku' || normalized === 'money' || normalized === 'expense' || normalized === 'selavu') {
       selectedKey = 'finance';
+    } else if (normalized === 'dhanam_internal' || normalized === 'dhanam' || normalized === 'dhanam_ops' || normalized === 'dh' || normalized === 'internal') {
+      selectedKey = 'dhanam_internal';
+    } else if (normalized === 'meenakshi_traders' || normalized === 'smt' || normalized === 'meenakshi' || normalized === 'traders' || normalized === 'hardware') {
+      selectedKey = 'meenakshi_traders';
     }
 
     if (!selectedKey || !PERSONAS[selectedKey]) {
       return {
         success: false,
-        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev, plumber, finance.`
+        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev, plumber, finance, dhanam_internal, meenakshi_traders.`
       };
     }
 

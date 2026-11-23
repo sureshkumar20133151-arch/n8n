@@ -218,6 +218,22 @@ function detectModeSwitchIntent(rawText) {
     return { target: 'finance' };
   }
 
+  if (
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:dhanam\s*internal|dhanam\s*ops|dh\s*ops|internal|dhanam\s*accounts)/i.test(cleaned) ||
+    /(?:dhanam\s*internal|dhanam\s*ops|internal)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(dhanam\s*internal|dhanam\s*ops|internal\s*mode)$/i.test(cleaned)
+  ) {
+    return { target: 'dhanam_internal' };
+  }
+
+  if (
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:smt|meenakshi|meenakshi\s*traders|sri\s*meenakshi|hardware|traders)/i.test(cleaned) ||
+    /(?:smt|meenakshi|meenakshi\s*traders|sri\s*meenakshi)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(smt\s*mode|meenakshi\s*mode|traders\s*mode)$/i.test(cleaned)
+  ) {
+    return { target: 'meenakshi_traders' };
+  }
+
   return null;
 }
 
