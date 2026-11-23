@@ -650,7 +650,13 @@ async function connectToWhatsApp() {
 
             // Generate response with Gemini AI
             recordGeminiRequest();
-            const reply = await gemini.generateResponse(replyJid, prompt, mediaPayload, { isOwner, senderName });
+            const reply = await gemini.generateResponse(replyJid, prompt, mediaPayload, {
+              isOwner,
+              senderName,
+              pushName: msg.pushName,
+              remoteJid,
+              participant: msg.key?.participant
+            });
 
             sock.sendPresenceUpdate('paused', replyJid).catch(() => {});
 

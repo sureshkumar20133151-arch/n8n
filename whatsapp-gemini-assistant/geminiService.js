@@ -325,7 +325,7 @@ class GeminiService {
     return clean;
   }
 
-  getSystemInstruction(chatId = '', overrideMode = null, platform = 'whatsapp') {
+  getSystemInstruction(chatId = '', overrideMode = null, platform = 'whatsapp', options = {}) {
     const mode = overrideMode || personaManager.getActiveMode();
     let base = '';
     if (mode === 'wholesale') {
@@ -341,7 +341,7 @@ class GeminiService {
     } else if (mode === 'dhanam_internal') {
       base = buildDhanamInternalSystemPrompt();
     } else if (mode === 'meenakshi_traders') {
-      base = buildSmtSystemPrompt(chatId);
+      base = buildSmtSystemPrompt(chatId, options);
     } else {
       base = buildSystemPrompt();
     }
@@ -624,7 +624,7 @@ class GeminiService {
   /**
    * Execute a single function call triggered by Gemini AI
    */
-  async executeToolCall(fnCall, chatId, cleanId, isOwner = false, overrideMode = null, media = null, targetUid = null) {
+  async executeToolCall(fnCall, chatId, cleanId, isOwner = false, overrideMode = null, media = null, targetUid = null, options = {}) {
     const fnName = fnCall.name;
     const args = fnCall.args || {};
     const mode = overrideMode || personaManager.getActiveMode();
@@ -654,7 +654,7 @@ class GeminiService {
     }
 
     if (mode === 'meenakshi_traders') {
-      return await executeSmtToolCall(fnCall, chatId);
+      return await executeSmtToolCall(fnCall, chatId, options);
     }
 
     if (fnName === 'saveLeadDetails') {
@@ -795,7 +795,7 @@ class GeminiService {
 
     try {
       const history = this.getOrCreateHistory(chatId);
-      const systemInstruction = this.getSystemInstruction(chatId, mode, options.platform || 'whatsapp');
+      const systemInstruction = this.getSystemInstruction(chatId, mode, options.platform || 'whatsapp', options);
 
       // Build user parts
       const userParts = [];
@@ -890,14 +890,27 @@ The customer shared a house construction / elevation video or reel (${media.seco
           contextualText = `${imagePrompt}\n[USER MESSAGE]: ${userText.trim()}`;
         } else if (mode === 'meenakshi_traders') {
           const cleanPhone = (chatId || '').replace(/\D/g, '');
+          const senderName = (options.senderName || options.pushName || '').toLowerCase().trim();
+          const userLower = (userText || '').toLowerCase().trim();
+          const userDigits = (userText || '').replace(/\D/g, '');
           const { loadCustomers } = require('./meenakshiTradersPersona');
           const allCustomers = loadCustomers();
           const matched = allCustomers.find(c => {
             const custDigits = (c.phone || '').replace(/\D/g, '');
-            return (
-              (cleanPhone && custDigits && (cleanPhone.endsWith(custDigits) || custDigits.endsWith(cleanPhone))) ||
-              (c.aliases && c.aliases.some(a => a === cleanPhone))
-            );
+            const phoneMatches = (cleanPhone && custDigits && (cleanPhone.endsWith(custDigits) || custDigits.endsWith(cleanPhone) || cleanPhone.includes(custDigits)));
+            const textDigitsMatches = userDigits && custDigits && (userDigits.includes(custDigits) || custDigits.includes(userDigits));
+            const textNameMatches = userLower && (userLower.includes(c.name.toLowerCase()) || (c.address && userLower.includes(c.address.toLowerCase().split(',')[0])));
+            const aliasMatches = c.aliases && c.aliases.some(a => {
+              const cleanA = a.replace(/\D/g, '');
+              return (
+                (cleanPhone && cleanA && (cleanPhone.endsWith(cleanA) || cleanA.endsWith(cleanPhone) || cleanPhone.includes(cleanA))) ||
+                (userDigits && cleanA && (userDigits.includes(cleanA) || cleanA.includes(userDigits))) ||
+                (userLower && userLower.includes(a.toLowerCase())) ||
+                (senderName && (senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName)))
+              );
+            });
+            const nameMatches = senderName && (senderName.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(senderName));
+            return phoneMatches || textDigitsMatches || textNameMatches || aliasMatches || nameMatches;
           });
           if (matched) {
             contextualText = `[🚨 SRI MEENAKSHI TRADERS - SENDER IDENTIFIED]:
@@ -1138,7 +1151,7 @@ The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank a
         const toolResults = [];
         for (const fnCall of currentCalls) {
           console.log(`  ↪ Executing tool: ${fnCall.name}`);
-          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner, mode, media, options.targetUid);
+          const result = await this.executeToolCall(fnCall, chatId, cleanId, isOwner, mode, media, options.targetUid, options);
           toolResults.push({ fnCall, result });
         }
 

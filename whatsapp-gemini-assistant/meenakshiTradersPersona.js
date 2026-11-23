@@ -13,7 +13,18 @@ const INITIAL_SMT_CUSTOMERS = [
   {
     id: 'CUST-001',
     name: 'கேசவன் ஆயில் ஸ்டோர்',
-    aliases: ['kesavan', 'கேசவன்', 'kesavan oil', 'கேசவன் ஆயில்', '7871762490'],
+    aliases: [
+      'kesavan',
+      'கேசவன்',
+      'kesavan oil',
+      'கேசவன் ஆயில்',
+      '7871762490',
+      '917871762490',
+      '+917871762490',
+      'suresh 2',
+      'suresh rosy',
+      'suresh rosy (magizhini st)'
+    ],
     address: 'பூக்கடை வீதி, மதுரை (Pookadai Street, Madurai)',
     phone: '7871762490',
     defaultBilling: 'Cash', // Prefers Cash Bill
@@ -349,18 +360,25 @@ const SMT_TOOLS = [{
   ]
 }];
 
-function buildSmtSystemPrompt(chatId = '') {
+function buildSmtSystemPrompt(chatId = '', options = {}) {
   const cleanPhone = (chatId || '').replace(/\D/g, '');
+  const senderName = (options.senderName || options.pushName || '').toLowerCase().trim();
   const allCustomers = loadCustomers();
 
-  // Match caller phone number with known customers
+  // Match caller phone number or pushName/aliases with known customers
   let callerInfo = '';
   const matchedCustomer = allCustomers.find(c => {
     const custDigits = (c.phone || '').replace(/\D/g, '');
-    return (
-      (cleanPhone && custDigits && (cleanPhone.endsWith(custDigits) || custDigits.endsWith(cleanPhone))) ||
-      (c.aliases && c.aliases.some(a => a === cleanPhone))
-    );
+    const phoneMatches = (cleanPhone && custDigits && (cleanPhone.endsWith(custDigits) || custDigits.endsWith(cleanPhone) || cleanPhone.includes(custDigits)));
+    const aliasMatches = c.aliases && c.aliases.some(a => {
+      const cleanA = a.replace(/\D/g, '');
+      return (
+        (cleanPhone && cleanA && (cleanPhone.endsWith(cleanA) || cleanA.endsWith(cleanPhone) || cleanPhone.includes(cleanA))) ||
+        (senderName && (senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName)))
+      );
+    });
+    const nameMatches = senderName && (senderName.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(senderName));
+    return phoneMatches || aliasMatches || nameMatches;
   });
 
   if (matchedCustomer) {
@@ -445,7 +463,7 @@ Specialization: Premier Wholesale & Retail Edible Oils Merchant (சன்பி
 4. **Language:** Respectful, crisp, traditional Madurai business Tamil (வணக்கம் அண்ணே / சார், பில் ரெடி ஆயிடுச்சு).`;
 }
 
-async function executeSmtToolCall(fnCall, chatId) {
+async function executeSmtToolCall(fnCall, chatId, options = {}) {
   const fnName = fnCall.name;
   const args = fnCall.args || {};
   console.log(`🏪🛢️ [SMT Edible Oil Tool Invoked] ${fnName}:`, JSON.stringify(args));
@@ -468,9 +486,10 @@ async function executeSmtToolCall(fnCall, chatId) {
   if (fnName === 'lookupSmtCustomer') {
     let q = (args.query || '').toLowerCase().trim();
     const cleanCallerPhone = (chatId || '').replace(/\D/g, '');
+    const senderName = (options.senderName || options.pushName || '').toLowerCase().trim();
 
-    // If query is empty, generic, or mentions "ennoda" / "my number" / "number"
-    if (!q || /^(my|me|mine|ennoda|en|enga|current|sender|caller)(\s*(number|no|phone|mobile|num|digits))?$/i.test(q) || q.includes('number') || q.includes('phone') || q.includes('நம்பர்')) {
+    // If query is empty, generic, or mentions "ennoda" / "my number" / "number" / "na yaaru" / "who am i" / "theriutha"
+    if (!q || /^(my|me|mine|ennoda|en|enga|current|sender|caller|who|na|yaar|yaaru)(\s*(number|no|phone|mobile|num|digits|am|i))?$/i.test(q) || q.includes('number') || q.includes('phone') || q.includes('நம்பர்') || q.includes('yaaru') || q.includes('theriutha') || q.includes('who')) {
       if (cleanCallerPhone) q = cleanCallerPhone;
     }
 
@@ -479,13 +498,22 @@ async function executeSmtToolCall(fnCall, chatId) {
 
     const found = allCustomers.find(c => {
       const cleanPhone = (c.phone || '').replace(/[^0-9]/g, '');
-      return (
-        (cleanQ && cleanPhone && (cleanPhone.endsWith(cleanQ) || cleanQ.endsWith(cleanPhone))) ||
-        (cleanCallerPhone && cleanPhone && (cleanPhone.endsWith(cleanCallerPhone) || cleanCallerPhone.endsWith(cleanPhone))) ||
-        c.name.toLowerCase().includes(q) ||
-        (c.address && c.address.toLowerCase().includes(q)) ||
-        (c.aliases && c.aliases.some(a => q.includes(a) || a.includes(q)))
-      );
+      const custDigits = cleanPhone;
+      const phoneMatches = (cleanQ && cleanPhone && (cleanPhone.endsWith(cleanQ) || cleanQ.endsWith(cleanPhone))) ||
+        (cleanCallerPhone && cleanPhone && (cleanPhone.endsWith(cleanCallerPhone) || cleanCallerPhone.endsWith(cleanPhone)));
+      const nameMatches = c.name.toLowerCase().includes(q) || (c.address && c.address.toLowerCase().includes(q));
+      const aliasMatches = c.aliases && c.aliases.some(a => {
+        const cleanA = a.replace(/\D/g, '');
+        return (
+          q.includes(a.toLowerCase()) || a.toLowerCase().includes(q) ||
+          (cleanA && cleanQ && cleanQ.endsWith(cleanA)) ||
+          (cleanA && cleanCallerPhone && cleanCallerPhone.endsWith(cleanA)) ||
+          (cleanA && cleanCallerPhone && cleanCallerPhone.includes(cleanA)) ||
+          (senderName && (senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName)))
+        );
+      });
+      const senderMatches = senderName && (senderName.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(senderName));
+      return phoneMatches || nameMatches || aliasMatches || senderMatches;
     });
 
     if (found) {
@@ -495,7 +523,7 @@ async function executeSmtToolCall(fnCall, chatId) {
         message: `வாடிக்கையாளர் அடையாளம் காணப்பட்டார்: ${found.name} (${found.address}), பில்லிங் முறை: ${found.defaultBilling} Bill.`
       };
     }
-    return { found: false, message: `புதிய வாடிக்கையாளர் (New Customer: ${cleanQ || cleanCallerPhone || args.query})` };
+    return { found: false, message: `புதிய வாடிக்கையாளர் (New Customer: ${cleanQ || cleanCallerPhone || senderName || args.query})` };
   }
 
   if (fnName === 'getSmtOilCatalog') {
