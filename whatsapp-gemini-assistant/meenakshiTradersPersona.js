@@ -466,14 +466,22 @@ async function executeSmtToolCall(fnCall, chatId) {
   }
 
   if (fnName === 'lookupSmtCustomer') {
-    const q = (args.query || '').toLowerCase().trim();
+    let q = (args.query || '').toLowerCase().trim();
+    const cleanCallerPhone = (chatId || '').replace(/\D/g, '');
+
+    // If query is empty, generic, or mentions "ennoda" / "my number" / "number"
+    if (!q || /^(my|me|mine|ennoda|en|enga|current|sender|caller)(\s*(number|no|phone|mobile|num|digits))?$/i.test(q) || q.includes('number') || q.includes('phone') || q.includes('நம்பர்')) {
+      if (cleanCallerPhone) q = cleanCallerPhone;
+    }
+
     const allCustomers = loadCustomers();
     const cleanQ = q.replace(/[^0-9]/g, '');
 
     const found = allCustomers.find(c => {
       const cleanPhone = (c.phone || '').replace(/[^0-9]/g, '');
       return (
-        (cleanQ && cleanPhone && (cleanPhone.includes(cleanQ) || cleanQ.includes(cleanPhone))) ||
+        (cleanQ && cleanPhone && (cleanPhone.endsWith(cleanQ) || cleanQ.endsWith(cleanPhone))) ||
+        (cleanCallerPhone && cleanPhone && (cleanPhone.endsWith(cleanCallerPhone) || cleanCallerPhone.endsWith(cleanPhone))) ||
         c.name.toLowerCase().includes(q) ||
         (c.address && c.address.toLowerCase().includes(q)) ||
         (c.aliases && c.aliases.some(a => q.includes(a) || a.includes(q)))
@@ -481,9 +489,13 @@ async function executeSmtToolCall(fnCall, chatId) {
     });
 
     if (found) {
-      return { found: true, customer: found };
+      return {
+        found: true,
+        customer: found,
+        message: `வாடிக்கையாளர் அடையாளம் காணப்பட்டார்: ${found.name} (${found.address}), பில்லிங் முறை: ${found.defaultBilling} Bill.`
+      };
     }
-    return { found: false, message: `புதிய வாடிக்கையாளர் (New Customer: ${args.query})` };
+    return { found: false, message: `புதிய வாடிக்கையாளர் (New Customer: ${cleanQ || cleanCallerPhone || args.query})` };
   }
 
   if (fnName === 'getSmtOilCatalog') {
