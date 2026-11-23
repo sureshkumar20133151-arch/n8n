@@ -1,0 +1,63 @@
+[
+  {
+    "id": "CUST-001",
+    "name": "கேசவன் ஆயில் ஸ்டோர்",
+    "aliases": [
+      "kesavan",
+      "கேசவன்",
+      "kesavan oil",
+      "கேசவன் ஆயில்",
+      "7871762490"
+    ],
+    "address": "பூக்கடை வீதி, மதுரை (Pookadai Street, Madurai)",
+    "phone": "7871762490",
+    "defaultBilling": "Cash",
+    "gstNumber": null,
+    "status": "Active Wholesale Buyer"
+  },
+  {
+    "id": "CUST-002",
+    "name": "நம்பியப்பா ஆயில் ஸ்டோர்",
+    "aliases": [
+      "nambiyappa",
+      "நம்பியப்பா",
+      "nambiyappa oil",
+      "நம்பியப்பா ஆயில்"
+    ],
+    "address": "கீழமாசி வீதி, மதுரை (Keelamasi Street, Madurai)",
+    "phone": "+919842100102",
+    "defaultBilling": "Cash",
+    "gstNumber": null,
+    "status": "High Volume Buyer"
+  },
+  {
+    "id": "CUST-003",
+    "name": "லட்சுமி ஆயில் ஸ்டோர்",
+    "aliases": [
+      "lakshmi",
+      "லட்சுமி",
+      "lakshmi oil",
+      "லட்சுமி ஆயில்",
+      "sri lakshmi"
+    ],
+    "address": "தயிர் கடை சந்து, மதுரை (Thayir Kadai Sandhu, Madurai)",
+    "phone": "+919842100103",
+    "defaultBilling": "GST",
+    "gstNumber": "33AAACL5678G1Z2",
+    "status": "GST Registered Merchant"
+  },
+  {
+    "id": "CUST-0761",
+    "name": "பாண்டியன் மளிகை & ஆயில் ஸ்டோர்",
+    "aliases": [
+      "பாண்டியன் மளிகை & ஆயில் ஸ்டோர்",
+      "9842199887"
+    ],
+    "address": "சிம்மக்கல், மதுரை (Simmakkal, Madurai)",
+    "phone": "9842199887",
+    "defaultBilling": "Cash",
+    "gstNumber": null,
+    "status": "Registered Customer",
+    "registeredAt": "2026-11-23T18:29:50.761Z"
+  }
+]

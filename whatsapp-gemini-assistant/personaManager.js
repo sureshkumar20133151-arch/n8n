@@ -77,13 +77,13 @@ const PERSONAS = {
   },
   meenakshi_traders: {
     id: 'meenakshi_traders',
-    name: 'Sri Meenakshi Traders (SMT) Wholesale & Retail Counter',
+    name: 'Sri Meenakshi Traders (SMT) Edible Oils Wholesale Counter',
     client: 'Sri Meenakshi Traders, Madurai',
     proprietor: 'Management',
-    tagline: 'Electrical, Plumbing & Hardware Material Trading • Voice Sales Billing • Tally Prime Invoicing',
-    badge: 'SMT Trading & Invoicing',
-    icon: '🏪⚡',
-    switchMessage: '✅ *Switched!* Mode is now active: 🏪⚡ *Sri Meenakshi Traders (SMT) Trading Assistant*.\n• Electrical, plumbing & hardware material sales billing active.\n• Tally Prime Sales, Purchase & Receipt Vouchers on Port 9000 connected.\n• Wholesale vs Retail rate catalog active!'
+    tagline: 'Edible Oils Wholesale Merchant • Gold Winner, Fortune, Gemini, Palm Oil • Tally Invoicing • Fast-Lane Pickup',
+    badge: 'SMT Edible Oils Wholesale',
+    icon: '🛢️🏪',
+    switchMessage: '✅ *Switched!* Mode is now active: 🛢️🏪 *Sri Meenakshi Traders (SMT) Edible Oils Wholesale Assistant*.\n• Gold Winner, Fortune, Gemini, Idhayam & Palm Oil Box pre-orders active.\n• Cash Bill vs GST Bill fast-lane pickup token generation ready.\n• Direct Tally Prime Sales Vouchers on Port 9000 connected!'
   }
 };
 
