@@ -888,6 +888,33 @@ The customer shared a house construction / elevation video or reel (${media.seco
    Politely ask Suresh to clarify before adding.`
             : '';
           contextualText = `${imagePrompt}\n[USER MESSAGE]: ${userText.trim()}`;
+        } else if (mode === 'meenakshi_traders') {
+          const cleanPhone = (chatId || '').replace(/\D/g, '');
+          const { loadCustomers } = require('./meenakshiTradersPersona');
+          const allCustomers = loadCustomers();
+          const matched = allCustomers.find(c => {
+            const custDigits = (c.phone || '').replace(/\D/g, '');
+            return (
+              (cleanPhone && custDigits && (cleanPhone.endsWith(custDigits) || custDigits.endsWith(cleanPhone))) ||
+              (c.aliases && c.aliases.some(a => a === cleanPhone))
+            );
+          });
+          if (matched) {
+            contextualText = `[🚨 SRI MEENAKSHI TRADERS - SENDER IDENTIFIED]:
+Caller phone is ${cleanPhone}.
+This customer is verified in database as: "${matched.name}" (${matched.address}).
+Billing mode: "${matched.defaultBilling} Bill".
+MANDATORY ACTION: Greet them warmly in business Tamil by their shop name and street:
+"வணக்கம் ${matched.name} (${matched.address.split(',')[0]}) அண்ணே! 🙏 சொல்லுங்க, இன்னைக்கு என்னென்ன ஆயில் பெட்டி போடணும்? Gold Winner, Fortune, பாம் ஆயில் எல்லாம் ரெடியா இருக்கு!"
+Do not ask for GST. When they order, calculate line items, total, and call createSmtOilOrder to give the Fast-Lane Token!
+User message: "${userText.trim()}"`;
+          } else {
+            contextualText = `[SRI MEENAKSHI TRADERS - EDIBLE OILS WHOLESALE MANDI]:
+Caller phone is ${cleanPhone} (Unregistered Customer).
+Greet in Tamil: "வணக்கம்! ஸ்ரீ மீனாட்சி டிரேடர்ஸ் ஆயில் மண்டி மதுரை. சொல்லுங்க அண்ணே, என்னென்ன ஆயில் பெட்டி வேணும்?"
+If they place an order, collect shop name and area in Madurai, and call registerSmtCustomer!
+User message: "${userText.trim()}"`;
+          }
         } else {
           // Dev mode (SoloDeveloper)
           const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);
