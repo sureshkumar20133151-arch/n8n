@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const googleDriveService = require('./googleDriveService');
+const tallyXmlBuilder = require('./tallyXmlBuilder');
 
 // Persistent storage file paths
 const DATA_DIR = path.resolve(__dirname, 'data');
@@ -694,6 +695,63 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           }
         },
         required: ['action']
+      }
+    },
+    {
+      name: 'createTallyVoucher',
+      description: 'Call this tool when the user asks to create or record a voucher/bill in Tally Prime for either "Dhanam Holdings" (contracting, site billing, owner receipts, labor advances, material purchase) or "Sri Meenakshi Traders" (SMT - trading, hardware/electrical/plumbing sales, item rate & quantity). E.g. "Dhanam Holdings-ல ராமச்சந்திரனுக்கு 15000 அட்வான்ஸ் கொடுத்தது என்ட்ரி போடு", "Sri Meenakshi Traders-ல பாலாஜிக்கு 1-inch CPVC பைப் 10 பீஸ் 180 ரூபாய்க்கு பில் போடு", "டாலில சேல்ஸ் பில் போடு".',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          company: {
+            type: 'STRING',
+            enum: ['Dhanam Holdings', 'Sri Meenakshi Traders'],
+            description: 'Target company: "Dhanam Holdings" (sites, contracting, projects) or "Sri Meenakshi Traders" (SMT - trading, electrical & plumbing retail/wholesale sales)'
+          },
+          voucherType: {
+            type: 'STRING',
+            enum: ['Sales', 'Purchase', 'Receipt', 'Payment'],
+            description: 'Type of Tally voucher: Sales (bill to customer), Purchase (bill from vendor), Receipt (payment received), Payment (payment paid)'
+          },
+          partyName: {
+            type: 'STRING',
+            description: 'Name of party, contractor, client, customer, or supplier'
+          },
+          amount: {
+            type: 'NUMBER',
+            description: 'Total bill / voucher amount in INR'
+          },
+          itemName: {
+            type: 'STRING',
+            description: 'Item or product name (e.g. 1-inch CPVC pipe, 2.5 sqmm Finolex wire)'
+          },
+          quantity: {
+            type: 'NUMBER',
+            description: 'Item quantity (default 1)'
+          },
+          rate: {
+            type: 'NUMBER',
+            description: 'Item price/rate per unit in INR'
+          },
+          siteName: {
+            type: 'STRING',
+            description: 'Site name for Dhanam Holdings (e.g. Ponmeni, Aanaiyur, Ram Nagar)'
+          },
+          payerType: {
+            type: 'STRING',
+            enum: ['Owner', 'Contractor', 'Self'],
+            description: 'Who paid: Owner, Contractor, or Self'
+          },
+          isReceived: {
+            type: 'BOOLEAN',
+            description: 'Whether money was received (true) or paid/pending (false)'
+          },
+          narration: {
+            type: 'STRING',
+            description: 'Narration note for Tally voucher'
+          }
+        },
+        required: ['company', 'voucherType', 'partyName', 'amount']
       }
     }
   ]
@@ -1635,6 +1693,77 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
         messageTamil: `✅ *அனைத்து தனிப்பயன் விதிகளும் நீக்கப்பட்டுவிட்டன. பாட் வழக்கமான நிலைக்குத் திரும்பியது.*`
       };
     }
+  }
+
+  // 17. Create Tally Prime Voucher (Dhanam Holdings & Sri Meenakshi Traders)
+  if (fnName === 'createTallyVoucher') {
+    const company = (args.company && (args.company.toLowerCase().includes('sri') || args.company.toLowerCase().includes('smt') || args.company.toLowerCase().includes('meenakshi')))
+      ? 'Sri Meenakshi Traders'
+      : 'Dhanam Holdings';
+
+    const voucherType = args.voucherType || 'Receipt';
+    const partyName = args.partyName || 'Cash Party';
+    const amount = Number(args.amount) || 0;
+    const itemName = args.itemName || '';
+    const quantity = Number(args.quantity) || 1;
+    const rate = Number(args.rate) || 0;
+    const siteName = args.siteName || lastActiveSiteName || 'General Site';
+    const payerType = args.payerType || 'Owner';
+    const isReceived = args.isReceived !== undefined ? Boolean(args.isReceived) : true;
+    const narration = args.narration || `${siteName} - ${voucherType} for ${partyName} via WhatsApp`;
+
+    const result = await tallyXmlBuilder.processTallyVoucher({
+      company,
+      voucherType,
+      partyName,
+      amount,
+      itemName,
+      quantity,
+      rate,
+      siteName,
+      payerType,
+      isReceived,
+      narration,
+      senderPhone
+    });
+
+    const isSMT = company === 'Sri Meenakshi Traders';
+    let messageTamil = '';
+    if (isSMT) {
+      messageTamil = `🏪 *Sri Meenakshi Traders (SMT) - Tally பில் பதிவு செய்யப்பட்டது!*\\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\\n` +
+        `📄 *வவுச்சர் வகை:* ${voucherType}\\n` +
+        `👤 *பார்ட்டி / வாடிக்கையாளர்:* ${partyName}\\n` +
+        (itemName ? `📦 *பொருள்:* ${itemName} (${quantity} Nos @ ₹${rate})\\n` : '') +
+        `💰 *தொகை:* ₹${amount.toLocaleString('en-IN')}\\n` +
+        `🔄 *Tally நிலை:* ${result.tallySynced ? 'Tally Prime-ல் உடனே பதிவானது ✅' : 'Google Sheets-ல் பாதுகாப்பாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳'}\\n` +
+        `📝 *குறிப்பு:* ${narration}\\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\\n` +
+        `_டாலி மற்றும் கூகுள் ஷீட்டில் துல்லியமாகப் பதிவாகியுள்ளது._`;
+    } else {
+      messageTamil = `🏢 *Dhanam Holdings - Tally வவுச்சர் பதிவு செய்யப்பட்டது!*\\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\\n` +
+        `📄 *வவுச்சர் வகை:* ${voucherType}\\n` +
+        `📍 *சைட்:* ${siteName}\\n` +
+        `👤 *பார்ட்டி:* ${partyName}\\n` +
+        `💰 *தொகை:* ₹${amount.toLocaleString('en-IN')}\\n` +
+        `🏷️ *செலுத்தியவர்:* ${payerType} (${isReceived ? 'காசு பெறப்பட்டது ✅' : 'நிலுவையில் உள்ளது ⏳'})\\n` +
+        `🔄 *Tally நிலை:* ${result.tallySynced ? 'Tally Prime-ல் உடனே பதிவானது ✅' : 'Google Sheets-ல் பாதுகாப்பாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳'}\\n` +
+        `📝 *குறிப்பு:* ${narration}\\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\\n` +
+        `_டாலி மற்றும் சைட் கூகுள் ஷீட்டில் துல்லியமாகப் பதிவாகியுள்ளது._`;
+    }
+
+    return {
+      success: true,
+      company,
+      voucherType,
+      partyName,
+      amount,
+      tallySynced: result.tallySynced,
+      syncStatus: result.syncStatus,
+      messageTamil
+    };
   }
 
   return { error: `Unknown tool function: ${fnName}` };

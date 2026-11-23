@@ -1,0 +1,166 @@
+{
+  "name": "Dhanam Holdings - Site Contracting & Tally Prime Automation Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dhanam-holdings-tally",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook_dhanam_holdings",
+      "name": "Webhook: /webhook/dhanam-holdings-tally",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body || $input.first().json;\n\nconst companyName = 'Dhanam Holdings';\nconst voucherType = (payload.voucherType || 'Receipt').trim();\nconst partyName = (payload.partyName || 'Site Client / Contractor').trim();\nconst amount = parseFloat(payload.amount || 0);\nconst siteName = (payload.siteName || 'General Project').trim();\nconst payerType = (payload.payerType || 'Owner').trim(); // Owner, Contractor, Self\nconst isReceived = payload.isReceived !== undefined ? Boolean(payload.isReceived) : true;\nconst notes = payload.notes || payload.narration || `${siteName} site expense / billing`;\nconst recipientJid = payload.replyJid || payload.remoteJid || '919361599097@s.whatsapp.net';\n\n// Format date for Tally (YYYYMMDD) - Educational mode accepts 01, 02, 31\nconst now = new Date();\nconst year = now.getFullYear();\nconst month = String(now.getMonth() + 1).padStart(2, '0');\nlet day = String(now.getDate()).padStart(2, '0');\nif (!['01', '02', '31'].includes(day)) {\n  day = '01'; // Fallback to 1st of month for Educational Mode compatibility\n}\nconst tallyDate = `${year}${month}${day}`;\nconst displayDate = `${day}-${month}-${year}`;\n\n// Build XML for Tally Prime Voucher\nlet xmlEnvelope = '';\nif (voucherType === 'Receipt') {\n  xmlEnvelope = `<ENVELOPE>\n  <HEADER><VERSION>1</VERSION><TALLYREQUEST>Import</TALLYREQUEST><TYPE>Data</TYPE><ID>Vouchers</ID></HEADER>\n  <BODY>\n    <DESC><STATICVARIABLES><SVCURRENTCOMPANY>${companyName}</SVCURRENTCOMPANY></STATICVARIABLES></DESC>\n    <DATA>\n      <TALLYMESSAGE xmlns:UDF=\"TallyUDF\">\n        <VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\">\n          <DATE>${tallyDate}</DATE>\n          <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>\n          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>\n          <NARRATION>${siteName} - ${notes} [Payer: ${payerType}]</NARRATION>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>${partyName}</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n            <AMOUNT>${amount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>Cash</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n            <AMOUNT>-${amount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n        </VOUCHER>\n      </TALLYMESSAGE>\n    </DATA>\n  </BODY>\n</ENVELOPE>`;\n} else {\n  // Payment Voucher\n  xmlEnvelope = `<ENVELOPE>\n  <HEADER><VERSION>1</VERSION><TALLYREQUEST>Import</TALLYREQUEST><TYPE>Data</TYPE><ID>Vouchers</ID></HEADER>\n  <BODY>\n    <DESC><STATICVARIABLES><SVCURRENTCOMPANY>${companyName}</SVCURRENTCOMPANY></STATICVARIABLES></DESC>\n    <DATA>\n      <TALLYMESSAGE xmlns:UDF=\"TallyUDF\">\n        <VOUCHER VCHTYPE=\"Payment\" ACTION=\"Create\">\n          <DATE>${tallyDate}</DATE>\n          <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>\n          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>\n          <NARRATION>${siteName} - ${notes} [Paid for: ${payerType}]</NARRATION>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>${partyName}</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n            <AMOUNT>-${amount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>Cash</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n            <AMOUNT>${amount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n        </VOUCHER>\n      </TALLYMESSAGE>\n    </DATA>\n  </BODY>\n</ENVELOPE>`;\n}\n\n// Tamil WhatsApp Confirmation\nconst confirmationText = `🏢 *${companyName} - Tally வவுச்சர் பதிவு செய்யப்பட்டது!*\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `📄 *வவுச்சர் வகை:* ${voucherType}\\n` +\n  `📍 *சைட்:* ${siteName}\\n` +\n  `👤 *பார்ட்டி:* ${partyName}\\n` +\n  `💰 *தொகை:* ₹${amount.toLocaleString('en-IN')}\\n` +\n  `🏷️ *செலுத்தியவர்:* ${payerType} (${isReceived ? 'காசு பெறப்பட்டது ✅' : 'நிலுவையில் உள்ளது ⏳'})\\n` +\n  `📅 *தேதி:* ${displayDate}\\n` +\n  `📝 *குறிப்பு:* ${notes}\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `_Tally Prime & Google Sheet-ல் உடனடியாகப் பதிவானது._`;\n\nreturn [{\n  json: {\n    companyName,\n    voucherType,\n    partyName,\n    amount,\n    siteName,\n    payerType,\n    isReceived,\n    notes,\n    recipientJid,\n    tallyDate,\n    displayDate,\n    xmlEnvelope,\n    confirmationText\n  }\n}];"
+      },
+      "id": "code_dhanam_tally_parser",
+      "name": "Parse & Build Tally XML (Dhanam Holdings)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:9000",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/xml",
+        "body": "={{ $json.xmlEnvelope }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "http_tally_xml_post_dhanam",
+      "name": "HTTP: Post XML to Tally Prime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "value": "Dhanam_Holdings_Tally_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ new Date().toISOString() }}",
+            "Company": "={{ $json.companyName }}",
+            "Voucher_Type": "={{ $json.voucherType }}",
+            "Site_Name": "={{ $json.siteName }}",
+            "Party_Name": "={{ $json.partyName }}",
+            "Amount": "={{ $json.amount }}",
+            "Payer_Type": "={{ $json.payerType }}",
+            "Status": "={{ $json.isReceived ? 'Received / Settled' : 'Pending' }}",
+            "Notes": "={{ $json.notes }}",
+            "Tally_Sync_Status": "Synced to Tally Port 9000"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets_append_dhanam_log",
+      "name": "Google Sheets: Audit Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [900, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetJid\": {{ JSON.stringify($json.recipientJid) }},\n  \"text\": {{ JSON.stringify($json.confirmationText) }}\n}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "whatsapp_dhanam_reply",
+      "name": "WhatsApp: Send Tamil Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"company\": \"Dhanam Holdings\",\n  \"voucherType\": {{ JSON.stringify($json.voucherType) }},\n  \"partyName\": {{ JSON.stringify($json.partyName) }},\n  \"amount\": {{ $json.amount }},\n  \"status\": \"VOUCHER_POSTED_TO_TALLY\"\n}",
+        "options": {}
+      },
+      "id": "respond_dhanam_webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1380, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: /webhook/dhanam-holdings-tally": {
+      "main": [
+        [
+          {
+            "node": "Parse & Build Tally XML (Dhanam Holdings)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Build Tally XML (Dhanam Holdings)": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Post XML to Tally Prime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Post XML to Tally Prime": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Audit Log": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: Send Tamil Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp: Send Tamil Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

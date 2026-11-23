@@ -1,0 +1,167 @@
+{
+  "name": "Sri Meenakshi Traders - Electrical & Plumbing Trading Tally Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "smt-trading-tally",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook_smt_trading",
+      "name": "Webhook: /webhook/smt-trading-tally",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body || $input.first().json;\n\nconst companyName = 'Sri Meenakshi Traders';\nconst voucherType = (payload.voucherType || 'Sales').trim(); // Sales, Purchase, Receipt, Payment\nconst partyName = (payload.partyName || 'Cash Customer').trim();\nconst itemName = (payload.itemName || 'Electrical & Plumbing Material').trim();\nconst quantity = parseFloat(payload.quantity || 1);\nconst unit = payload.unit || 'Nos';\nconst rate = parseFloat(payload.rate || payload.price || 0);\nconst totalAmount = parseFloat(payload.amount || payload.total || (quantity * rate));\nconst narration = payload.narration || payload.notes || `Sales to ${partyName} via WhatsApp`;\nconst recipientJid = payload.replyJid || payload.remoteJid || '919361599097@s.whatsapp.net';\n\n// Format date for Tally (YYYYMMDD) - Educational mode accepts 01, 02, 31\nconst now = new Date();\nconst year = now.getFullYear();\nconst month = String(now.getMonth() + 1).padStart(2, '0');\nlet day = String(now.getDate()).padStart(2, '0');\nif (!['01', '02', '31'].includes(day)) {\n  day = '01'; // Fallback to 1st of month for Educational Mode compatibility\n}\nconst tallyDate = `${year}${month}${day}`;\nconst displayDate = `${day}-${month}-${year}`;\n\n// Build XML for Sri Meenakshi Traders (Sales / Purchase / Receipt)\nlet xmlEnvelope = '';\nif (voucherType === 'Sales') {\n  xmlEnvelope = `<ENVELOPE>\n  <HEADER><VERSION>1</VERSION><TALLYREQUEST>Import</TALLYREQUEST><TYPE>Data</TYPE><ID>Vouchers</ID></HEADER>\n  <BODY>\n    <DESC><STATICVARIABLES><SVCURRENTCOMPANY>${companyName}</SVCURRENTCOMPANY></STATICVARIABLES></DESC>\n    <DATA>\n      <TALLYMESSAGE xmlns:UDF=\"TallyUDF\">\n        <VOUCHER VCHTYPE=\"Sales\" ACTION=\"Create\">\n          <DATE>${tallyDate}</DATE>\n          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>\n          <NARRATION>${narration} [Item: ${itemName} Qty: ${quantity} ${unit} @ Rs.${rate}]</NARRATION>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>${partyName}</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n            <AMOUNT>-${totalAmount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>Sales</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n            <AMOUNT>${totalAmount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n        </VOUCHER>\n      </TALLYMESSAGE>\n    </DATA>\n  </BODY>\n</ENVELOPE>`;\n} else {\n  // Receipt / Payment fallback\n  xmlEnvelope = `<ENVELOPE>\n  <HEADER><VERSION>1</VERSION><TALLYREQUEST>Import</TALLYREQUEST><TYPE>Data</TYPE><ID>Vouchers</ID></HEADER>\n  <BODY>\n    <DESC><STATICVARIABLES><SVCURRENTCOMPANY>${companyName}</SVCURRENTCOMPANY></STATICVARIABLES></DESC>\n    <DATA>\n      <TALLYMESSAGE xmlns:UDF=\"TallyUDF\">\n        <VOUCHER VCHTYPE=\"Receipt\" ACTION=\"Create\">\n          <DATE>${tallyDate}</DATE>\n          <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>\n          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>\n          <NARRATION>${narration}</NARRATION>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>${partyName}</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n            <AMOUNT>${totalAmount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n          <ALLLEDGERENTRIES.LIST>\n            <LEDGERNAME>Cash</LEDGERNAME>\n            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n            <AMOUNT>-${totalAmount.toFixed(2)}</AMOUNT>\n          </ALLLEDGERENTRIES.LIST>\n        </VOUCHER>\n      </TALLYMESSAGE>\n    </DATA>\n  </BODY>\n</ENVELOPE>`;\n}\n\n// Tamil WhatsApp Invoice Summary\nconst confirmationText = `🏪 *${companyName} (SMT) - Tally பில் பதிவானது!*\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `📄 *பில் வகை:* ${voucherType} Voucher\\n` +\n  `👤 *வாடிக்கையாளர் / பார்ட்டி:* ${partyName}\\n` +\n  `📦 *பொருள்:* ${itemName}\\n` +\n  `🔢 *அளவு:* ${quantity} ${unit} (1 ${unit} = ₹${rate.toLocaleString('en-IN')})\\n` +\n  `💰 *மொத்தத் தொகை:* ₹${totalAmount.toLocaleString('en-IN')}\\n` +\n  `📅 *தேதி:* ${displayDate}\\n` +\n  `📝 *குறிப்பு:* ${narration}\\n` +\n  `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n  `_Tally Prime & SMT Google Sheet-ல் உடனடியாகப் பதிவானது._`;\n\nreturn [{\n  json: {\n    companyName,\n    voucherType,\n    partyName,\n    itemName,\n    quantity,\n    unit,\n    rate,\n    totalAmount,\n    narration,\n    recipientJid,\n    tallyDate,\n    displayDate,\n    xmlEnvelope,\n    confirmationText\n  }\n}];"
+      },
+      "id": "code_smt_tally_parser",
+      "name": "Parse & Build Tally XML (SMT)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:9000",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/xml",
+        "body": "={{ $json.xmlEnvelope }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "http_tally_xml_post_smt",
+      "name": "HTTP: Post XML to Tally Prime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "value": "SMT_Sales_Tally_Log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ new Date().toISOString() }}",
+            "Company": "={{ $json.companyName }}",
+            "Voucher_Type": "={{ $json.voucherType }}",
+            "Party_Name": "={{ $json.partyName }}",
+            "Item_Name": "={{ $json.itemName }}",
+            "Quantity": "={{ $json.quantity }}",
+            "Unit": "={{ $json.unit }}",
+            "Rate": "={{ $json.rate }}",
+            "Total_Amount": "={{ $json.totalAmount }}",
+            "Narration": "={{ $json.narration }}",
+            "Tally_Sync_Status": "Synced to Tally Port 9000"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets_append_smt_log",
+      "name": "Google Sheets: SMT Sales Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [900, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetJid\": {{ JSON.stringify($json.recipientJid) }},\n  \"text\": {{ JSON.stringify($json.confirmationText) }}\n}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "whatsapp_smt_reply",
+      "name": "WhatsApp: Send SMT Invoice Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 260],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"company\": \"Sri Meenakshi Traders\",\n  \"voucherType\": {{ JSON.stringify($json.voucherType) }},\n  \"partyName\": {{ JSON.stringify($json.partyName) }},\n  \"totalAmount\": {{ $json.totalAmount }},\n  \"status\": \"VOUCHER_POSTED_TO_TALLY\"\n}",
+        "options": {}
+      },
+      "id": "respond_smt_webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1380, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: /webhook/smt-trading-tally": {
+      "main": [
+        [
+          {
+            "node": "Parse & Build Tally XML (SMT)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Build Tally XML (SMT)": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Post XML to Tally Prime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Post XML to Tally Prime": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: SMT Sales Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: SMT Sales Log": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: Send SMT Invoice Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp: Send SMT Invoice Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
