@@ -3,9 +3,15 @@
  * Supports both "Dhanam Holdings" and "Sri Meenakshi Traders" (SMT)
  */
 const http = require('http');
-const { google } = require('googleapis');
 const path = require('path');
 const fs = require('fs');
+
+let google = null;
+try {
+  google = require('googleapis').google;
+} catch (e) {
+  // Safe fallback if googleapis is not in production container
+}
 
 const TALLY_URL = process.env.TALLY_SERVER_URL || 'http://127.0.0.1:9000';
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
@@ -220,7 +226,7 @@ async function processTallyVoucher({ company, voucherType, partyName, amount, it
   // Log to Google Sheet for audit trail & offline queue
   try {
     const keyPath = path.resolve(__dirname, 'google_drive_key.json');
-    if (fs.existsSync(keyPath)) {
+    if (google && fs.existsSync(keyPath)) {
       const auth = new google.auth.GoogleAuth({
         keyFile: keyPath,
         scopes: ['https://www.googleapis.com/auth/spreadsheets']

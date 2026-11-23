@@ -20,6 +20,7 @@
     "@google/genai": "^2.24.0",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
     "dotenv": "^16.4.7",
+    "googleapis": "^144.0.0",
     "pino": "^10.4.0",
     "pg": "^8.13.1",
     "qrcode": "^1.5.4",
