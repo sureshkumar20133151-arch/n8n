@@ -82,6 +82,189 @@ function loadCustomers() {
   return list;
 }
 
+const ORDERS_FILE = path.join(__dirname, 'data', 'smt_orders.json');
+
+function loadOrders() {
+  try {
+    if (fs.existsSync(ORDERS_FILE)) {
+      return JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8') || '[]');
+    }
+  } catch (e) {
+    console.error('Error loading smt_orders.json:', e);
+  }
+  return [];
+}
+
+function saveOrder(order) {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    const orders = loadOrders();
+    orders.unshift(order);
+    if (orders.length > 200) orders.length = 200;
+    fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('Error saving smt_orders.json:', e);
+    return false;
+  }
+}
+
+function getOrder(billNumber) {
+  const orders = loadOrders();
+  if (!billNumber || billNumber === 'latest') return orders[0] || null;
+  const clean = billNumber.replace(/^#/, '').toLowerCase().trim();
+  return orders.find(o => (o.billNumber || '').replace(/^#/, '').toLowerCase() === clean) || null;
+}
+
+function generateThermalBillHtml(order) {
+  if (!order) {
+    return `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:50px;">
+      <h2>❌ பில் கிடைக்கவில்லை (Bill Not Found)</h2>
+      <p>இந்த பில் எண் எங்கள் பதிவில் இல்லை. மீண்டும் சரிபார்க்கவும்.</p>
+    </body></html>`;
+  }
+
+  const itemsRows = (order.items || []).map((it, idx) => `
+    <tr>
+      <td style="padding: 6px 4px; text-align: left; font-weight: bold; border-bottom: 1px dashed #ccc;">
+        ${idx + 1}. ${it.item}
+        <div style="font-size: 11px; color: #555; font-weight: normal;">
+          ${it.boxes} Box (${it.piecesPerBox} pouches/box = ${it.totalPouches} pkt) @ ₹${it.ratePerBox}/Box
+        </div>
+      </td>
+      <td style="padding: 6px 4px; text-align: right; font-weight: bold; vertical-align: top; border-bottom: 1px dashed #ccc;">
+        ₹${it.lineTotal.toLocaleString('en-IN')}
+      </td>
+    </tr>
+  `).join('');
+
+  const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : new Date().toLocaleString('en-IN');
+
+  return `<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMT Bill ${order.billNumber} - Sri Meenakshi Traders</title>
+  <style>
+    @media print {
+      body { margin: 0; padding: 0; background: #fff !important; }
+      .no-print { display: none !important; }
+      .bill-card { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: #f1f5f9;
+      font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      margin: 0;
+      color: #0f172a;
+    }
+    .bill-card {
+      background: #fff;
+      width: 100%;
+      max-width: 380px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 20px 18px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+    .header { text-align: center; border-bottom: 2px dashed #0f172a; padding-bottom: 12px; margin-bottom: 14px; }
+    .store-title { font-size: 20px; font-weight: 800; color: #1e293b; margin: 0; }
+    .store-sub { font-size: 13px; font-weight: 600; color: #475569; margin: 2px 0; }
+    .store-tag { font-size: 11px; color: #64748b; margin-top: 4px; }
+    .badge-wrap { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 8px; }
+    .token-badge {
+      background: #0f172a; color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;
+    }
+    .bill-type-badge {
+      background: #e2e8f0; color: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;
+    }
+    .info-table { width: 100%; font-size: 12px; margin-bottom: 12px; }
+    .info-table td { padding: 2px 0; }
+    .items-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+    .total-box {
+      border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; padding: 10px 0; margin: 14px 0; display: flex; justify-content: space-between; align-items: center;
+    }
+    .total-label { font-size: 15px; font-weight: 800; }
+    .total-val { font-size: 20px; font-weight: 900; color: #047857; }
+    .fast-lane {
+      background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; font-weight: 700; color: #065f46; margin: 14px 0 10px;
+    }
+    .footer { text-align: center; font-size: 11px; color: #64748b; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px; }
+    .print-btn-bar { display: flex; gap: 10px; margin-bottom: 16px; width: 100%; max-width: 380px; }
+    .btn-print {
+      flex: 1; background: #059669; color: #fff; border: none; padding: 12px 16px; font-size: 15px; font-weight: 800; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.3); transition: all 0.2s;
+    }
+    .btn-print:hover { background: #047857; }
+  </style>
+</head>
+<body>
+  <div class="print-btn-bar no-print">
+    <button class="btn-print" onclick="window.print()">🖨️ பில் பிரிண்ட் செய் (Print Bill)</button>
+  </div>
+
+  <div class="bill-card">
+    <div class="header">
+      <h1 class="store-title">ஸ்ரீ மீனாட்சி டிரேடர்ஸ்</h1>
+      <div class="store-sub">SRI MEENAKSHI TRADERS</div>
+      <div class="store-tag">எண்ணெய் மொத்த வியாபாரம் • Madurai Wholesale Oil Mandi<br>Ph: +91 93615 99097</div>
+    </div>
+
+    <div class="badge-wrap">
+      <span class="token-badge">${order.billNumber}</span>
+      <span class="bill-type-badge">${order.billingType.toUpperCase()} BILL</span>
+    </div>
+
+    <table class="info-table">
+      <tr>
+        <td style="color:#64748b;">வாடிக்கையாளர்:</td>
+        <td style="text-align:right; font-weight:700;">${order.customerName}</td>
+      </tr>
+      ${order.address ? `<tr><td style="color:#64748b;">முகவரி:</td><td style="text-align:right;">${order.address}</td></tr>` : ''}
+      ${order.phone ? `<tr><td style="color:#64748b;">போன்:</td><td style="text-align:right;">${order.phone}</td></tr>` : ''}
+      ${order.gstNumber ? `<tr><td style="color:#64748b;">GSTIN:</td><td style="text-align:right; font-weight:700;">${order.gstNumber}</td></tr>` : ''}
+      <tr>
+        <td style="color:#64748b;">தேதி & நேரம்:</td>
+        <td style="text-align:right;">${dateStr}</td>
+      </tr>
+    </table>
+
+    <table class="items-table">
+      <thead>
+        <tr style="border-bottom: 1.5px solid #0f172a; font-size: 12px; color: #475569;">
+          <th style="text-align:left; padding:4px 0;">சரக்கு விபரம் (ITEM)</th>
+          <th style="text-align:right; padding:4px 0;">தொகை (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsRows}
+      </tbody>
+    </table>
+
+    <div class="total-box">
+      <span class="total-label">மொத்த தொகை (TOTAL):</span>
+      <span class="total-val">₹${order.totalAmount.toLocaleString('en-IN')}</span>
+    </div>
+
+    <div class="fast-lane">
+      ⚡ <b>ஃபாஸ்ட்-லேன் பிக்-அப் டோக்கன்</b><br>
+      வரிசையில் நிற்காமல் பில் எண் காட்டி லோடு ஏற்றவும்!
+    </div>
+
+    <div class="footer">
+      Tally Status: ${order.tallyStatus || 'Verified'}<br>
+      நன்றி! மீண்டும் வருக! 🙏 (Sri Meenakshi Traders)
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 function saveCustomer(customerData) {
   const dataDir = path.join(__dirname, 'data');
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -623,6 +806,24 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       ? 'Tally Prime-ல் நேரடியாகப் பதிவானது ✅'
       : 'Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳';
 
+    const callerPhone = chatId ? chatId.split('@')[0] : '';
+    const cleanId = billNumber.replace(/^#/, '');
+    const printUrl = `https://whatsapp-assistant-iqpi.onrender.com/bill/${cleanId}`;
+
+    saveOrder({
+      billNumber: billNumber,
+      createdAt: new Date().toISOString(),
+      customerName: customerName,
+      address: args.address || '',
+      phone: callerPhone,
+      billingType: billingType,
+      gstNumber: gstNo,
+      items: itemSummaries,
+      totalAmount: totalAmount,
+      tallyStatus: statusTamil,
+      printUrl: printUrl
+    });
+
     return {
       success: true,
       billNumber: billNumber,
@@ -632,6 +833,7 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       items: itemSummaries,
       totalAmount: totalAmount,
       tallyStatus: statusTamil,
+      printUrl: printUrl,
       pickupMessage: 'கவுண்ட்டரில் பில்லிங் வரிசையில் நிற்க வேண்டாம்! இந்த பில் நம்பரைக் காட்டிவிட்டு உடனே சரக்கை லோடு ஏற்றிக்கொள்ளலாம்.'
     };
   }
@@ -668,6 +870,10 @@ module.exports = {
   SMT_CUSTOMERS: loadCustomers(),
   loadCustomers,
   saveCustomer,
+  loadOrders,
+  saveOrder,
+  getOrder,
+  generateThermalBillHtml,
   SMT_TOOLS,
   buildSmtSystemPrompt,
   executeSmtToolCall

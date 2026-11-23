@@ -1557,6 +1557,19 @@ const server = http.createServer((req, res) => {
     }));
   }
 
+  // Printable Bill & Thermal Token View for Sri Meenakshi Traders (SMT)
+  if (req.url.startsWith('/bill/') || req.url === '/bill' || req.url.startsWith('/print-bill')) {
+    const parts = req.url.split('/');
+    const billId = parts[2] || 'latest';
+    const { getOrder, generateThermalBillHtml } = require('./meenakshiTradersPersona');
+    const order = getOrder(billId);
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Access-Control-Allow-Origin': allowedOrigin
+    });
+    return res.end(generateThermalBillHtml(order));
+  }
+
   // Dynamic QR Code API for the Switcher Dashboard
   if (req.url === '/api/qr-data' || req.url === '/qr-data') {
     res.writeHead(200, {

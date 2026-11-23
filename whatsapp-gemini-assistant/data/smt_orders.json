@@ -1,0 +1,48 @@
+[
+  {
+    "billNumber": "#SMT-20261124-0521",
+    "createdAt": "2026-11-23T19:35:00.000Z",
+    "customerName": "கேசவன் ஆயில் ஸ்டோர்",
+    "address": "பூக்கடை வீதி, மதுரை",
+    "phone": "7871762490",
+    "billingType": "Cash",
+    "gstNumber": null,
+    "items": [
+      {
+        "item": "1 Litre Gold Winner Sunflower Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1320,
+        "lineTotal": 1320
+      },
+      {
+        "item": "1 Litre Palm Oil (பாம் ஆயில்)",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 980,
+        "lineTotal": 980
+      },
+      {
+        "item": "5 Litre Gold Winner Sunflower Oil",
+        "boxes": 1,
+        "piecesPerBox": 4,
+        "totalPouches": 4,
+        "ratePerBox": 2700,
+        "lineTotal": 2700
+      },
+      {
+        "item": "5 Litre Palm Oil Can",
+        "boxes": 1,
+        "piecesPerBox": 4,
+        "totalPouches": 4,
+        "ratePerBox": 1920,
+        "lineTotal": 1920
+      }
+    ],
+    "totalAmount": 6920,
+    "tallyStatus": "Tally Prime-ல் நேரடியாகப் பதிவானது ✅",
+    "printUrl": "https://whatsapp-assistant-iqpi.onrender.com/bill/SMT-20261124-0521"
+  }
+]
