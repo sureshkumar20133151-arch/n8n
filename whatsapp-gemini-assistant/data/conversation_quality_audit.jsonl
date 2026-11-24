@@ -39,3 +39,6 @@
 {"timestamp":"2026-11-17T10:01:18.907Z","chatId":"919999900030@s.whatsapp.net","eventType":"human_handover_requested","request":"I want to speak to Dhilip sir directly"}
 {"timestamp":"2026-11-17T10:01:19.592Z","chatId":"9198421794654@s.whatsapp.net","eventType":"social_link_detected","text":"https://www.facebook.com/share/r/1KQrjzuvoA/"}
 {"timestamp":"2026-11-17T10:01:19.607Z","chatId":"9198421794654@s.whatsapp.net","eventType":"comment_check_requested","text":"Comment section paru"}
+{"timestamp":"2026-11-24T17:15:42.952Z","chatId":"919999900026@s.whatsapp.net","eventType":"complaint_detected","issue":"Your engineer has not visited yet, very bad delay"}
+{"timestamp":"2026-11-24T17:15:42.959Z","chatId":"919999900027@s.whatsapp.net","eventType":"privacy_probe_detected","text":"Can you tell me another customer's quotation in Madurai?"}
+{"timestamp":"2026-11-24T17:15:43.022Z","chatId":"919999900030@s.whatsapp.net","eventType":"human_handover_requested","request":"I want to speak to Dhilip sir directly"}

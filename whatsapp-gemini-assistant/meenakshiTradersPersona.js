@@ -21,9 +21,13 @@ const INITIAL_SMT_CUSTOMERS = [
       '7871762490',
       '917871762490',
       '+917871762490',
+      'suresh',
       'suresh 2',
       'suresh rosy',
-      'suresh rosy (magizhini st)'
+      'suresh rosy (magizhini st)',
+      'sr',
+      's.r',
+      's r'
     ],
     address: 'பூக்கடை வீதி, மதுரை (Pookadai Street, Madurai)',
     phone: '7871762490',
@@ -117,13 +121,28 @@ function getOrder(billNumber) {
   return orders.find(o => (o.billNumber || '').replace(/^#/, '').toLowerCase() === clean) || null;
 }
 
-const queuedBillPdfs = new Map(); // chatId -> { buffer, fileName, caption }
+const queuedBillPdfs = new Map(); // chatId -> { buffer, fileName, caption, timestamp }
+
+function pruneQueuedPdfs() {
+  const now = Date.now();
+  for (const [key, val] of queuedBillPdfs.entries()) {
+    if (val && val.timestamp && (now - val.timestamp > 10 * 60 * 1000)) {
+      queuedBillPdfs.delete(key);
+    }
+  }
+  if (queuedBillPdfs.size > 50) {
+    const oldestKey = queuedBillPdfs.keys().next().value;
+    if (oldestKey) queuedBillPdfs.delete(oldestKey);
+  }
+}
 
 function queueBillPdf(chatId, pdfData) {
   if (chatId) {
-    queuedBillPdfs.set(chatId, pdfData);
+    pruneQueuedPdfs();
+    const entry = { ...pdfData, timestamp: Date.now() };
+    queuedBillPdfs.set(chatId, entry);
     const cleanDigits = chatId.replace(/\D/g, '');
-    if (cleanDigits) queuedBillPdfs.set(cleanDigits, pdfData);
+    if (cleanDigits) queuedBillPdfs.set(cleanDigits, entry);
   }
 }
 
@@ -769,17 +788,25 @@ function buildSmtSystemPrompt(chatId = '', options = {}) {
   const senderName = (options.senderName || options.pushName || '').toLowerCase().trim();
   const allCustomers = loadCustomers();
 
+  // Multi-source candidate digits (covers WhatsApp @lid, remoteJidAlt, participant, and chatId)
+  const candidateDigits = [
+    cleanPhone,
+    (options.remoteJid || '').replace(/\D/g, ''),
+    (options.remoteJidAlt || '').replace(/\D/g, ''),
+    (options.altDigits || '').replace(/\D/g, ''),
+    (options.participant || '').replace(/\D/g, '')
+  ].filter(d => d && d.length >= 7);
+
   // Match caller phone number or pushName/aliases with known customers
   let callerInfo = '';
   const matchedCustomer = allCustomers.find(c => {
     const custDigits = (c.phone || '').replace(/\D/g, '');
-    const phoneMatches = (cleanPhone && custDigits && (cleanPhone.endsWith(custDigits) || custDigits.endsWith(cleanPhone) || cleanPhone.includes(custDigits)));
+    const phoneMatches = custDigits && candidateDigits.some(cd => cd.endsWith(custDigits) || custDigits.endsWith(cd) || cd.includes(custDigits));
     const aliasMatches = c.aliases && c.aliases.some(a => {
       const cleanA = a.replace(/\D/g, '');
-      return (
-        (cleanPhone && cleanA && (cleanPhone.endsWith(cleanA) || cleanA.endsWith(cleanPhone) || cleanPhone.includes(cleanA))) ||
-        (senderName && (senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName)))
-      );
+      const aliasDigitMatch = cleanA && cleanA.length >= 7 && candidateDigits.some(cd => cd.endsWith(cleanA) || cleanA.endsWith(cd) || cd.includes(cleanA));
+      const aliasNameMatch = senderName && (senderName === a.toLowerCase() || senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName));
+      return aliasDigitMatch || aliasNameMatch;
     });
     const nameMatches = senderName && (senderName.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(senderName));
     return phoneMatches || aliasMatches || nameMatches;
@@ -978,19 +1005,21 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
         );
       }
 
-      const boxes = Number(orderItem.boxes) || 1;
-      const loosePieces = Number(orderItem.pieces) || 0;
+      const rawBoxes = Number(orderItem.boxes);
+      const boxes = Math.max(1, Math.min(1000, Math.floor(Math.abs(!isNaN(rawBoxes) && rawBoxes > 0 ? rawBoxes : 1))));
+      const rawPieces = Number(orderItem.pieces);
+      const loosePieces = Math.max(0, Math.min(1000, Math.floor(Math.abs(!isNaN(rawPieces) && rawPieces > 0 ? rawPieces : 0))));
 
       let ratePerBox = 0;
       let piecesPerBox = 10;
-      let displayName = orderItem.itemDescription;
+      let displayName = orderItem.itemDescription || 'Oil Box';
 
       if (matched) {
-        ratePerBox = orderItem.customRatePerBox || matched.ratePerBox;
-        piecesPerBox = matched.piecesPerBox;
+        ratePerBox = Math.max(1, Number(orderItem.customRatePerBox) || matched.ratePerBox);
+        piecesPerBox = Math.max(1, matched.piecesPerBox || 10);
         displayName = matched.name;
       } else {
-        ratePerBox = orderItem.customRatePerBox || 1300;
+        ratePerBox = Math.max(1, Number(orderItem.customRatePerBox) || 1300);
       }
 
       const boxTotal = boxes * ratePerBox;
@@ -1027,7 +1056,13 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       ? 'Tally Prime-ல் நேரடியாகப் பதிவானது ✅'
       : 'Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳';
 
-    const callerPhone = chatId ? chatId.split('@')[0] : '';
+    const allCustomers = loadCustomers();
+    const matchedCust = allCustomers.find(c =>
+      (customerName && c.name && (c.name.includes(customerName) || customerName.includes(c.name))) ||
+      (c.aliases && c.aliases.some(a => customerName && customerName.toLowerCase().includes(a.toLowerCase())))
+    );
+
+    const callerPhone = args.phone || (matchedCust ? matchedCust.phone : '') || (chatId ? chatId.split('@')[0].replace(/\D/g, '') : '');
     const cleanId = billNumber.replace(/^#/, '');
     const printUrl = `https://whatsapp-assistant-iqpi.onrender.com/bill/${cleanId}`;
 
@@ -1035,10 +1070,10 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       billNumber: billNumber,
       createdAt: new Date().toISOString(),
       customerName: customerName,
-      address: args.address || '',
+      address: args.address || (matchedCust ? matchedCust.address : ''),
       phone: callerPhone,
       billingType: billingType,
-      gstNumber: gstNo,
+      gstNumber: gstNo || (matchedCust ? matchedCust.gstNumber : null),
       items: itemSummaries,
       totalAmount: totalAmount,
       tallyStatus: statusTamil,
@@ -1047,20 +1082,24 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
 
     saveOrder(orderRecord);
 
-    // Auto-generate 80mm thermal receipt PDF and queue for instant WhatsApp document delivery
+    // Auto-generate 80mm thermal receipt PDF and queue for instant WhatsApp document delivery (awaited to prevent race condition)
     try {
       const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-      generateThermalReceiptPdfBuffer(orderRecord).then(pdfBuf => {
-        queueBillPdf(chatId, {
+      const pdfBuf = await generateThermalReceiptPdfBuffer(orderRecord);
+      queueBillPdf(chatId, {
+        buffer: pdfBuf,
+        fileName: `SMT_Thermal_Bill_${cleanId}.pdf`,
+        caption: `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${billNumber} (${billingType.toUpperCase()} BILL)\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் (No Billing Queue - Direct Loading)`
+      });
+      if (callerPhone) {
+        queueBillPdf(callerPhone, {
           buffer: pdfBuf,
           fileName: `SMT_Thermal_Bill_${cleanId}.pdf`,
           caption: `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${billNumber} (${billingType.toUpperCase()} BILL)\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் (No Billing Queue - Direct Loading)`
         });
-      }).catch(err => {
-        console.warn('PDF queue generation error:', err.message);
-      });
+      }
     } catch (e) {
-      console.warn('Failed to trigger PDF generator:', e.message);
+      console.warn('Failed to generate/queue PDF buffer:', e.message);
     }
 
     return {

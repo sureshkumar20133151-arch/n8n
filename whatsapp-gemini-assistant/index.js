@@ -579,12 +579,14 @@ async function connectToWhatsApp() {
           }
 
           const senderName = msg.pushName || 'Friend';
-          console.log(`📩 [Incoming] From: ${senderName} (${remoteJid})`);
+          const remoteJidAlt = msg.key.remoteJidAlt || msg.key.participantAlt || '';
+          console.log(`📩 [Incoming] From: ${senderName} (${remoteJid}${remoteJidAlt ? ` / alt: ${remoteJidAlt}` : ''})`);
           console.log(`💬 Message: "${body || (isAudio ? '[Voice Note / Audio sent]' : '[Image sent]')}"`);
 
           const cleanSenderDigits = remoteJid ? remoteJid.replace(/\D/g, '') : '';
+          const altDigits = remoteJidAlt ? remoteJidAlt.replace(/\D/g, '') : '';
           const ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
-          const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone);
+          const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone || altDigits === ownerPhone);
 
           // Routable destination JID: route self-chat or @lid to owner phone @s.whatsapp.net (groups always route to remoteJid)
           const isSelfRoute = isFromMe && !isGroup && (remoteJid === 'me' || remoteJid.endsWith('@lid') || (typeof isSelfChat !== 'undefined' && isSelfChat));
@@ -655,6 +657,8 @@ async function connectToWhatsApp() {
               senderName,
               pushName: msg.pushName,
               remoteJid,
+              remoteJidAlt,
+              altDigits,
               participant: msg.key?.participant
             });
 
@@ -1355,7 +1359,8 @@ const server = http.createServer(async (req, res) => {
       try {
         const payload = JSON.parse(body || '{}');
         const userMsg = (payload.message || '').trim();
-        const sessionId = payload.sessionId || `web_${Date.now()}`;
+        const sessionId = payload.sessionId || payload.chatId || `web_${Date.now()}`;
+        const senderName = payload.senderName || payload.pushName || '';
 
         if (!userMsg) {
           res.writeHead(400, {
@@ -1365,7 +1370,12 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ error: 'Message is required' }));
         }
 
-        const reply = await gemini.generateResponse(sessionId, userMsg);
+        const reply = await gemini.generateResponse(sessionId, userMsg, null, {
+          senderName: senderName,
+          pushName: payload.pushName || senderName,
+          remoteJid: payload.remoteJid || payload.chatId || sessionId,
+          overrideMode: payload.mode || null
+        });
 
         res.writeHead(200, {
           'Content-Type': 'application/json',
@@ -1544,8 +1554,9 @@ const server = http.createServer(async (req, res) => {
     }));
   }
 
-  // Endpoint to manually clear authentication credentials and restart QR generation
+  // Endpoint to manually clear authentication credentials and restart QR generation (Owner/Auth required)
   if (req.url === '/restart' || req.url === '/api/restart') {
+    if (!authenticateRequest(req, res)) return;
     console.log('🔄 [Manual Restart Requested] Resetting WhatsApp credentials and generating new QR...');
     currentStatus = 'Resetting session and generating fresh QR code...';
     latestQrDataUrl = null;
@@ -1561,8 +1572,9 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ success: true, message: 'Auth session reset. Generating fresh QR code...' }));
   }
 
-    // Persistent Session Backup API (for Render Auto-Reconnect & Neon Sync)
+  // Persistent Session Backup API (Owner/Auth required to prevent credential theft)
   if (req.url === '/api/session' || req.url === '/session') {
+    if (!authenticateRequest(req, res)) return;
     res.writeHead(200, {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': allowedOrigin
@@ -1579,23 +1591,31 @@ const server = http.createServer(async (req, res) => {
     const cleanUrl = req.url.split('?')[0];
     const isDirectPdf = cleanUrl.endsWith('.pdf');
     const parts = cleanUrl.replace(/\.pdf$/, '').split('/');
-    const billId = parts[2] || 'latest';
+    const billId = (parts[2] || 'latest').replace(/[^a-zA-Z0-9-]/g, '');
     const { getOrder, generateThermalBillHtml } = require('./meenakshiTradersPersona');
     const order = getOrder(billId);
 
-    if (isDirectPdf && order) {
-      try {
-        const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-        const pdfBuf = await generateThermalReceiptPdfBuffer(order);
-        res.writeHead(200, {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="SMT_Thermal_Bill_${billId}.pdf"`,
-          'Content-Length': pdfBuf.length,
+    if (isDirectPdf) {
+      if (order) {
+        try {
+          const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+          const pdfBuf = await generateThermalReceiptPdfBuffer(order);
+          res.writeHead(200, {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `inline; filename="SMT_Thermal_Bill_${billId}.pdf"`,
+            'Content-Length': pdfBuf.length,
+            'Access-Control-Allow-Origin': allowedOrigin
+          });
+          return res.end(pdfBuf);
+        } catch (pdfErr) {
+          console.error('Direct PDF streaming error:', pdfErr);
+        }
+      } else {
+        res.writeHead(404, {
+          'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': allowedOrigin
         });
-        return res.end(pdfBuf);
-      } catch (pdfErr) {
-        console.error('Direct PDF streaming error:', pdfErr);
+        return res.end(JSON.stringify({ error: 'Bill not found', billId }));
       }
     }
 

@@ -50,6 +50,19 @@ function getTallyCompatibleDate() {
 }
 
 /**
+ * Escapes characters for safe Tally Prime XML injection
+ */
+function escapeXml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/**
  * Builds standard XML Envelope for Tally Prime
  */
 function buildTallyVoucherXml({ company, voucherType, partyName, amount, itemName, quantity, rate, narration, siteName, payerType }) {
@@ -57,16 +70,22 @@ function buildTallyVoucherXml({ company, voucherType, partyName, amount, itemNam
   const targetCompany = company === 'SMT' || company === 'Sri Meenakshi Traders' ? 'Sri Meenakshi Traders' : 'Dhanam Holdings';
   const numAmount = parseFloat(amount || 0);
 
+  const safePartyName = escapeXml(partyName || 'Cash');
+  const safeNarration = escapeXml(narration || '');
+  const safeItemName = escapeXml(itemName || 'Goods');
+  const safeSiteName = escapeXml(siteName || '');
+  const safePayerType = escapeXml(payerType || '');
+
   let voucherXml = '';
   if (voucherType === 'Sales') {
     voucherXml = `
         <VOUCHER VCHTYPE="Sales" ACTION="Create">
           <DATE>${tallyDate}</DATE>
           <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>
-          <NARRATION>${narration || ''} [Item: ${itemName || 'Goods'} Qty: ${quantity || 1} @ Rs.${rate || numAmount}]</NARRATION>
+          <PARTYLEDGERNAME>${safePartyName}</PARTYLEDGERNAME>
+          <NARRATION>${safeNarration} [Item: ${safeItemName} Qty: ${quantity || 1} @ Rs.${rate || numAmount}]</NARRATION>
           <ALLLEDGERENTRIES.LIST>
-            <LEDGERNAME>${partyName}</LEDGERNAME>
+            <LEDGERNAME>${safePartyName}</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <AMOUNT>-${numAmount.toFixed(2)}</AMOUNT>
           </ALLLEDGERENTRIES.LIST>
@@ -81,15 +100,15 @@ function buildTallyVoucherXml({ company, voucherType, partyName, amount, itemNam
         <VOUCHER VCHTYPE="Purchase" ACTION="Create">
           <DATE>${tallyDate}</DATE>
           <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>
-          <NARRATION>${narration || ''} [Item: ${itemName || 'Materials'} Qty: ${quantity || 1}]</NARRATION>
+          <PARTYLEDGERNAME>${safePartyName}</PARTYLEDGERNAME>
+          <NARRATION>${safeNarration} [Item: ${safeItemName} Qty: ${quantity || 1}]</NARRATION>
           <ALLLEDGERENTRIES.LIST>
             <LEDGERNAME>Purchase</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <AMOUNT>-${numAmount.toFixed(2)}</AMOUNT>
           </ALLLEDGERENTRIES.LIST>
           <ALLLEDGERENTRIES.LIST>
-            <LEDGERNAME>${partyName}</LEDGERNAME>
+            <LEDGERNAME>${safePartyName}</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <AMOUNT>${numAmount.toFixed(2)}</AMOUNT>
           </ALLLEDGERENTRIES.LIST>
@@ -99,10 +118,10 @@ function buildTallyVoucherXml({ company, voucherType, partyName, amount, itemNam
         <VOUCHER VCHTYPE="Receipt" ACTION="Create">
           <DATE>${tallyDate}</DATE>
           <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>
-          <NARRATION>${narration || ''} ${siteName ? `[Site: ${siteName}]` : ''} ${payerType ? `[Payer: ${payerType}]` : ''}</NARRATION>
+          <PARTYLEDGERNAME>${safePartyName}</PARTYLEDGERNAME>
+          <NARRATION>${safeNarration} ${safeSiteName ? `[Site: ${safeSiteName}]` : ''} ${safePayerType ? `[Payer: ${safePayerType}]` : ''}</NARRATION>
           <ALLLEDGERENTRIES.LIST>
-            <LEDGERNAME>${partyName}</LEDGERNAME>
+            <LEDGERNAME>${safePartyName}</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <AMOUNT>${numAmount.toFixed(2)}</AMOUNT>
           </ALLLEDGERENTRIES.LIST>
@@ -118,10 +137,10 @@ function buildTallyVoucherXml({ company, voucherType, partyName, amount, itemNam
         <VOUCHER VCHTYPE="Payment" ACTION="Create">
           <DATE>${tallyDate}</DATE>
           <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>${partyName}</PARTYLEDGERNAME>
-          <NARRATION>${narration || ''} ${siteName ? `[Site: ${siteName}]` : ''} ${payerType ? `[For: ${payerType}]` : ''}</NARRATION>
+          <PARTYLEDGERNAME>${safePartyName}</PARTYLEDGERNAME>
+          <NARRATION>${safeNarration} ${safeSiteName ? `[Site: ${safeSiteName}]` : ''} ${safePayerType ? `[For: ${safePayerType}]` : ''}</NARRATION>
           <ALLLEDGERENTRIES.LIST>
-            <LEDGERNAME>${partyName}</LEDGERNAME>
+            <LEDGERNAME>${safePartyName}</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <AMOUNT>-${numAmount.toFixed(2)}</AMOUNT>
           </ALLLEDGERENTRIES.LIST>

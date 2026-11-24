@@ -322,7 +322,11 @@ class GeminiService {
     // 4. Clean up any accidental double spaces resulting from stripping
     clean = clean.replace(/[ ]{2,}/g, ' ');
 
-    return clean;
+    // 5. Strip any bracketed internal directives if leaked by LLM
+    clean = clean.replace(/^\[(?:CRITICAL|SYSTEM|CONTEXT|INTERRUPTION|IDENTITY|IMAGE|FINANCE|SRI MEENAKSHI|[A-Z\s&_-]+ DIRECTIVE).*?\]:\s*/is, '');
+    clean = clean.replace(/\[(?:CRITICAL|SYSTEM|CONTEXT|INTERRUPTION|IDENTITY|IMAGE|FINANCE|SRI MEENAKSHI|[A-Z\s&_-]+ DIRECTIVE).*?\]:\s*/gis, '');
+
+    return clean.trim();
   }
 
   getSystemInstruction(chatId = '', overrideMode = null, platform = 'whatsapp', options = {}) {
@@ -895,19 +899,32 @@ The customer shared a house construction / elevation video or reel (${media.seco
           const userDigits = (userText || '').replace(/\D/g, '');
           const { loadCustomers } = require('./meenakshiTradersPersona');
           const allCustomers = loadCustomers();
+
+          // Multi-source candidate digits (covers WhatsApp @lid, remoteJidAlt, participant, and chatId)
+          const candidateDigits = [
+            cleanPhone,
+            (options.remoteJid || '').replace(/\D/g, ''),
+            (options.remoteJidAlt || '').replace(/\D/g, ''),
+            (options.altDigits || '').replace(/\D/g, ''),
+            (options.participant || '').replace(/\D/g, '')
+          ].filter(d => d && d.length >= 7);
+
           const matched = allCustomers.find(c => {
             const custDigits = (c.phone || '').replace(/\D/g, '');
-            const phoneMatches = (cleanPhone && custDigits && (cleanPhone.endsWith(custDigits) || custDigits.endsWith(cleanPhone) || cleanPhone.includes(custDigits)));
+            const phoneMatches = custDigits && candidateDigits.some(cd => cd.endsWith(custDigits) || custDigits.endsWith(cd) || cd.includes(custDigits));
             const textDigitsMatches = userDigits && custDigits && (userDigits.includes(custDigits) || custDigits.includes(userDigits));
             const textNameMatches = userLower && (userLower.includes(c.name.toLowerCase()) || (c.address && userLower.includes(c.address.toLowerCase().split(',')[0])));
             const aliasMatches = c.aliases && c.aliases.some(a => {
               const cleanA = a.replace(/\D/g, '');
-              return (
-                (cleanPhone && cleanA && (cleanPhone.endsWith(cleanA) || cleanA.endsWith(cleanPhone) || cleanPhone.includes(cleanA))) ||
-                (userDigits && cleanA && (userDigits.includes(cleanA) || cleanA.includes(userDigits))) ||
-                (userLower && userLower.includes(a.toLowerCase())) ||
-                (senderName && (senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName)))
+              const aliasDigitMatch = cleanA && cleanA.length >= 7 && (
+                candidateDigits.some(cd => cd.endsWith(cleanA) || cleanA.endsWith(cd) || cd.includes(cleanA)) ||
+                (userDigits && (userDigits.includes(cleanA) || cleanA.includes(userDigits)))
               );
+              const aliasNameMatch = (
+                (userLower && userLower.includes(a.toLowerCase())) ||
+                (senderName && (senderName === a.toLowerCase() || senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName)))
+              );
+              return aliasDigitMatch || aliasNameMatch;
             });
             const nameMatches = senderName && (senderName.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(senderName));
             return phoneMatches || textDigitsMatches || textNameMatches || aliasMatches || nameMatches;
