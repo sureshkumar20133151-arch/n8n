@@ -193,6 +193,30 @@ async function runAsyncTest(name, fn) {
   });
 
   // -------------------------------------------------------------
+  // TEST 8: Official A4 GST Tax Invoice (e-Invoice format with QR code)
+  // -------------------------------------------------------------
+  const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
+  await runAsyncTest('A4 GST Tax Invoice generates standard e-Invoice format with QR code, IRN, and HSN tax breakdown', async () => {
+    const gstOrder = {
+      billNumber: '#SMT-GST-AUDIT',
+      billingType: 'GST',
+      customerName: 'லட்சுமி ஆயில் ஸ்டோர் (Sri Lakshmi Oil Store)',
+      address: 'தயிர் கடை சந்து, மதுரை',
+      phone: '9842100103',
+      gstNumber: '33AAACL5678G1Z2',
+      items: [
+        { item: '1L Gold Winner Sunflower Oil', boxes: 10, piecesPerBox: 10, totalPouches: 100, ratePerBox: 1320, lineTotal: 13200 }
+      ],
+      totalAmount: 13200
+    };
+
+    const pdfBuf = await generateA4GstTaxInvoicePdfBuffer(gstOrder);
+    assert(Buffer.isBuffer(pdfBuf), 'A4 GST PDF output must be a Buffer');
+    assert(pdfBuf.length > 3000, `A4 GST PDF buffer too small: ${pdfBuf.length} bytes`);
+    assert(pdfBuf.slice(0, 4).toString() === '%PDF', 'A4 GST PDF buffer does not start with %PDF magic bytes!');
+  });
+
+  // -------------------------------------------------------------
   // SUMMARY REPORT
   // -------------------------------------------------------------
   console.log('\n==============================================================');

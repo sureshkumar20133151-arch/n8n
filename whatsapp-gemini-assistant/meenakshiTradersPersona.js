@@ -403,15 +403,18 @@ function generateThermalBillHtml(order) {
 </head>
 <body>
   <div class="action-bar no-print">
-    <div class="demo-pill">🖨️ 80mm Thermal Receipt Spec (Demo Mode)</div>
+    <div class="demo-pill">🖨️ Sri Meenakshi Traders - Invoice & Token Portal</div>
     <div class="btn-row">
       <button class="btn btn-pdf" onclick="downloadThermalPdf()">
-        📥 Download Thermal PDF
+        📥 80mm Token Slip
       </button>
       <button class="btn btn-print" onclick="window.print()">
         🖨️ Print Slip
       </button>
     </div>
+    <a class="btn" style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); color: #fff; text-decoration: none; margin-top: 6px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);" href="/bill/${cleanBillNo}.pdf" target="_blank" download>
+      🏛️ Download Official A4 GST Tax Invoice (PDF)
+    </a>
   </div>
 
   <div id="thermal-bill" class="bill-card">
@@ -1094,21 +1097,27 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
 
     saveOrder(orderRecord);
 
-    // Auto-generate 80mm thermal receipt PDF and queue for instant WhatsApp document delivery (awaited to prevent race condition)
+    // Auto-generate PDF and queue for instant WhatsApp document delivery (awaited to prevent race condition)
     try {
-      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-      const pdfBuf = await generateThermalReceiptPdfBuffer(orderRecord);
-      queueBillPdf(chatId, {
-        buffer: pdfBuf,
-        fileName: `SMT_Thermal_Bill_${cleanId}.pdf`,
-        caption: `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${billNumber} (${billingType.toUpperCase()} BILL)\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் (No Billing Queue - Direct Loading)`
-      });
-      if (callerPhone) {
-        queueBillPdf(callerPhone, {
-          buffer: pdfBuf,
-          fileName: `SMT_Thermal_Bill_${cleanId}.pdf`,
-          caption: `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${billNumber} (${billingType.toUpperCase()} BILL)\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் (No Billing Queue - Direct Loading)`
-        });
+      let pdfBuf = null;
+      let fileName = '';
+      let caption = '';
+
+      if (billingType === 'GST') {
+        const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
+        pdfBuf = await generateA4GstTaxInvoicePdfBuffer(orderRecord);
+        fileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
+        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n🏛️ GSTIN: ${gstNo || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ e-Invoice QR Code, IRN & HSN/வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 பில் இணைக்கப்பட்டுள்ளது!`;
+      } else {
+        const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+        pdfBuf = await generateThermalReceiptPdfBuffer(orderRecord);
+        fileName = `SMT_Thermal_Bill_${cleanId}.pdf`;
+        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${billNumber} (CASH BILL)\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் (No Billing Queue - Direct Loading)`;
+      }
+
+      if (pdfBuf) {
+        queueBillPdf(chatId, { buffer: pdfBuf, fileName, caption });
+        if (callerPhone) queueBillPdf(callerPhone, { buffer: pdfBuf, fileName, caption });
       }
     } catch (e) {
       console.warn('Failed to generate/queue PDF buffer:', e.message);
@@ -1136,17 +1145,27 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       return { success: false, message: 'பில் கிடைக்கவில்லை (Bill not found).' };
     }
     try {
-      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-      const pdfBuf = await generateThermalReceiptPdfBuffer(order);
       const cleanId = (order.billNumber || 'BILL').replace(/[^a-zA-Z0-9-]/g, '');
-      queueBillPdf(chatId, {
-        buffer: pdfBuf,
-        fileName: `SMT_Thermal_Bill_${cleanId}.pdf`,
-        caption: `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${order.billNumber}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் பிக்-அப் டோக்கன் (No Billing Queue)`
-      });
+      let pdfBuf = null;
+      let fileName = '';
+      let caption = '';
+
+      if (order.billingType === 'GST' || (args.format && args.format.toUpperCase() === 'GST') || (args.format && args.format.toUpperCase() === 'A4')) {
+        const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
+        pdfBuf = await generateA4GstTaxInvoicePdfBuffer(order);
+        fileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
+        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${order.billNumber}\n🏛️ GSTIN: ${order.gstNumber || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ e-Invoice QR Code & HSN வரி விபரங்களுடன் கூடிய A4 GST Tax Invoice இணைக்கப்பட்டுள்ளது!`;
+      } else {
+        const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+        pdfBuf = await generateThermalReceiptPdfBuffer(order);
+        fileName = `SMT_Thermal_Bill_${cleanId}.pdf`;
+        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${order.billNumber}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் பிக்-அப் டோக்கன் (No Billing Queue)`;
+      }
+
+      queueBillPdf(chatId, { buffer: pdfBuf, fileName, caption });
       return {
         success: true,
-        message: `✅ பில் PDF (${order.billNumber}) வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
+        message: `✅ அதிகாரப்பூர்வ பில் PDF (${order.billNumber}) வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
       };
     } catch (e) {
       return { success: false, message: `PDF உருவாக்க முடியவில்லை: ${e.message}` };

@@ -1598,15 +1598,31 @@ const server = http.createServer(async (req, res) => {
     if (isDirectPdf) {
       if (order) {
         try {
-          const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-          const pdfBuf = await generateThermalReceiptPdfBuffer(order);
-          res.writeHead(200, {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `inline; filename="SMT_Thermal_Bill_${billId}.pdf"`,
-            'Content-Length': pdfBuf.length,
-            'Access-Control-Allow-Origin': allowedOrigin
-          });
-          return res.end(pdfBuf);
+          const isExplicitGst = cleanUrl.includes('/gst');
+          const isExplicitThermal = cleanUrl.includes('/thermal');
+          const isGst = isExplicitGst || (!isExplicitThermal && order.billingType === 'GST');
+
+          if (isGst) {
+            const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
+            const pdfBuf = await generateA4GstTaxInvoicePdfBuffer(order);
+            res.writeHead(200, {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `inline; filename="SMT_GST_Tax_Invoice_${billId}.pdf"`,
+              'Content-Length': pdfBuf.length,
+              'Access-Control-Allow-Origin': allowedOrigin
+            });
+            return res.end(pdfBuf);
+          } else {
+            const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+            const pdfBuf = await generateThermalReceiptPdfBuffer(order);
+            res.writeHead(200, {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `inline; filename="SMT_Thermal_Bill_${billId}.pdf"`,
+              'Content-Length': pdfBuf.length,
+              'Access-Control-Allow-Origin': allowedOrigin
+            });
+            return res.end(pdfBuf);
+          }
         } catch (pdfErr) {
           console.error('Direct PDF streaming error:', pdfErr);
         }
