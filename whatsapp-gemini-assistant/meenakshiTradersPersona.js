@@ -54,6 +54,31 @@ const INITIAL_SMT_CUSTOMERS = [
     defaultBilling: 'GST', // Registered GST Buyer
     gstNumber: '33AAACL5678G1Z2',
     status: 'GST Registered Merchant'
+  },
+  {
+    id: 'CUST-004',
+    name: 'சௌந்தர் டிரேடிங் (Sowndhar Trading)',
+    aliases: [
+      'sowndhar trading',
+      'சௌந்தர் டிரேடிங்',
+      'sowndhar',
+      'சௌந்தர்',
+      'soundar trading',
+      'soundar',
+      '9080416410',
+      '919080416410',
+      '+919080416410',
+      '90804 16410',
+      'பழைய வெற்றிலைகடை தெரு',
+      'வெற்றிலைகடை தெரு',
+      'வெற்றிலைகடை',
+      'vettrilai'
+    ],
+    address: 'பழைய வெற்றிலைகடை தெரு, மதுரை (Old Vettrilai Kadai Street, Madurai)',
+    phone: '9080416410',
+    defaultBilling: 'Cash',
+    gstNumber: null,
+    status: 'Registered Wholesale Customer'
   }
 ];
 

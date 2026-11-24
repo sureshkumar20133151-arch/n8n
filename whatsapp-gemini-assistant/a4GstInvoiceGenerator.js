@@ -47,8 +47,10 @@ function cleanAscii(str, fallback = '') {
   const lower = str.toLowerCase();
   if (lower.includes('கேசவன்') || lower.includes('kesavan')) return 'Kesavan Oil Store';
   if (lower.includes('நம்பியப்பா') || lower.includes('nambiyappa')) return 'Nambiyappa Oil Store';
+  if (lower.includes('சௌந்தர்') || lower.includes('soundar') || lower.includes('sowndhar')) return 'Sowndhar Trading';
   if (lower.includes('லட்சுமி') || lower.includes('lakshmi')) return 'Sri Lakshmi Oil Store';
   if (lower.includes('பாண்டியன்') || lower.includes('pandian')) return 'Pandian Stores';
+  if (lower.includes('வெற்றிலை') || lower.includes('vettrilai') || lower.includes('vetrilai')) return 'Old Vettrilai Kadai Street, Madurai';
   if (lower.includes('பூக்கடை') || lower.includes('pookadai')) return 'Pookadai Street, Madurai';
   if (lower.includes('கீழமாசி') || lower.includes('keelamasi')) return 'Keelamasi Street, Madurai';
   if (lower.includes('தயிர்') || lower.includes('thayir')) return 'Thayir Kadai Sandhu, Madurai';

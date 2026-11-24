@@ -54,6 +54,32 @@
     "registeredAt": "2026-11-24T17:31:55.271Z"
   },
   {
+    "id": "CUST-004",
+    "name": "சௌந்தர் டிரேடிங் (Sowndhar Trading)",
+    "aliases": [
+      "sowndhar trading",
+      "சௌந்தர் டிரேடிங்",
+      "sowndhar",
+      "சௌந்தர்",
+      "soundar trading",
+      "soundar",
+      "9080416410",
+      "919080416410",
+      "+919080416410",
+      "90804 16410",
+      "பழைய வெற்றிலைகடை தெரு",
+      "வெற்றிலைகடை தெரு",
+      "வெற்றிலைகடை",
+      "vettrilai"
+    ],
+    "address": "பழைய வெற்றிலைகடை தெரு, மதுரை (Old Vettrilai Kadai Street, Madurai)",
+    "phone": "9080416410",
+    "defaultBilling": "Cash",
+    "gstNumber": null,
+    "status": "Active Wholesale Buyer",
+    "registeredAt": "2026-11-25T00:46:00.000Z"
+  },
+  {
     "id": "CUST-0761",
     "name": "பாண்டியன் மளிகை & ஆயில் ஸ்டோர்",
     "aliases": [
@@ -79,7 +105,7 @@
     "defaultBilling": "Cash",
     "gstNumber": null,
     "status": "Registered Customer",
-    "registeredAt": "2026-11-24T19:11:23.073Z"
+    "registeredAt": "2026-11-24T19:18:00.477Z"
   },
   {
     "id": "CUST-4393",
