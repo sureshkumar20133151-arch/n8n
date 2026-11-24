@@ -828,12 +828,11 @@ const SMT_TOOLS = [{
     },
     {
       name: 'sendSmtBillPdf',
-      description: 'Dispatch the PDF bill directly to WhatsApp: format="thermal" for the 80mm compact godown loading slip (simple, no GST, for labours to load products), format="a4" for official A4 GST Tax Invoice, or format="both" to send BOTH the Labour Token Slip and the GST Invoice.',
+      description: 'Dispatch the unified 2-page PDF bill (Page 1: 80mm Godown Labour Token Slip + Page 2: Official A4 GST Tax Invoice) directly to WhatsApp in ONE single chat message bubble.',
       parameters: {
         type: 'OBJECT',
         properties: {
-          billNumber: { type: 'STRING', description: 'Bill number e.g. #SMT-261124-522 or "latest"' },
-          format: { type: 'STRING', enum: ['thermal', 'a4', 'gst', 'simple', 'both'], description: 'Slip format: "thermal" (for godown labours/token slip), "a4"/"gst" (for GST tax invoice), or "both" (default for GST orders)' }
+          billNumber: { type: 'STRING', description: 'Bill number e.g. #SMT-261124-522 or "latest"' }
         }
       }
     },
@@ -963,11 +962,11 @@ Specialization: Premier Wholesale & Retail Edible Oils Merchant (சன்பி
      * 💰 **மொத்த தொகை (Total Amount)**
      * ⚡ **ஃபாஸ்ட்-லேன் பிக்-அப் அறிவிப்பு:** *"கவுண்ட்டரில் பில்லிங் வரிசையில் நிற்க வேண்டாம்! இந்த பில் நம்பரை (#SMT-...) காட்டிவிட்டு உடனே சரக்கை வண்டியில் ஏற்றிவிடலாம்."*
 4. **Language:** Respectful, crisp, traditional Madurai business Tamil (வணக்கம் அண்ணே / சார், பில் ரெடி ஆயிடுச்சு).
-5. **Dual Bill Delivery Rule (Labour Token Slip + GST Tax Invoice):**
-   - Whenever an order is confirmed or a bill is asked for, the system automatically generates and dispatches BOTH documents to WhatsApp:
-     1) The 80mm **Labour Token Slip** (simple, zero GST clutter, clear box count for labours in godown to load goods immediately).
-     2) The official A4 **GST Tax Invoice** (with QR Code, IRN, and HSN breakdown).
-   - If the customer asks for a bill, invoice, token, or slip: IMMEDIATELY call \`sendSmtBillPdf(billNumber='latest')\` so both PDFs are dispatched to WhatsApp.
+5. **Unified Bill Delivery Rule (Single WhatsApp Chat Message with Labour Token + GST Tax Invoice):**
+   - Whenever an order is confirmed or a bill is asked for, the system automatically generates and dispatches a unified 2-page PDF document in ONE SINGLE CHAT MESSAGE:
+     * Page 1: 80mm Labour Token Slip (simple, zero GST clutter, clear box count for labours in godown to load goods immediately).
+     * Page 2: Official A4 GST Tax Invoice (with QR Code, IRN, and HSN breakdown for accounts & auditor).
+   - If the customer asks for a bill, invoice, token, or slip: IMMEDIATELY call \`sendSmtBillPdf(billNumber='latest')\` so the unified PDF is dispatched in ONE single chat message bubble to WhatsApp.
 6. **New Customer Auto-Registration:**
    - If a new customer messages and gives their shop name, owner name, or area in Madurai:
      IMMEDIATELY call \`registerSmtCustomer(name, ownerName, address, phone)\` so their phone number and details are permanently saved into the database!`;
@@ -1160,25 +1159,16 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
 
     saveOrder(orderRecord);
 
-    // Auto-generate PDF and queue for instant WhatsApp document delivery (awaited to prevent race condition)
+    // Auto-generate unified PDF (Page 1: Labour Token + Page 2: GST Invoice) in ONE single WhatsApp document message
     try {
-      // 1. ALWAYS generate the 80mm Labour Token Slip for labours to load products
-      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-      const thermalBuf = await generateThermalReceiptPdfBuffer(orderRecord);
-      const thermalFileName = `SMT_Labour_Token_Slip_${cleanId}.pdf`;
-      const thermalCaption = `⚡ *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - லேபர் டோக்கன் சீட்டு (80mm Labour Slip)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ *கோடவுன் தொழிலாளர்களிடம் (Labours) கொடுத்து உடனே சரக்கு ஏற்றிக்கொள்ளும் டோக்கன் சீட்டு (No GST Clutter)!*`;
-      queueBillPdf(chatId, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
-      if (callerPhone) queueBillPdf(callerPhone, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
-
-      // 2. ALWAYS generate the official A4 GST Tax Invoice (e-Invoice)
-      const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
-      const gstBuf = await generateA4GstTaxInvoicePdfBuffer(orderRecord);
-      const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
-      const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n🏛️ GSTIN: ${gstNo || (matchedCust ? matchedCust.gstNumber : null) || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ e-Invoice QR Code, IRN & HSN/வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 பில் இணைக்கப்பட்டுள்ளது!`;
-      queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
-      if (callerPhone) queueBillPdf(callerPhone, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
+      const { generateUnifiedBillAndTokenPdfBuffer } = require('./combinedInvoiceGenerator');
+      const unifiedBuf = await generateUnifiedBillAndTokenPdfBuffer(orderRecord);
+      const unifiedFileName = `SMT_Bill_&_Labour_Token_${cleanId}.pdf`;
+      const unifiedCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ பில் & லேபர் டோக்கன்*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ *ஒரே ஆவணத்தில் (Single PDF) இரண்டுமே இணைக்கப்பட்டுள்ளது:*\n  1️⃣ *பக்கம் 1:* 80mm லேபர் டோக்கன் சீட்டு (Labours-யிடம் காட்டி உடனே சரக்கு ஏற்ற)\n  2️⃣ *பக்கம் 2:* அதிகாரப்பூர்வ A4 GST Tax Invoice (ஆடிட்டர் கணக்கு & QR Code e-Invoice)`;
+      queueBillPdf(chatId, { buffer: unifiedBuf, fileName: unifiedFileName, caption: unifiedCaption });
+      if (callerPhone) queueBillPdf(callerPhone, { buffer: unifiedBuf, fileName: unifiedFileName, caption: unifiedCaption });
     } catch (e) {
-      console.warn('Failed to generate/queue PDF buffer:', e.message);
+      console.warn('Failed to generate/queue unified PDF buffer:', e.message);
     }
 
     return {
@@ -1204,28 +1194,15 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
     }
     try {
       const cleanId = (order.billNumber || 'BILL').replace(/[^a-zA-Z0-9-]/g, '');
-      const reqFormat = (args.format || '').toLowerCase();
-      const wantThermal = reqFormat.includes('thermal') || reqFormat.includes('godown') || reqFormat.includes('slip') || reqFormat.includes('labour') || reqFormat.includes('token') || reqFormat.includes('loading') || reqFormat.includes('simple');
-      const wantA4Only = (reqFormat.includes('gst') || reqFormat.includes('a4') || reqFormat.includes('tax')) && !wantThermal && reqFormat !== 'both';
-
-      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-      const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
-
-      // 1. Generate & queue 80mm Labour Token Slip for workers to load boxes
-      const thermalBuf = await generateThermalReceiptPdfBuffer(order);
-      const thermalFileName = `SMT_Labour_Token_Slip_${cleanId}.pdf`;
-      const thermalCaption = `⚡ *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - லேபர் டோக்கன் சீட்டு (80mm Labour Slip)*\n📋 பில் எண்: ${order.billNumber}\n🏪 வாடிக்கையாளர்: ${order.customerName}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ *கோடவுன் தொழிலாளர்களிடம் (Labours) கொடுத்து உடனே சரக்கு ஏற்றிக்கொள்ளும் டோக்கன் சீட்டு (No GST Clutter)!*`;
-      queueBillPdf(chatId, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
-
-      // 2. Generate & queue official A4 GST Tax Invoice (e-Invoice)
-      const gstBuf = await generateA4GstTaxInvoicePdfBuffer(order);
-      const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
-      const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${order.billNumber}\n🏛️ GSTIN: ${order.gstNumber || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ e-Invoice QR Code & HSN வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 GST Tax Invoice!`;
-      queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
+      const { generateUnifiedBillAndTokenPdfBuffer } = require('./combinedInvoiceGenerator');
+      const unifiedBuf = await generateUnifiedBillAndTokenPdfBuffer(order);
+      const unifiedFileName = `SMT_Bill_&_Labour_Token_${cleanId}.pdf`;
+      const unifiedCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ பில் & லேபர் டோக்கன்*\n📋 பில் எண்: ${order.billNumber}\n🏪 வாடிக்கையாளர்: ${order.customerName}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ *ஒரே ஆவணத்தில் (Single PDF) இரண்டுமே இணைக்கப்பட்டுள்ளது:*\n  1️⃣ *பக்கம் 1:* 80mm லேபர் டோக்கன் சீட்டு (Labours-யிடம் காட்டி உடனே சரக்கு ஏற்ற)\n  2️⃣ *பக்கம் 2:* அதிகாரப்பூர்வ A4 GST Tax Invoice (ஆடிட்டர் கணக்கு & QR Code e-Invoice)`;
+      queueBillPdf(chatId, { buffer: unifiedBuf, fileName: unifiedFileName, caption: unifiedCaption });
 
       return {
         success: true,
-        message: `✅ பில் எண் ${order.billNumber}-க்கான லேபர் டோக்கன் சீட்டு (Labour Token Slip) மற்றும் அதிகாரப்பூர்வ A4 GST Tax Invoice ஆகிய இரண்டும் வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
+        message: `✅ பில் எண் ${order.billNumber}-க்கான லேபர் டோக்கன் சீட்டு (பக்கம் 1) மற்றும் அதிகாரப்பூர்வ A4 GST Tax Invoice (பக்கம் 2) ஒரே PDF ஆவணமாக ஒரே சேட்டில் வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
       };
     } catch (e) {
       return { success: false, message: `PDF உருவாக்க முடியவில்லை: ${e.message}` };

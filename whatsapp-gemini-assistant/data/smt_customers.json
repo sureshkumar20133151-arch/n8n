@@ -74,10 +74,11 @@
     ],
     "address": "பழைய வெற்றிலைகடை தெரு, மதுரை (Old Vettrilai Kadai Street, Madurai)",
     "phone": "9080416410",
-    "defaultBilling": "Cash",
-    "gstNumber": null,
+    "defaultBilling": "GST",
+    "gstNumber": "33AAACL5678G1Z2",
     "status": "Active Wholesale Buyer",
-    "registeredAt": "2026-11-25T00:46:00.000Z"
+    "registeredAt": "2026-11-25T00:46:00.000Z",
+    "ownerName": "சௌந்தர்"
   },
   {
     "id": "CUST-0761",
@@ -106,7 +107,7 @@
     "defaultBilling": "Cash",
     "gstNumber": null,
     "status": "Registered Customer",
-    "registeredAt": "2026-11-24T19:30:44.877Z",
+    "registeredAt": "2026-11-24T20:01:53.394Z",
     "ownerName": ""
   },
   {

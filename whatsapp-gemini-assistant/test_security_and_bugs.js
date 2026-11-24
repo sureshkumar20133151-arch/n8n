@@ -217,6 +217,38 @@ async function runAsyncTest(name, fn) {
   });
 
   // -------------------------------------------------------------
+  // TEST 9: Unified Single-Chat 2-Page PDF (Page 1: Labour Token + Page 2: GST Tax Invoice)
+  // -------------------------------------------------------------
+  const { generateUnifiedBillAndTokenPdfBuffer } = require('./combinedInvoiceGenerator');
+  await runAsyncTest('Unified 2-Page PDF generator produces exact 2 pages with single queue delivery', async () => {
+    const testOrder = {
+      billNumber: '#SMT-UNIFIED-AUDIT',
+      billingType: 'GST',
+      customerName: 'Sowndhar Trading',
+      address: 'பழைய வெற்றிலைகடை தெரு, மதுரை',
+      phone: '9080416410',
+      gstNumber: '33AAACL5678G1Z2',
+      items: [
+        { item: '1L Palm Oil', boxes: 5, piecesPerBox: 10, ratePerBox: 980, lineTotal: 4900 }
+      ],
+      totalAmount: 4900
+    };
+
+    const pdfBuf = await generateUnifiedBillAndTokenPdfBuffer(testOrder);
+    assert(Buffer.isBuffer(pdfBuf), 'Unified PDF output must be a Buffer');
+    assert(pdfBuf.slice(0, 4).toString() === '%PDF', 'Buffer does not start with %PDF!');
+    const str = pdfBuf.toString('binary');
+    const pageMatches = str.match(/\/Type\s*\/Page\b/g) || [];
+    assert(pageMatches.length === 2, `Expected exactly 2 pages, got ${pageMatches.length}`);
+
+    // Verify single-chat queue behavior
+    smt.queueBillPdf('test-single-chat', { buffer: pdfBuf, fileName: 'SMT_Bill_&_Labour_Token.pdf', caption: 'Single chat test' });
+    const queued = smt.getQueuedBillPdfs('test-single-chat');
+    assert(queued.length === 1, `Queue must contain exactly 1 PDF item for single chat delivery, got ${queued.length}`);
+    assert(queued[0].fileName === 'SMT_Bill_&_Labour_Token.pdf', 'Incorrect queued fileName');
+  });
+
+  // -------------------------------------------------------------
   // SUMMARY REPORT
   // -------------------------------------------------------------
   console.log('\n==============================================================');
