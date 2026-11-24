@@ -17,6 +17,9 @@ function generateThermalReceiptPdfBuffer(order) {
       doc.font('Helvetica-Bold').fontSize(12).text('SRI MEENAKSHI TRADERS', { align: 'center' });
       doc.font('Helvetica').fontSize(8.5).text('Edible Oils Wholesale Merchant', { align: 'center' });
       doc.fontSize(7.5).text('Pookadai Street, Madurai • Ph: +91 93615 99097', { align: 'center' });
+      if (order.billingType === 'GST') {
+        doc.font('Helvetica-Bold').fontSize(7.5).text('GSTIN (Seller): 33AABCS1234F1Z5', { align: 'center' });
+      }
       doc.moveDown(0.2);
 
       doc.text('------------------------------------------------------------', { align: 'center' });
@@ -24,7 +27,7 @@ function generateThermalReceiptPdfBuffer(order) {
 
       // Bill Number & Type
       doc.font('Helvetica-Bold').fontSize(10).text(order.billNumber || '#SMT-BILL', { align: 'center' });
-      doc.font('Helvetica-Bold').fontSize(8).text(`[ ${(order.billingType || 'CASH').toUpperCase()} BILL ]`, { align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(8).text(`[ ${(order.billingType || 'CASH').toUpperCase()} TAX INVOICE ]`, { align: 'center' });
       doc.moveDown(0.3);
 
       // Details
@@ -32,7 +35,7 @@ function generateThermalReceiptPdfBuffer(order) {
       doc.text(`Customer : ${order.customerName || 'Cash Customer'}`);
       if (order.address) doc.text(`Address  : ${order.address}`);
       if (order.phone) doc.text(`Phone    : ${order.phone}`);
-      if (order.gstNumber) doc.text(`GSTIN    : ${order.gstNumber}`);
+      if (order.gstNumber) doc.text(`Buyer GSTIN: ${order.gstNumber}`);
       const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : new Date().toLocaleString('en-IN');
       doc.text(`Date     : ${dateStr}`);
       doc.moveDown(0.3);
@@ -53,6 +56,21 @@ function generateThermalReceiptPdfBuffer(order) {
 
       doc.text('------------------------------------------------------------');
       doc.moveDown(0.2);
+
+      // GST Tax Breakdown (Edible Oils 5% GST = 2.5% CGST + 2.5% SGST)
+      if (order.billingType === 'GST') {
+        const total = order.totalAmount || 0;
+        const taxable = Math.round((total / 1.05) * 100) / 100;
+        const cgst = Math.round(((total - taxable) / 2) * 100) / 100;
+        const sgst = Math.round((total - taxable - cgst) * 100) / 100;
+
+        doc.font('Helvetica').fontSize(7.5);
+        doc.text(`Taxable Value  : Rs. ${taxable.toFixed(2)}`, { align: 'right' });
+        doc.text(`CGST @ 2.5%    : Rs. ${cgst.toFixed(2)}`, { align: 'right' });
+        doc.text(`SGST @ 2.5%    : Rs. ${sgst.toFixed(2)}`, { align: 'right' });
+        doc.text('------------------------------------------------------------');
+        doc.moveDown(0.2);
+      }
 
       // Total
       doc.font('Helvetica-Bold').fontSize(11).text(`TOTAL: Rs. ${(order.totalAmount || 0).toLocaleString('en-IN')}`, { align: 'right' });

@@ -1,6 +1,66 @@
 [
   {
     "billNumber": "SMT-261124-521",
+    "createdAt": "2026-11-24T17:31:57.037Z",
+    "customerName": "லட்சுமி ஆயில் ஸ்டோர் (Lakshmi Oil Store)",
+    "address": "மதுரை",
+    "phone": "919842100103",
+    "billingType": "GST",
+    "gstNumber": "33AAACL5678G1Z2",
+    "items": [
+      {
+        "item": "1 Litre Gold Winner Sunflower Oil",
+        "boxes": 3,
+        "piecesPerBox": 10,
+        "totalPouches": 30,
+        "ratePerBox": 1320,
+        "lineTotal": 3960
+      },
+      {
+        "item": "1 Litre Palm Oil (பாம் ஆயில்)",
+        "boxes": 2,
+        "piecesPerBox": 10,
+        "totalPouches": 20,
+        "ratePerBox": 980,
+        "lineTotal": 1960
+      }
+    ],
+    "totalAmount": 5920,
+    "tallyStatus": "Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳",
+    "printUrl": "https://whatsapp-assistant-iqpi.onrender.com/bill/SMT-261124-521"
+  },
+  {
+    "billNumber": "SMT-261124-521",
+    "createdAt": "2026-11-24T17:31:25.786Z",
+    "customerName": "Test Buyer",
+    "address": "மதுரை",
+    "phone": "919999999999",
+    "billingType": "Cash",
+    "gstNumber": null,
+    "items": [
+      {
+        "item": "1 Litre Gold Winner Sunflower Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1320,
+        "lineTotal": 1320
+      },
+      {
+        "item": "Unknown Brand Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1,
+        "lineTotal": 1
+      }
+    ],
+    "totalAmount": 1321,
+    "tallyStatus": "Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳",
+    "printUrl": "https://whatsapp-assistant-iqpi.onrender.com/bill/SMT-261124-521"
+  },
+  {
+    "billNumber": "SMT-261124-521",
     "createdAt": "2026-11-24T17:15:27.959Z",
     "customerName": "Test Buyer",
     "address": "மதுரை",

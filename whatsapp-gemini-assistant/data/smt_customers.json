@@ -41,19 +41,17 @@
   },
   {
     "id": "CUST-003",
-    "name": "லட்சுமி ஆயில் ஸ்டோர்",
+    "name": "லட்சுமி ஆயில் ஸ்டோர் (Lakshmi Oil Store)",
     "aliases": [
-      "lakshmi",
-      "லட்சுமி",
-      "lakshmi oil",
-      "லட்சுமி ஆயில்",
-      "sri lakshmi"
+      "லட்சுமி ஆயில் ஸ்டோர் (lakshmi oil store)",
+      "919842100103"
     ],
-    "address": "தயிர் கடை சந்து, மதுரை (Thayir Kadai Sandhu, Madurai)",
-    "phone": "+919842100103",
+    "address": "மதுரை",
+    "phone": "919842100103",
     "defaultBilling": "GST",
     "gstNumber": "33AAACL5678G1Z2",
-    "status": "GST Registered Merchant"
+    "status": "Registered Customer",
+    "registeredAt": "2026-11-24T17:31:55.271Z"
   },
   {
     "id": "CUST-0761",
@@ -81,6 +79,6 @@
     "defaultBilling": "Cash",
     "gstNumber": null,
     "status": "Registered Customer",
-    "registeredAt": "2026-11-24T17:15:24.195Z"
+    "registeredAt": "2026-11-24T17:31:23.269Z"
   }
 ]

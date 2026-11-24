@@ -436,7 +436,8 @@ function generateThermalBillHtml(order) {
       </tr>
       ${order.address ? `<tr><td style="color:#64748b;">முகவரி:</td><td style="text-align:right; font-weight:600;">${order.address}</td></tr>` : ''}
       ${order.phone ? `<tr><td style="color:#64748b;">போன் எண்:</td><td style="text-align:right;">${order.phone}</td></tr>` : ''}
-      ${order.gstNumber ? `<tr><td style="color:#64748b;">GSTIN:</td><td style="text-align:right; font-weight:700;">${order.gstNumber}</td></tr>` : ''}
+      ${order.billingType === 'GST' ? `<tr><td style="color:#64748b;">Seller GSTIN:</td><td style="text-align:right; font-weight:700;">33AABCS1234F1Z5</td></tr>` : ''}
+      ${order.gstNumber ? `<tr><td style="color:#64748b;">Buyer GSTIN:</td><td style="text-align:right; font-weight:700;">${order.gstNumber}</td></tr>` : ''}
       <tr>
         <td style="color:#64748b;">தேதி & நேரம்:</td>
         <td style="text-align:right; font-size:11px;">${dateStr}</td>
@@ -455,8 +456,17 @@ function generateThermalBillHtml(order) {
       </tbody>
     </table>
 
+    ${order.billingType === 'GST' ? `
+    <div style="font-size: 11px; color: #475569; padding: 6px 0; border-bottom: 1px dashed #cbd5e1; display: flex; flex-direction: column; gap: 4px;">
+      <div style="display:flex; justify-content:space-between;"><span>Taxable Value (வரிக்கான மதிப்பு):</span><span style="font-weight:700;">₹${(order.totalAmount / 1.05).toFixed(2)}</span></div>
+      <div style="display:flex; justify-content:space-between;"><span>CGST (2.5% மத்திய ஜிஎஸ்டி):</span><span style="font-weight:700;">₹${(((order.totalAmount - order.totalAmount / 1.05) / 2)).toFixed(2)}</span></div>
+      <div style="display:flex; justify-content:space-between;"><span>SGST (2.5% மாநில ஜிஎஸ்டி):</span><span style="font-weight:700;">₹${(((order.totalAmount - order.totalAmount / 1.05) / 2)).toFixed(2)}</span></div>
+      <div style="display:flex; justify-content:space-between; font-weight:800; color:#0f172a;"><span>Total 5% GST:</span><span>₹${(order.totalAmount - order.totalAmount / 1.05).toFixed(2)}</span></div>
+    </div>
+    ` : ''}
+
     <div class="total-box">
-      <span class="total-label">மொத்த தொகை (TOTAL):</span>
+      <span class="total-label">மொத்த தொகை (TOTAL INVOICE):</span>
       <span class="total-val">₹${(order.totalAmount || 0).toLocaleString('en-IN')}</span>
     </div>
 
@@ -881,6 +891,7 @@ Specialization: Premier Wholesale & Retail Edible Oils Merchant (சன்பி
      * Check their billing preference.
      * If they usually take **Cash Bill** (like Kesavan or Nambiyappa), DO NOT harass them asking for GST again. Automatically issue **Cash Bill**.
      * If they usually take **GST Bill** (like Lakshmi Oil Store), apply their GSTIN and issue **GST Bill**.
+     * If they ask for a **Dummy GST Bill** ("dummy GST bill podunga", "demo GST bill", "sample GST bill", "GST bill create pannu", or want a GST bill for testing/demo): IMMEDIATELY set billingType as "GST" and call createSmtOilOrder! The system will automatically compute the 5% GST breakdown (CGST 2.5% + SGST 2.5%) and attach a demo Tamil Nadu GSTIN (33AAACL5678G1Z2).
      * If it is a completely new unknown customer, politely ask: *"வணக்கம்! பில் Cash பில்லாக போடவா அல்லது GST பில்லா சார்?"*
 2. **Order Execution:**
    - Call \`createSmtOilOrder\` with the customer name, billing type, and the parsed items list (item, boxes).
@@ -967,8 +978,9 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
 
   if (fnName === 'createSmtOilOrder') {
     const customerName = args.customerName || 'Cash Counter Customer';
-    const billingType = args.billingType || 'Cash';
-    const gstNo = args.gstNumber || null;
+    const billingType = (args.billingType || 'Cash').toUpperCase() === 'GST' ? 'GST' : 'Cash';
+    // If GST requested but no GSTIN provided (dummy/demo GST bill), assign standard Tamil Nadu demo GSTIN
+    const gstNo = args.gstNumber || (billingType === 'GST' ? '33AAACL5678G1Z2' : null);
     const items = args.items || [];
     const billNumber = generateBillNumber();
 
