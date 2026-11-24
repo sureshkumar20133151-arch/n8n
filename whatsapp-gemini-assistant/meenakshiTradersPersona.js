@@ -117,6 +117,28 @@ function getOrder(billNumber) {
   return orders.find(o => (o.billNumber || '').replace(/^#/, '').toLowerCase() === clean) || null;
 }
 
+const queuedBillPdfs = new Map(); // chatId -> { buffer, fileName, caption }
+
+function queueBillPdf(chatId, pdfData) {
+  if (chatId) {
+    queuedBillPdfs.set(chatId, pdfData);
+    const cleanDigits = chatId.replace(/\D/g, '');
+    if (cleanDigits) queuedBillPdfs.set(cleanDigits, pdfData);
+  }
+}
+
+function getQueuedBillPdf(chatId) {
+  if (!chatId) return null;
+  const cleanDigits = chatId.replace(/\D/g, '');
+  const data = queuedBillPdfs.get(chatId) || (cleanDigits ? queuedBillPdfs.get(cleanDigits) : null);
+  if (data) {
+    queuedBillPdfs.delete(chatId);
+    if (cleanDigits) queuedBillPdfs.delete(cleanDigits);
+    return data;
+  }
+  return null;
+}
+
 function generateThermalBillHtml(order) {
   if (!order) {
     return `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:50px;">
@@ -717,6 +739,16 @@ const SMT_TOOLS = [{
       }
     },
     {
+      name: 'sendSmtBillPdf',
+      description: 'Dispatch the official 80mm Thermal Receipt Bill PDF document directly to the customer on WhatsApp whenever an order is completed or whenever they ask for the bill, receipt, or PDF.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          billNumber: { type: 'STRING', description: 'Bill number e.g. #SMT-20261124-0521 or "latest"' }
+        }
+      }
+    },
+    {
       name: 'manageLiveBehaviorRule',
       description: 'Manage live behavior rules for Sri Meenakshi Traders in real time.',
       parameters: {
@@ -999,7 +1031,7 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
     const cleanId = billNumber.replace(/^#/, '');
     const printUrl = `https://whatsapp-assistant-iqpi.onrender.com/bill/${cleanId}`;
 
-    saveOrder({
+    const orderRecord = {
       billNumber: billNumber,
       createdAt: new Date().toISOString(),
       customerName: customerName,
@@ -1011,7 +1043,25 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       totalAmount: totalAmount,
       tallyStatus: statusTamil,
       printUrl: printUrl
-    });
+    };
+
+    saveOrder(orderRecord);
+
+    // Auto-generate 80mm thermal receipt PDF and queue for instant WhatsApp document delivery
+    try {
+      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+      generateThermalReceiptPdfBuffer(orderRecord).then(pdfBuf => {
+        queueBillPdf(chatId, {
+          buffer: pdfBuf,
+          fileName: `SMT_Thermal_Bill_${cleanId}.pdf`,
+          caption: `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${billNumber} (${billingType.toUpperCase()} BILL)\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் (No Billing Queue - Direct Loading)`
+        });
+      }).catch(err => {
+        console.warn('PDF queue generation error:', err.message);
+      });
+    } catch (e) {
+      console.warn('Failed to trigger PDF generator:', e.message);
+    }
 
     return {
       success: true,
@@ -1023,8 +1073,33 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       totalAmount: totalAmount,
       tallyStatus: statusTamil,
       printUrl: printUrl,
+      pdfAttached: true,
       pickupMessage: 'கவுண்ட்டரில் பில்லிங் வரிசையில் நிற்க வேண்டாம்! இந்த பில் நம்பரைக் காட்டிவிட்டு உடனே சரக்கை லோடு ஏற்றிக்கொள்ளலாம்.'
     };
+  }
+
+  if (fnName === 'sendSmtBillPdf') {
+    const billNumber = args.billNumber || 'latest';
+    const order = getOrder(billNumber);
+    if (!order) {
+      return { success: false, message: 'பில் கிடைக்கவில்லை (Bill not found).' };
+    }
+    try {
+      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+      const pdfBuf = await generateThermalReceiptPdfBuffer(order);
+      const cleanId = (order.billNumber || 'BILL').replace(/[^a-zA-Z0-9-]/g, '');
+      queueBillPdf(chatId, {
+        buffer: pdfBuf,
+        fileName: `SMT_Thermal_Bill_${cleanId}.pdf`,
+        caption: `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${order.billNumber}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் பிக்-அப் டோக்கன் (No Billing Queue)`
+      });
+      return {
+        success: true,
+        message: `✅ பில் PDF (${order.billNumber}) வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
+      };
+    } catch (e) {
+      return { success: false, message: `PDF உருவாக்க முடியவில்லை: ${e.message}` };
+    }
   }
 
   if (fnName === 'manageLiveBehaviorRule') {
@@ -1063,6 +1138,8 @@ module.exports = {
   saveOrder,
   getOrder,
   generateThermalBillHtml,
+  queueBillPdf,
+  getQueuedBillPdf,
   SMT_TOOLS,
   buildSmtSystemPrompt,
   executeSmtToolCall

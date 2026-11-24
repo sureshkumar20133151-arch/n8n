@@ -683,6 +683,23 @@ async function connectToWhatsApp() {
             } catch (imgDispatchErr) {
               console.warn('[Photo Dispatch] Warning:', imgDispatchErr.message);
             }
+
+            // If an SMT Wholesale Bill PDF was generated or requested, dispatch the PDF document directly to WhatsApp!
+            try {
+              const { getQueuedBillPdf } = require('./meenakshiTradersPersona');
+              const queuedPdf = getQueuedBillPdf(replyJid) || getQueuedBillPdf(remoteJid);
+              if (queuedPdf && queuedPdf.buffer) {
+                await sendBotMessage(sock, replyJid, {
+                  document: queuedPdf.buffer,
+                  mimetype: 'application/pdf',
+                  fileName: queuedPdf.fileName || 'SMT_Thermal_Bill.pdf',
+                  caption: queuedPdf.caption || '📄 ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது'
+                }, quoteOption);
+                console.log(`📄 [Thermal PDF Dispatched to WhatsApp] Sent direct 80mm PDF bill to ${replyJid}`);
+              }
+            } catch (pdfDispatchErr) {
+              console.warn('[PDF Dispatch] Warning:', pdfDispatchErr.message);
+            }
           } finally {
             activeChatLocks.delete(remoteJid);
           }
@@ -1560,10 +1577,28 @@ const server = http.createServer((req, res) => {
   // Printable Bill & Thermal Token View for Sri Meenakshi Traders (SMT)
   if (req.url.startsWith('/bill/') || req.url.startsWith('/bill') || req.url.startsWith('/print-bill')) {
     const cleanUrl = req.url.split('?')[0];
-    const parts = cleanUrl.split('/');
+    const isDirectPdf = cleanUrl.endsWith('.pdf');
+    const parts = cleanUrl.replace(/\.pdf$/, '').split('/');
     const billId = parts[2] || 'latest';
     const { getOrder, generateThermalBillHtml } = require('./meenakshiTradersPersona');
     const order = getOrder(billId);
+
+    if (isDirectPdf && order) {
+      try {
+        const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+        const pdfBuf = await generateThermalReceiptPdfBuffer(order);
+        res.writeHead(200, {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `inline; filename="SMT_Thermal_Bill_${billId}.pdf"`,
+          'Content-Length': pdfBuf.length,
+          'Access-Control-Allow-Origin': allowedOrigin
+        });
+        return res.end(pdfBuf);
+      } catch (pdfErr) {
+        console.error('Direct PDF streaming error:', pdfErr);
+      }
+    }
+
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Access-Control-Allow-Origin': allowedOrigin
