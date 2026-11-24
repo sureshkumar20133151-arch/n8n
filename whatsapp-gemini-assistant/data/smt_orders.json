@@ -1,6 +1,88 @@
 [
   {
     "billNumber": "SMT-261124-521",
+    "createdAt": "2026-11-24T19:11:24.683Z",
+    "customerName": "Test Buyer",
+    "address": "மதுரை",
+    "phone": "919999999999",
+    "billingType": "Cash",
+    "gstNumber": null,
+    "items": [
+      {
+        "item": "1 Litre Gold Winner Sunflower Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1320,
+        "lineTotal": 1320
+      },
+      {
+        "item": "Unknown Brand Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1,
+        "lineTotal": 1
+      }
+    ],
+    "totalAmount": 1321,
+    "tallyStatus": "Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳",
+    "printUrl": "https://whatsapp-assistant-iqpi.onrender.com/bill/SMT-261124-521"
+  },
+  {
+    "billNumber": "SMT-261124-521",
+    "createdAt": "2026-11-24T19:10:45.981Z",
+    "customerName": "Kesavan Oil Store",
+    "address": "பூக்கடை வீதி, மதுரை (Pookadai Street, Madurai)",
+    "phone": "7871762490",
+    "billingType": "GST",
+    "gstNumber": "33AAACL5678G1Z2",
+    "items": [
+      {
+        "item": "1 Litre Palm Oil (பாம் ஆயில்)",
+        "boxes": 5,
+        "piecesPerBox": 10,
+        "totalPouches": 50,
+        "ratePerBox": 980,
+        "lineTotal": 4900
+      }
+    ],
+    "totalAmount": 4900,
+    "tallyStatus": "Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳",
+    "printUrl": "https://whatsapp-assistant-iqpi.onrender.com/bill/SMT-261124-521"
+  },
+  {
+    "billNumber": "SMT-261124-521",
+    "createdAt": "2026-11-24T19:09:31.917Z",
+    "customerName": "Test Buyer",
+    "address": "மதுரை",
+    "phone": "919999999999",
+    "billingType": "Cash",
+    "gstNumber": null,
+    "items": [
+      {
+        "item": "1 Litre Gold Winner Sunflower Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1320,
+        "lineTotal": 1320
+      },
+      {
+        "item": "Unknown Brand Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1,
+        "lineTotal": 1
+      }
+    ],
+    "totalAmount": 1321,
+    "tallyStatus": "Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳",
+    "printUrl": "https://whatsapp-assistant-iqpi.onrender.com/bill/SMT-261124-521"
+  },
+  {
+    "billNumber": "SMT-261124-521",
     "createdAt": "2026-11-24T18:29:03.820Z",
     "customerName": "Test Buyer",
     "address": "மதுரை",

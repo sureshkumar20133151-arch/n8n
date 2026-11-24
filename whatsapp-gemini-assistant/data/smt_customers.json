@@ -79,6 +79,19 @@
     "defaultBilling": "Cash",
     "gstNumber": null,
     "status": "Registered Customer",
-    "registeredAt": "2026-11-24T18:29:00.745Z"
+    "registeredAt": "2026-11-24T19:11:23.073Z"
+  },
+  {
+    "id": "CUST-4393",
+    "name": "Kesavan Oil Store",
+    "aliases": [
+      "kesavan oil store"
+    ],
+    "address": "மதுரை",
+    "phone": "test_dual_dispatch_jid",
+    "defaultBilling": "GST",
+    "gstNumber": "33AAACL5678G1Z2",
+    "status": "Registered Customer",
+    "registeredAt": "2026-11-24T19:10:44.393Z"
   }
 ]

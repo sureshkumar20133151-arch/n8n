@@ -126,7 +126,14 @@ const queuedBillPdfs = new Map(); // chatId -> { buffer, fileName, caption, time
 function pruneQueuedPdfs() {
   const now = Date.now();
   for (const [key, val] of queuedBillPdfs.entries()) {
-    if (val && val.timestamp && (now - val.timestamp > 10 * 60 * 1000)) {
+    if (Array.isArray(val)) {
+      const active = val.filter(x => x && x.timestamp && (now - x.timestamp <= 10 * 60 * 1000));
+      if (active.length === 0) {
+        queuedBillPdfs.delete(key);
+      } else {
+        queuedBillPdfs.set(key, active);
+      }
+    } else if (val && val.timestamp && (now - val.timestamp > 10 * 60 * 1000)) {
       queuedBillPdfs.delete(key);
     }
   }
@@ -140,22 +147,36 @@ function queueBillPdf(chatId, pdfData) {
   if (chatId) {
     pruneQueuedPdfs();
     const entry = { ...pdfData, timestamp: Date.now() };
-    queuedBillPdfs.set(chatId, entry);
+    const current = queuedBillPdfs.get(chatId);
+    const list = current ? (Array.isArray(current) ? current : [current]) : [];
+    list.push(entry);
+    queuedBillPdfs.set(chatId, list);
+
     const cleanDigits = chatId.replace(/\D/g, '');
-    if (cleanDigits) queuedBillPdfs.set(cleanDigits, entry);
+    if (cleanDigits && cleanDigits !== chatId) {
+      const digitCurrent = queuedBillPdfs.get(cleanDigits);
+      const digitList = digitCurrent ? (Array.isArray(digitCurrent) ? digitCurrent : [digitCurrent]) : [];
+      digitList.push(entry);
+      queuedBillPdfs.set(cleanDigits, digitList);
+    }
   }
 }
 
-function getQueuedBillPdf(chatId) {
-  if (!chatId) return null;
+function getQueuedBillPdfs(chatId) {
+  if (!chatId) return [];
   const cleanDigits = chatId.replace(/\D/g, '');
   const data = queuedBillPdfs.get(chatId) || (cleanDigits ? queuedBillPdfs.get(cleanDigits) : null);
   if (data) {
     queuedBillPdfs.delete(chatId);
     if (cleanDigits) queuedBillPdfs.delete(cleanDigits);
-    return data;
+    return Array.isArray(data) ? data : [data];
   }
-  return null;
+  return [];
+}
+
+function getQueuedBillPdf(chatId) {
+  const list = getQueuedBillPdfs(chatId);
+  return list.length > 0 ? list[0] : null;
 }
 
 function generateThermalBillHtml(order) {
@@ -772,12 +793,12 @@ const SMT_TOOLS = [{
     },
     {
       name: 'sendSmtBillPdf',
-      description: 'Dispatch the PDF bill directly to WhatsApp: format="thermal" for the 80mm compact godown loading slip (simple, no GST, for labours to load products), or format="a4" for official A4 GST Tax Invoice with QR code & HSN.',
+      description: 'Dispatch the PDF bill directly to WhatsApp: format="thermal" for the 80mm compact godown loading slip (simple, no GST, for labours to load products), format="a4" for official A4 GST Tax Invoice, or format="both" to send BOTH the Labour Token Slip and the GST Invoice.',
       parameters: {
         type: 'OBJECT',
         properties: {
           billNumber: { type: 'STRING', description: 'Bill number e.g. #SMT-261124-522 or "latest"' },
-          format: { type: 'STRING', enum: ['thermal', 'a4', 'gst', 'simple'], description: 'Slip format: "thermal" (default for godown labours/loading slip) or "a4"/"gst" (for official GST tax invoice)' }
+          format: { type: 'STRING', enum: ['thermal', 'a4', 'gst', 'simple', 'both'], description: 'Slip format: "thermal" (for godown labours/token slip), "a4"/"gst" (for GST tax invoice), or "both" (default for GST orders)' }
         }
       }
     },
@@ -906,7 +927,12 @@ Specialization: Premier Wholesale & Retail Edible Oils Merchant (சன்பி
      * 📦 **சரக்கு விபரம்:** Item, Box count, Pieces per box, Box Rate, Subtotal
      * 💰 **மொத்த தொகை (Total Amount)**
      * ⚡ **ஃபாஸ்ட்-லேன் பிக்-அப் அறிவிப்பு:** *"கவுண்ட்டரில் பில்லிங் வரிசையில் நிற்க வேண்டாம்! இந்த பில் நம்பரை (#SMT-...) காட்டிவிட்டு உடனே சரக்கை வண்டியில் ஏற்றிவிடலாம்."*
-4. **Language:** Respectful, crisp, traditional Madurai business Tamil (வணக்கம் அண்ணே / சார், பில் ரெடி ஆயிடுச்சு).`;
+4. **Language:** Respectful, crisp, traditional Madurai business Tamil (வணக்கம் அண்ணே / சார், பில் ரெடி ஆயிடுச்சு).
+5. **Labour Token Bill (Godown Loading Slip) Rules:**
+   - For every order (Cash or GST), the system automatically generates and dispatches the **80mm Labour Token Slip** (no GST numbers, simple box count for labours to load products from godown).
+   - For GST orders, BOTH the **80mm Labour Token Slip** and the **Official A4 GST Tax Invoice** are sent to WhatsApp together!
+   - If the customer asks: *"Still not giving token bill"*, *"token bill venum"*, *"labour token slip"*, *"labour bill enga"*, *"token bill"* or anything about the token/slip:
+     IMMEDIATELY call \`sendSmtBillPdf(billNumber='latest', format='thermal')\` so the 80mm Labour Token Slip is delivered directly to their WhatsApp!`;
 }
 
 async function executeSmtToolCall(fnCall, chatId, options = {}) {
@@ -1100,25 +1126,22 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
 
     // Auto-generate PDF and queue for instant WhatsApp document delivery (awaited to prevent race condition)
     try {
-      let pdfBuf = null;
-      let fileName = '';
-      let caption = '';
+      // 1. ALWAYS generate the 80mm Labour Token Slip for labours to load products
+      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+      const thermalBuf = await generateThermalReceiptPdfBuffer(orderRecord);
+      const thermalFileName = `SMT_Labour_Token_Slip_${cleanId}.pdf`;
+      const thermalCaption = `⚡ *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - லேபர் டோக்கன் சீட்டு (80mm Labour Slip)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ *கோடவுன் தொழிலாளர்களிடம் (Labours) கொடுத்து உடனே சரக்கு ஏற்றிக்கொள்ளும் டோக்கன் சீட்டு (No GST Clutter)!*`;
+      queueBillPdf(chatId, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
+      if (callerPhone) queueBillPdf(callerPhone, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
 
+      // 2. If GST requested, ALSO generate the official A4 GST Tax Invoice
       if (billingType === 'GST') {
         const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
-        pdfBuf = await generateA4GstTaxInvoicePdfBuffer(orderRecord);
-        fileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
-        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n🏛️ GSTIN: ${gstNo || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ e-Invoice QR Code, IRN & HSN/வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 பில் இணைக்கப்பட்டுள்ளது!`;
-      } else {
-        const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-        pdfBuf = await generateThermalReceiptPdfBuffer(orderRecord);
-        fileName = `SMT_Thermal_Slip_${cleanId}.pdf`;
-        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - கோடவுன் லோடிங் சீட்டு (Thermal Slip)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் - ஆட்களிடம் (Labours) கொடுத்து நேரடியாக வண்டியில் சரக்கு ஏற்றிக்கொள்ளலாம்!`;
-      }
-
-      if (pdfBuf) {
-        queueBillPdf(chatId, { buffer: pdfBuf, fileName, caption });
-        if (callerPhone) queueBillPdf(callerPhone, { buffer: pdfBuf, fileName, caption });
+        const gstBuf = await generateA4GstTaxInvoicePdfBuffer(orderRecord);
+        const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
+        const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n🏛️ GSTIN: ${gstNo || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ e-Invoice QR Code, IRN & HSN/வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 பில் இணைக்கப்பட்டுள்ளது!`;
+        queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
+        if (callerPhone) queueBillPdf(callerPhone, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
       }
     } catch (e) {
       console.warn('Failed to generate/queue PDF buffer:', e.message);
@@ -1147,30 +1170,32 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
     }
     try {
       const cleanId = (order.billNumber || 'BILL').replace(/[^a-zA-Z0-9-]/g, '');
-      let pdfBuf = null;
-      let fileName = '';
-      let caption = '';
-
       const reqFormat = (args.format || '').toLowerCase();
-      const wantThermal = reqFormat.includes('thermal') || reqFormat.includes('godown') || reqFormat.includes('slip') || reqFormat.includes('labour') || reqFormat.includes('loading') || reqFormat.includes('simple');
-      const wantA4Gst = (reqFormat.includes('gst') || reqFormat.includes('a4') || reqFormat.includes('tax')) && !wantThermal;
+      const wantThermal = reqFormat.includes('thermal') || reqFormat.includes('godown') || reqFormat.includes('slip') || reqFormat.includes('labour') || reqFormat.includes('token') || reqFormat.includes('loading') || reqFormat.includes('simple');
+      const wantA4Only = (reqFormat.includes('gst') || reqFormat.includes('a4') || reqFormat.includes('tax')) && !wantThermal && reqFormat !== 'both';
 
-      if (wantA4Gst || (order.billingType === 'GST' && !wantThermal)) {
-        const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
-        pdfBuf = await generateA4GstTaxInvoicePdfBuffer(order);
-        fileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
-        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${order.billNumber}\n🏛️ GSTIN: ${order.gstNumber || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ e-Invoice QR Code & HSN வரி விபரங்களுடன் கூடிய A4 GST Tax Invoice இணைக்கப்பட்டுள்ளது!`;
-      } else {
-        const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
-        pdfBuf = await generateThermalReceiptPdfBuffer(order);
-        fileName = `SMT_Thermal_Slip_${cleanId}.pdf`;
-        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - கோடவுன் லோடிங் சீட்டு (Thermal Slip)*\n📋 பில் எண்: ${order.billNumber}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் கோடவுன் டோக்கன் - ஆட்களிடம் (Labours) கொடுத்து நேரடியாக வண்டியில் சரக்கு ஏற்றிக்கொள்ளலாம்!`;
+      const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
+      const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
+
+      // 1. Generate & queue Labour Token Slip (unless explicitly asking only A4 GST)
+      if (!wantA4Only || wantThermal) {
+        const thermalBuf = await generateThermalReceiptPdfBuffer(order);
+        const thermalFileName = `SMT_Labour_Token_Slip_${cleanId}.pdf`;
+        const thermalCaption = `⚡ *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - லேபர் டோக்கன் சீட்டு (80mm Labour Slip)*\n📋 பில் எண்: ${order.billNumber}\n🏪 வாடிக்கையாளர்: ${order.customerName}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ *கோடவுன் தொழிலாளர்களிடம் (Labours) கொடுத்து உடனே சரக்கு ஏற்றிக்கொள்ளும் டோக்கன் சீட்டு (No GST Clutter)!*`;
+        queueBillPdf(chatId, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
       }
 
-      queueBillPdf(chatId, { buffer: pdfBuf, fileName, caption });
+      // 2. If GST order or explicit GST requested, also generate & queue A4 GST Tax Invoice
+      if (wantA4Only || reqFormat === 'both' || (order.billingType === 'GST' && !wantThermal)) {
+        const gstBuf = await generateA4GstTaxInvoicePdfBuffer(order);
+        const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
+        const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${order.billNumber}\n🏛️ GSTIN: ${order.gstNumber || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ e-Invoice QR Code & HSN வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 GST Tax Invoice!`;
+        queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
+      }
+
       return {
         success: true,
-        message: `✅ அதிகாரப்பூர்வ பில் PDF (${order.billNumber}) வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
+        message: `✅ பில் எண் ${order.billNumber}-க்கான லேபர் டோக்கன் சீட்டு (Labour Token Slip) வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
       };
     } catch (e) {
       return { success: false, message: `PDF உருவாக்க முடியவில்லை: ${e.message}` };
@@ -1215,6 +1240,7 @@ module.exports = {
   generateThermalBillHtml,
   queueBillPdf,
   getQueuedBillPdf,
+  getQueuedBillPdfs,
   SMT_TOOLS,
   buildSmtSystemPrompt,
   executeSmtToolCall
