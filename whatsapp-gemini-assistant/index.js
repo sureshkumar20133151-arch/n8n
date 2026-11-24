@@ -769,7 +769,7 @@ function recordGeminiRequest() {
 }
 
 // HTTP server for Render port-binding, UptimeRobot, and Web QR viewing
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const allowedOrigin = req.headers.origin || process.env.CORS_ORIGIN || '*';
 
   // CORS support for website chatbots & Vercel Switcher dashboard
