@@ -1,6 +1,36 @@
 [
   {
     "billNumber": "SMT-261124-521",
+    "createdAt": "2026-11-24T18:29:03.820Z",
+    "customerName": "Test Buyer",
+    "address": "மதுரை",
+    "phone": "919999999999",
+    "billingType": "Cash",
+    "gstNumber": null,
+    "items": [
+      {
+        "item": "1 Litre Gold Winner Sunflower Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1320,
+        "lineTotal": 1320
+      },
+      {
+        "item": "Unknown Brand Oil",
+        "boxes": 1,
+        "piecesPerBox": 10,
+        "totalPouches": 10,
+        "ratePerBox": 1,
+        "lineTotal": 1
+      }
+    ],
+    "totalAmount": 1321,
+    "tallyStatus": "Google Sheets-ல் பத்திரமாகச் சேமிக்கப்பட்டது (Auto-Sync) ⏳",
+    "printUrl": "https://whatsapp-assistant-iqpi.onrender.com/bill/SMT-261124-521"
+  },
+  {
+    "billNumber": "SMT-261124-521",
     "createdAt": "2026-11-24T18:06:44.496Z",
     "customerName": "Test Buyer",
     "address": "மதுரை",

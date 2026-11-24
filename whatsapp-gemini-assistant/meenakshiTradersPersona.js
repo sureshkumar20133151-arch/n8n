@@ -772,11 +772,12 @@ const SMT_TOOLS = [{
     },
     {
       name: 'sendSmtBillPdf',
-      description: 'Dispatch the official 80mm Thermal Receipt Bill PDF document directly to the customer on WhatsApp whenever an order is completed or whenever they ask for the bill, receipt, or PDF.',
+      description: 'Dispatch the PDF bill directly to WhatsApp: format="thermal" for the 80mm compact godown loading slip (simple, no GST, for labours to load products), or format="a4" for official A4 GST Tax Invoice with QR code & HSN.',
       parameters: {
         type: 'OBJECT',
         properties: {
-          billNumber: { type: 'STRING', description: 'Bill number e.g. #SMT-20261124-0521 or "latest"' }
+          billNumber: { type: 'STRING', description: 'Bill number e.g. #SMT-261124-522 or "latest"' },
+          format: { type: 'STRING', enum: ['thermal', 'a4', 'gst', 'simple'], description: 'Slip format: "thermal" (default for godown labours/loading slip) or "a4"/"gst" (for official GST tax invoice)' }
         }
       }
     },
@@ -1111,8 +1112,8 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       } else {
         const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
         pdfBuf = await generateThermalReceiptPdfBuffer(orderRecord);
-        fileName = `SMT_Thermal_Bill_${cleanId}.pdf`;
-        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${billNumber} (CASH BILL)\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் (No Billing Queue - Direct Loading)`;
+        fileName = `SMT_Thermal_Slip_${cleanId}.pdf`;
+        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - கோடவுன் லோடிங் சீட்டு (Thermal Slip)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் டோக்கன் - ஆட்களிடம் (Labours) கொடுத்து நேரடியாக வண்டியில் சரக்கு ஏற்றிக்கொள்ளலாம்!`;
       }
 
       if (pdfBuf) {
@@ -1150,7 +1151,11 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       let fileName = '';
       let caption = '';
 
-      if (order.billingType === 'GST' || (args.format && args.format.toUpperCase() === 'GST') || (args.format && args.format.toUpperCase() === 'A4')) {
+      const reqFormat = (args.format || '').toLowerCase();
+      const wantThermal = reqFormat.includes('thermal') || reqFormat.includes('godown') || reqFormat.includes('slip') || reqFormat.includes('labour') || reqFormat.includes('loading') || reqFormat.includes('simple');
+      const wantA4Gst = (reqFormat.includes('gst') || reqFormat.includes('a4') || reqFormat.includes('tax')) && !wantThermal;
+
+      if (wantA4Gst || (order.billingType === 'GST' && !wantThermal)) {
         const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
         pdfBuf = await generateA4GstTaxInvoicePdfBuffer(order);
         fileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
@@ -1158,8 +1163,8 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       } else {
         const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
         pdfBuf = await generateThermalReceiptPdfBuffer(order);
-        fileName = `SMT_Thermal_Bill_${cleanId}.pdf`;
-        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - பில் ரசீது*\n📋 பில் எண்: ${order.billNumber}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் பிக்-அப் டோக்கன் (No Billing Queue)`;
+        fileName = `SMT_Thermal_Slip_${cleanId}.pdf`;
+        caption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - கோடவுன் லோடிங் சீட்டு (Thermal Slip)*\n📋 பில் எண்: ${order.billNumber}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ ஃபாஸ்ட்-லேன் கோடவுன் டோக்கன் - ஆட்களிடம் (Labours) கொடுத்து நேரடியாக வண்டியில் சரக்கு ஏற்றிக்கொள்ளலாம்!`;
       }
 
       queueBillPdf(chatId, { buffer: pdfBuf, fileName, caption });
