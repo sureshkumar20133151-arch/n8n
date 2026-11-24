@@ -565,10 +565,19 @@ function saveCustomer(customerData) {
     c.name.toLowerCase() === (customerData.name || '').toLowerCase()
   );
 
+  const rawAliases = [
+    customerData.name,
+    customerData.ownerName,
+    cleanPhone,
+    cleanPhone.length === 10 ? `91${cleanPhone}` : null,
+    cleanPhone.length === 12 && cleanPhone.startsWith('91') ? cleanPhone.slice(2) : null
+  ].filter(Boolean).map(a => a.toLowerCase().trim());
+
   const newEntry = {
     id: existingIndex >= 0 ? currentList[existingIndex].id : `CUST-${Date.now().toString().slice(-4)}`,
     name: customerData.name,
-    aliases: [customerData.name.toLowerCase(), cleanPhone].filter(Boolean),
+    ownerName: customerData.ownerName || (existingIndex >= 0 ? currentList[existingIndex].ownerName : '') || '',
+    aliases: Array.from(new Set([...(existingIndex >= 0 ? (currentList[existingIndex].aliases || []) : []), ...rawAliases])),
     address: customerData.address || 'மதுரை',
     phone: cleanPhone || customerData.phone || '',
     defaultBilling: customerData.defaultBilling || (customerData.gstNumber ? 'GST' : 'Cash'),
@@ -786,8 +795,9 @@ const SMT_TOOLS = [{
       parameters: {
         type: 'OBJECT',
         properties: {
-          name: { type: 'STRING', description: 'Customer shop name or merchant name (e.g. சக்தி மளிகை, ராஜா ஆயில் ஸ்டோர்)' },
-          address: { type: 'STRING', description: 'Shop address, street, or area in Madurai (e.g. சிம்மக்கல், எல்லீஸ் நகர்)' },
+          name: { type: 'STRING', description: 'Customer shop name or business name (e.g. சௌந்தர் டிரேடிங், சக்தி மளிகை)' },
+          ownerName: { type: 'STRING', description: 'Shop owner or contact person name if given (e.g. ரமேஷ், சௌந்தர்)' },
+          address: { type: 'STRING', description: 'Shop address, street, or area in Madurai (e.g. பழைய வெற்றிலைகடை தெரு, சிம்மக்கல்)' },
           phone: { type: 'STRING', description: 'Customer 10-digit mobile number' },
           defaultBilling: { type: 'STRING', enum: ['Cash', 'GST'], description: 'Whether they prefer Cash bill or GST bill' },
           gstNumber: { type: 'STRING', description: 'GSTIN if they have one' }
@@ -953,11 +963,14 @@ Specialization: Premier Wholesale & Retail Edible Oils Merchant (சன்பி
      * 💰 **மொத்த தொகை (Total Amount)**
      * ⚡ **ஃபாஸ்ட்-லேன் பிக்-அப் அறிவிப்பு:** *"கவுண்ட்டரில் பில்லிங் வரிசையில் நிற்க வேண்டாம்! இந்த பில் நம்பரை (#SMT-...) காட்டிவிட்டு உடனே சரக்கை வண்டியில் ஏற்றிவிடலாம்."*
 4. **Language:** Respectful, crisp, traditional Madurai business Tamil (வணக்கம் அண்ணே / சார், பில் ரெடி ஆயிடுச்சு).
-5. **Labour Token Bill (Godown Loading Slip) Rules:**
-   - For every order (Cash or GST), the system automatically generates and dispatches the **80mm Labour Token Slip** (no GST numbers, simple box count for labours to load products from godown).
-   - For GST orders, BOTH the **80mm Labour Token Slip** and the **Official A4 GST Tax Invoice** are sent to WhatsApp together!
-   - If the customer asks: *"Still not giving token bill"*, *"token bill venum"*, *"labour token slip"*, *"labour bill enga"*, *"token bill"* or anything about the token/slip:
-     IMMEDIATELY call \`sendSmtBillPdf(billNumber='latest', format='thermal')\` so the 80mm Labour Token Slip is delivered directly to their WhatsApp!`;
+5. **Dual Bill Delivery Rule (Labour Token Slip + GST Tax Invoice):**
+   - Whenever an order is confirmed or a bill is asked for, the system automatically generates and dispatches BOTH documents to WhatsApp:
+     1) The 80mm **Labour Token Slip** (simple, zero GST clutter, clear box count for labours in godown to load goods immediately).
+     2) The official A4 **GST Tax Invoice** (with QR Code, IRN, and HSN breakdown).
+   - If the customer asks for a bill, invoice, token, or slip: IMMEDIATELY call \`sendSmtBillPdf(billNumber='latest')\` so both PDFs are dispatched to WhatsApp.
+6. **New Customer Auto-Registration:**
+   - If a new customer messages and gives their shop name, owner name, or area in Madurai:
+     IMMEDIATELY call \`registerSmtCustomer(name, ownerName, address, phone)\` so their phone number and details are permanently saved into the database!`;
 }
 
 async function executeSmtToolCall(fnCall, chatId, options = {}) {
@@ -966,17 +979,22 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
   console.log(`🏪🛢️ [SMT Edible Oil Tool Invoked] ${fnName}:`, JSON.stringify(args));
 
   if (fnName === 'registerSmtCustomer') {
+    const rawCaller = args.phone || (options && (options.remoteJidAlt || options.participant || options.remoteJid)) || chatId;
+    const cleanDigits = (rawCaller || '').split('@')[0].replace(/\D/g, '');
+    const phoneToSave = (args.phone ? args.phone.replace(/\D/g, '') : '') || cleanDigits || '';
+
     const saved = saveCustomer({
       name: args.name,
+      ownerName: args.ownerName || '',
       address: args.address,
-      phone: args.phone || (chatId ? chatId.split('@')[0] : ''),
+      phone: phoneToSave,
       defaultBilling: args.defaultBilling || (args.gstNumber ? 'GST' : 'Cash'),
       gstNumber: args.gstNumber || null
     });
     return {
       success: true,
       customer: saved,
-      message: `✅ வாடிக்கையாளர் "${saved.name}" (${saved.address}) விவரங்கள் நிரந்தரமாகப் பதிவு செய்யப்பட்டன.`
+      message: `✅ வாடிக்கையாளர் "${saved.name}" (உரிமையாளர்: ${saved.ownerName || 'N/A'}, இடம்: ${saved.address}, எண்: ${saved.phone}) விவரங்கள் நிரந்தரமாகப் பதிவு செய்யப்பட்டன.`
     };
   }
 
@@ -995,22 +1013,15 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
 
     const found = allCustomers.find(c => {
       const cleanPhone = (c.phone || '').replace(/[^0-9]/g, '');
-      const custDigits = cleanPhone;
-      const phoneMatches = (cleanQ && cleanPhone && (cleanPhone.endsWith(cleanQ) || cleanQ.endsWith(cleanPhone))) ||
-        (cleanCallerPhone && cleanPhone && (cleanPhone.endsWith(cleanCallerPhone) || cleanCallerPhone.endsWith(cleanPhone)));
-      const nameMatches = c.name.toLowerCase().includes(q) || (c.address && c.address.toLowerCase().includes(q));
+      const phoneMatches = cleanQ && cleanQ.length >= 7 && cleanPhone && (cleanPhone.endsWith(cleanQ) || cleanQ.endsWith(cleanPhone));
+      const nameMatches = (q.length >= 2 && c.name.toLowerCase().includes(q)) || (c.address && q.length >= 3 && c.address.toLowerCase().includes(q));
       const aliasMatches = c.aliases && c.aliases.some(a => {
         const cleanA = a.replace(/\D/g, '');
-        return (
-          q.includes(a.toLowerCase()) || a.toLowerCase().includes(q) ||
-          (cleanA && cleanQ && cleanQ.endsWith(cleanA)) ||
-          (cleanA && cleanCallerPhone && cleanCallerPhone.endsWith(cleanA)) ||
-          (cleanA && cleanCallerPhone && cleanCallerPhone.includes(cleanA)) ||
-          (senderName && (senderName.includes(a.toLowerCase()) || a.toLowerCase().includes(senderName)))
-        );
+        const aliasPhoneMatch = cleanA && cleanA.length >= 7 && cleanQ && cleanQ.length >= 7 && (cleanQ.endsWith(cleanA) || cleanA.endsWith(cleanQ));
+        const aliasTextMatch = q.length >= 2 && (q === a.toLowerCase() || (a.length >= 3 && q.includes(a.toLowerCase())) || (q.length >= 3 && a.toLowerCase().includes(q)));
+        return aliasPhoneMatch || aliasTextMatch;
       });
-      const senderMatches = senderName && (senderName.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(senderName));
-      return phoneMatches || nameMatches || aliasMatches || senderMatches;
+      return phoneMatches || nameMatches || aliasMatches;
     });
 
     if (found) {
@@ -1159,15 +1170,13 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       queueBillPdf(chatId, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
       if (callerPhone) queueBillPdf(callerPhone, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
 
-      // 2. If GST requested, ALSO generate the official A4 GST Tax Invoice
-      if (billingType === 'GST') {
-        const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
-        const gstBuf = await generateA4GstTaxInvoicePdfBuffer(orderRecord);
-        const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
-        const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n🏛️ GSTIN: ${gstNo || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ e-Invoice QR Code, IRN & HSN/வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 பில் இணைக்கப்பட்டுள்ளது!`;
-        queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
-        if (callerPhone) queueBillPdf(callerPhone, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
-      }
+      // 2. ALWAYS generate the official A4 GST Tax Invoice (e-Invoice)
+      const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
+      const gstBuf = await generateA4GstTaxInvoicePdfBuffer(orderRecord);
+      const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
+      const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${billNumber}\n🏪 வாடிக்கையாளர்: ${customerName}\n🏛️ GSTIN: ${gstNo || (matchedCust ? matchedCust.gstNumber : null) || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${totalAmount.toLocaleString('en-IN')}\n⚡ e-Invoice QR Code, IRN & HSN/வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 பில் இணைக்கப்பட்டுள்ளது!`;
+      queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
+      if (callerPhone) queueBillPdf(callerPhone, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
     } catch (e) {
       console.warn('Failed to generate/queue PDF buffer:', e.message);
     }
@@ -1202,25 +1211,21 @@ async function executeSmtToolCall(fnCall, chatId, options = {}) {
       const { generateThermalReceiptPdfBuffer } = require('./thermalPdfGenerator');
       const { generateA4GstTaxInvoicePdfBuffer } = require('./a4GstInvoiceGenerator');
 
-      // 1. Generate & queue Labour Token Slip (unless explicitly asking only A4 GST)
-      if (!wantA4Only || wantThermal) {
-        const thermalBuf = await generateThermalReceiptPdfBuffer(order);
-        const thermalFileName = `SMT_Labour_Token_Slip_${cleanId}.pdf`;
-        const thermalCaption = `⚡ *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - லேபர் டோக்கன் சீட்டு (80mm Labour Slip)*\n📋 பில் எண்: ${order.billNumber}\n🏪 வாடிக்கையாளர்: ${order.customerName}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ *கோடவுன் தொழிலாளர்களிடம் (Labours) கொடுத்து உடனே சரக்கு ஏற்றிக்கொள்ளும் டோக்கன் சீட்டு (No GST Clutter)!*`;
-        queueBillPdf(chatId, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
-      }
+      // 1. Generate & queue 80mm Labour Token Slip for workers to load boxes
+      const thermalBuf = await generateThermalReceiptPdfBuffer(order);
+      const thermalFileName = `SMT_Labour_Token_Slip_${cleanId}.pdf`;
+      const thermalCaption = `⚡ *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - லேபர் டோக்கன் சீட்டு (80mm Labour Slip)*\n📋 பில் எண்: ${order.billNumber}\n🏪 வாடிக்கையாளர்: ${order.customerName}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ *கோடவுன் தொழிலாளர்களிடம் (Labours) கொடுத்து உடனே சரக்கு ஏற்றிக்கொள்ளும் டோக்கன் சீட்டு (No GST Clutter)!*`;
+      queueBillPdf(chatId, { buffer: thermalBuf, fileName: thermalFileName, caption: thermalCaption });
 
-      // 2. If GST order or explicit GST requested, also generate & queue A4 GST Tax Invoice
-      if (wantA4Only || reqFormat === 'both' || (order.billingType === 'GST' && !wantThermal)) {
-        const gstBuf = await generateA4GstTaxInvoicePdfBuffer(order);
-        const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
-        const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${order.billNumber}\n🏛️ GSTIN: ${order.gstNumber || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ e-Invoice QR Code & HSN வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 GST Tax Invoice!`;
-        queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
-      }
+      // 2. Generate & queue official A4 GST Tax Invoice (e-Invoice)
+      const gstBuf = await generateA4GstTaxInvoicePdfBuffer(order);
+      const gstFileName = `SMT_GST_Tax_Invoice_${cleanId}.pdf`;
+      const gstCaption = `📄 *ஸ்ரீ மீனாட்சி டிரேடர்ஸ் - அதிகாரப்பூர்வ GST Tax Invoice (A4 e-Invoice)*\n📋 பில் எண்: ${order.billNumber}\n🏛️ GSTIN: ${order.gstNumber || '33AAACL5678G1Z2'}\n💰 மொத்த தொகை: ₹${(order.totalAmount || 0).toLocaleString('en-IN')}\n⚡ e-Invoice QR Code & HSN வரி விபரங்களுடன் கூடிய அதிகாரப்பூர்வ A4 GST Tax Invoice!`;
+      queueBillPdf(chatId, { buffer: gstBuf, fileName: gstFileName, caption: gstCaption });
 
       return {
         success: true,
-        message: `✅ பில் எண் ${order.billNumber}-க்கான லேபர் டோக்கன் சீட்டு (Labour Token Slip) வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
+        message: `✅ பில் எண் ${order.billNumber}-க்கான லேபர் டோக்கன் சீட்டு (Labour Token Slip) மற்றும் அதிகாரப்பூர்வ A4 GST Tax Invoice ஆகிய இரண்டும் வாட்ஸ்அப்பில் அனுப்பப்பட்டது.`
       };
     } catch (e) {
       return { success: false, message: `PDF உருவாக்க முடியவில்லை: ${e.message}` };

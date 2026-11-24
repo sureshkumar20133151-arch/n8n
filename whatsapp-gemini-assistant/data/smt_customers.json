@@ -98,14 +98,16 @@
     "name": "Test Buyer",
     "aliases": [
       "test buyer",
-      "919999999999"
+      "919999999999",
+      "9999999999"
     ],
     "address": "மதுரை",
     "phone": "919999999999",
     "defaultBilling": "Cash",
     "gstNumber": null,
     "status": "Registered Customer",
-    "registeredAt": "2026-11-24T19:18:00.477Z"
+    "registeredAt": "2026-11-24T19:30:44.877Z",
+    "ownerName": ""
   },
   {
     "id": "CUST-4393",
@@ -119,5 +121,38 @@
     "gstNumber": "33AAACL5678G1Z2",
     "status": "Registered Customer",
     "registeredAt": "2026-11-24T19:10:44.393Z"
+  },
+  {
+    "id": "CUST-4297",
+    "name": "கண்ணன் ஆயில் ஏஜென்சி (Kannan Oil Agency)",
+    "ownerName": "கண்ணன் (Kannan)",
+    "aliases": [
+      "கண்ணன் ஆயில் ஏஜென்சி (kannan oil agency)",
+      "கண்ணன் (kannan)",
+      "9842512345",
+      "919842512345"
+    ],
+    "address": "அண்ணா நகர், மதுரை (Anna Nagar, Madurai)",
+    "phone": "9842512345",
+    "defaultBilling": "Cash",
+    "gstNumber": null,
+    "status": "Registered Customer",
+    "registeredAt": "2026-11-24T19:30:21.392Z"
+  },
+  {
+    "id": "CUST-4331",
+    "name": "கண்ணன் ஆயில் ஏஜென்சி",
+    "ownerName": "",
+    "aliases": [
+      "கண்ணன் ஆயில் ஏஜென்சி",
+      "919842512345",
+      "9842512345"
+    ],
+    "address": "மதுரை",
+    "phone": "919842512345",
+    "defaultBilling": "Cash",
+    "gstNumber": null,
+    "status": "Registered Customer",
+    "registeredAt": "2026-11-24T19:30:21.411Z"
   }
 ]
