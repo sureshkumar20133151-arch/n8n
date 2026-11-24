@@ -127,118 +127,286 @@ function generateThermalBillHtml(order) {
 
   const itemsRows = (order.items || []).map((it, idx) => `
     <tr>
-      <td style="padding: 6px 4px; text-align: left; font-weight: bold; border-bottom: 1px dashed #ccc;">
+      <td style="padding: 6px 2px; text-align: left; font-weight: bold; border-bottom: 1px dashed #cbd5e1;">
         ${idx + 1}. ${it.item}
-        <div style="font-size: 11px; color: #555; font-weight: normal;">
+        <div style="font-size: 11px; color: #475569; font-weight: 500; margin-top: 2px;">
           ${it.boxes} Box (${it.piecesPerBox} pouches/box = ${it.totalPouches} pkt) @ ₹${it.ratePerBox}/Box
         </div>
       </td>
-      <td style="padding: 6px 4px; text-align: right; font-weight: bold; vertical-align: top; border-bottom: 1px dashed #ccc;">
+      <td style="padding: 6px 2px; text-align: right; font-weight: 800; vertical-align: top; border-bottom: 1px dashed #cbd5e1; white-space: nowrap;">
         ₹${it.lineTotal.toLocaleString('en-IN')}
       </td>
     </tr>
   `).join('');
 
   const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : new Date().toLocaleString('en-IN');
+  const cleanBillNo = (order.billNumber || '').replace(/[^a-zA-Z0-9-]/g, '');
 
   return `<!DOCTYPE html>
 <html lang="ta">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SMT Bill ${order.billNumber} - Sri Meenakshi Traders</title>
+  <title>SMT Thermal Bill ${order.billNumber} - Sri Meenakshi Traders</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
     @media print {
       body { margin: 0; padding: 0; background: #fff !important; }
       .no-print { display: none !important; }
-      .bill-card { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+      .bill-card {
+        box-shadow: none !important;
+        border: none !important;
+        width: 78mm !important;
+        max-width: 78mm !important;
+        padding: 6mm 4mm !important;
+        margin: 0 auto !important;
+      }
     }
     * { box-sizing: border-box; }
     body {
-      background: #f1f5f9;
-      font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+      background: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px 10px;
+      padding: 24px 12px 48px;
       margin: 0;
       color: #0f172a;
     }
-    .bill-card {
-      background: #fff;
+
+    .action-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
       width: 100%;
-      max-width: 380px;
-      border: 1px solid #cbd5e1;
-      border-radius: 12px;
-      padding: 20px 18px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      max-width: 360px;
     }
-    .header { text-align: center; border-bottom: 2px dashed #0f172a; padding-bottom: 12px; margin-bottom: 14px; }
-    .store-title { font-size: 20px; font-weight: 800; color: #1e293b; margin: 0; }
-    .store-sub { font-size: 13px; font-weight: 600; color: #475569; margin: 2px 0; }
-    .store-tag { font-size: 11px; color: #64748b; margin-top: 4px; }
-    .badge-wrap { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 8px; }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      flex: 1;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .btn-pdf {
+      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    }
+    .btn-pdf:hover { background: #dc2626; transform: translateY(-1px); }
+    .btn-print {
+      background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    }
+    .btn-print:hover { background: #059669; transform: translateY(-1px); }
+
+    .demo-pill {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* 80mm Thermal Receipt Spec (approx 320px - 340px) */
+    .bill-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 340px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 16px 14px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+      position: relative;
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 2px dashed #0f172a;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .store-title {
+      font-size: 19px;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 0;
+      letter-spacing: -0.3px;
+    }
+    .store-sub {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      margin: 2px 0;
+      letter-spacing: 0.5px;
+    }
+    .store-tag {
+      font-size: 10.5px;
+      color: #64748b;
+      margin-top: 3px;
+      line-height: 1.3;
+    }
+
+    .badge-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0 8px;
+    }
     .token-badge {
-      background: #0f172a; color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;
+      background: #0f172a;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
     }
     .bill-type-badge {
-      background: #e2e8f0; color: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid #cbd5e1;
     }
-    .info-table { width: 100%; font-size: 12px; margin-bottom: 12px; }
+
+    .info-table {
+      width: 100%;
+      font-size: 11.5px;
+      margin-bottom: 10px;
+      border-bottom: 1px dashed #cbd5e1;
+      padding-bottom: 6px;
+    }
     .info-table td { padding: 2px 0; }
-    .items-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin: 8px 0;
+    }
+    .items-table th {
+      border-bottom: 1.5px solid #0f172a;
+      padding: 4px 2px;
+      font-size: 11px;
+      color: #334155;
+    }
+
     .total-box {
-      border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; padding: 10px 0; margin: 14px 0; display: flex; justify-content: space-between; align-items: center;
+      border-top: 2px solid #0f172a;
+      border-bottom: 2px solid #0f172a;
+      padding: 8px 0;
+      margin: 12px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .total-label { font-size: 15px; font-weight: 800; }
-    .total-val { font-size: 20px; font-weight: 900; color: #047857; }
+    .total-label { font-size: 13px; font-weight: 800; color: #0f172a; }
+    .total-val { font-size: 18px; font-weight: 900; color: #047857; }
+
     .fast-lane {
-      background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; font-weight: 700; color: #065f46; margin: 14px 0 10px;
+      background: #f0fdf4;
+      border: 1.5px solid #16a34a;
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #166534;
+      margin: 10px 0 8px;
     }
-    .footer { text-align: center; font-size: 11px; color: #64748b; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px; }
-    .print-btn-bar { display: flex; gap: 10px; margin-bottom: 16px; width: 100%; max-width: 380px; }
-    .btn-print {
-      flex: 1; background: #059669; color: #fff; border: none; padding: 12px 16px; font-size: 15px; font-weight: 800; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.3); transition: all 0.2s;
+
+    .barcode-sim {
+      text-align: center;
+      margin: 8px 0 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 22px;
+      letter-spacing: 5px;
+      color: #1e293b;
+      user-select: none;
     }
-    .btn-print:hover { background: #047857; }
+
+    .footer {
+      text-align: center;
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 8px;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 6px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
-  <div class="print-btn-bar no-print">
-    <button class="btn-print" onclick="window.print()">🖨️ பில் பிரிண்ட் செய் (Print Bill)</button>
+  <div class="action-bar no-print">
+    <div class="demo-pill">🖨️ 80mm Thermal Receipt Spec (Demo Mode)</div>
+    <div class="btn-row">
+      <button class="btn btn-pdf" onclick="downloadThermalPdf()">
+        📥 Download Thermal PDF
+      </button>
+      <button class="btn btn-print" onclick="window.print()">
+        🖨️ Print Slip
+      </button>
+    </div>
   </div>
 
-  <div class="bill-card">
+  <div id="thermal-bill" class="bill-card">
     <div class="header">
       <h1 class="store-title">ஸ்ரீ மீனாட்சி டிரேடர்ஸ்</h1>
       <div class="store-sub">SRI MEENAKSHI TRADERS</div>
-      <div class="store-tag">எண்ணெய் மொத்த வியாபாரம் • Madurai Wholesale Oil Mandi<br>Ph: +91 93615 99097</div>
+      <div class="store-tag">
+        எண்ணெய் மொத்த மண்டி • Edible Oils Wholesale<br>
+        Madurai, Tamil Nadu • Ph: +91 93615 99097
+      </div>
     </div>
 
     <div class="badge-wrap">
       <span class="token-badge">${order.billNumber}</span>
-      <span class="bill-type-badge">${order.billingType.toUpperCase()} BILL</span>
+      <span class="bill-type-badge">${(order.billingType || 'CASH').toUpperCase()} BILL</span>
     </div>
 
     <table class="info-table">
       <tr>
         <td style="color:#64748b;">வாடிக்கையாளர்:</td>
-        <td style="text-align:right; font-weight:700;">${order.customerName}</td>
+        <td style="text-align:right; font-weight:800; color:#0f172a;">${order.customerName}</td>
       </tr>
-      ${order.address ? `<tr><td style="color:#64748b;">முகவரி:</td><td style="text-align:right;">${order.address}</td></tr>` : ''}
-      ${order.phone ? `<tr><td style="color:#64748b;">போன்:</td><td style="text-align:right;">${order.phone}</td></tr>` : ''}
+      ${order.address ? `<tr><td style="color:#64748b;">முகவரி:</td><td style="text-align:right; font-weight:600;">${order.address}</td></tr>` : ''}
+      ${order.phone ? `<tr><td style="color:#64748b;">போன் எண்:</td><td style="text-align:right;">${order.phone}</td></tr>` : ''}
       ${order.gstNumber ? `<tr><td style="color:#64748b;">GSTIN:</td><td style="text-align:right; font-weight:700;">${order.gstNumber}</td></tr>` : ''}
       <tr>
         <td style="color:#64748b;">தேதி & நேரம்:</td>
-        <td style="text-align:right;">${dateStr}</td>
+        <td style="text-align:right; font-size:11px;">${dateStr}</td>
       </tr>
     </table>
 
     <table class="items-table">
       <thead>
-        <tr style="border-bottom: 1.5px solid #0f172a; font-size: 12px; color: #475569;">
-          <th style="text-align:left; padding:4px 0;">சரக்கு விபரம் (ITEM)</th>
-          <th style="text-align:right; padding:4px 0;">தொகை (₹)</th>
+        <tr>
+          <th style="text-align:left;">சரக்கு விபரம் (ITEM)</th>
+          <th style="text-align:right;">தொகை (₹)</th>
         </tr>
       </thead>
       <tbody>
@@ -248,19 +416,40 @@ function generateThermalBillHtml(order) {
 
     <div class="total-box">
       <span class="total-label">மொத்த தொகை (TOTAL):</span>
-      <span class="total-val">₹${order.totalAmount.toLocaleString('en-IN')}</span>
+      <span class="total-val">₹${(order.totalAmount || 0).toLocaleString('en-IN')}</span>
     </div>
 
     <div class="fast-lane">
       ⚡ <b>ஃபாஸ்ட்-லேன் பிக்-அப் டோக்கன்</b><br>
-      வரிசையில் நிற்காமல் பில் எண் காட்டி லோடு ஏற்றவும்!
+      வரிசையில் நிற்காமல் டோக்கன் காட்டி லோடு ஏற்றவும்!
     </div>
 
+    <div class="barcode-sim">||||| | |||| ||| |||||||</div>
+
     <div class="footer">
-      Tally Status: ${order.tallyStatus || 'Verified'}<br>
-      நன்றி! மீண்டும் வருக! 🙏 (Sri Meenakshi Traders)
+      Tally Prime Status: ${order.tallyStatus || 'Verified & Synced'}<br>
+      நன்றி! மீண்டும் வருக! 🙏 (Sri Meenakshi Traders, Madurai)
     </div>
   </div>
+
+  <script>
+    function downloadThermalPdf() {
+      const element = document.getElementById('thermal-bill');
+      const opt = {
+        margin: [4, 2, 4, 2],
+        filename: 'SMT_Thermal_Bill_${cleanBillNo}.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 3, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // Auto-trigger PDF download if requested via ?download=pdf
+    if (window.location.search.includes('download=pdf')) {
+      setTimeout(downloadThermalPdf, 600);
+    }
+  </script>
 </body>
 </html>`;
 }

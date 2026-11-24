@@ -1558,8 +1558,9 @@ const server = http.createServer((req, res) => {
   }
 
   // Printable Bill & Thermal Token View for Sri Meenakshi Traders (SMT)
-  if (req.url.startsWith('/bill/') || req.url === '/bill' || req.url.startsWith('/print-bill')) {
-    const parts = req.url.split('/');
+  if (req.url.startsWith('/bill/') || req.url.startsWith('/bill') || req.url.startsWith('/print-bill')) {
+    const cleanUrl = req.url.split('?')[0];
+    const parts = cleanUrl.split('/');
     const billId = parts[2] || 'latest';
     const { getOrder, generateThermalBillHtml } = require('./meenakshiTradersPersona');
     const order = getOrder(billId);
