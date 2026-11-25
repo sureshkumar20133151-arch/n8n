@@ -824,12 +824,14 @@ class GeminiService {
    - Call "getBalances" or "getMonthlySummary".
 Reply naturally in friendly spoken Tamil / Tanglish.`;
         } else if (mode === 'wholesale' && options.isWholesaleAdminGroup) {
-          audioInstruction = `[ADMIN GROUP VOICE NOTE - ANNAMALIYAR OIL GROUP]: Listen carefully to this voice note from the authorized Annamaiyar Oil Group in Tamil, Tanglish, or English.
-1. If adding a new product or setting its price/stock: call "upsertWholesaleProduct" immediately.
-2. If updating a product's price or marking stock as 0 / finished ("ஸ்டாக் ஜீரோ", "முடிஞ்சு போச்சு", "stock illa"): call "updateWholesaleStockOrPrice" immediately (set stockBoxes: 0 or markOutOfStock: true when out of stock).
-3. If removing/deleting a product or price ("ரிமூவ் பண்ணு", "டெலீட் பண்ணு", "தூக்கு"): call "removeWholesaleProduct" immediately.
-4. If changing how the agent behaves with customers: call "manageLiveBehaviorRule" immediately.
-5. ALWAYS reply in this WhatsApp group with a clear structured confirmation in Tamil:
+          audioInstruction = `[ADMIN GROUP VOICE NOTE - EXECUTE IMMEDIATELY]:
+Listen carefully to the attached audio (in Tamil, Tanglish, or English)${userText && userText.trim() ? ` along with the text "${userText.trim()}"` : ''}.
+1. Extract EVERY product name, pack size, price, and stock mentioned in the audio.
+2. If adding a new product or setting its price/stock: IMMEDIATELY call "upsertWholesaleProduct".
+3. If updating a product's price or marking stock as 0 / finished ("ஸ்டாக் ஜீரோ", "முடிஞ்சு போச்சு", "stock illa"): IMMEDIATELY call "updateWholesaleStockOrPrice" (set stockBoxes: 0 or markOutOfStock: true when out of stock).
+4. If removing/deleting a product or price ("ரிமூவ் பண்ணு", "டெலீட் பண்ணு", "தூக்கு"): IMMEDIATELY call "removeWholesaleProduct".
+5. If changing how the agent behaves with customers: IMMEDIATELY call "manageLiveBehaviorRule".
+6. NEVER ask "what should I update?" if ANY product or price is spoken in the audio — execute the tool FIRST, then reply in this WhatsApp group with:
    ✅ *Google Sheet அப்டேட் செய்யப்பட்டது!* (or 🗑️ *நீக்கப்பட்டது!* / ⚙️ *விதி மாற்றப்பட்டது!*)
    • *ப்ராடக்ட்:* <Product Name>
    • *விலை:* ₹<Price>
@@ -1079,11 +1081,12 @@ The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank a
 
         try {
           const contentsToSend = this.sanitizeHistory(history);
+          const isAdminAudio = Boolean(media && media.isAudio && options.isWholesaleAdminGroup);
           const requestConfig = {
             systemInstruction: systemInstruction,
             temperature: 0.2,
             maxOutputTokens: 1000,
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingBudget: isAdminAudio ? 512 : 0 },
             tools: activeTools
           };
 
@@ -1093,9 +1096,10 @@ The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank a
             config: requestConfig
           });
 
-          // 12s safety timeout to allow complete LLM response without premature cut-off
+          // 12s safety timeout (20s for admin voice note transcription + tool call)
+          const timeoutMs = isAdminAudio ? 20000 : 12000;
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout after 12000ms on model ${m}`)), 12000)
+            setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms on model ${m}`)), timeoutMs)
           );
 
           response = await Promise.race([genPromise, timeoutPromise]);

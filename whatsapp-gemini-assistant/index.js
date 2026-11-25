@@ -449,26 +449,32 @@ async function connectToWhatsApp() {
             }
           }
 
-          // Handle Image / Media / Voice Note / Video
+          // Check if message quotes the bot or @mentions the bot in a group
+          const contextInfo = innerMsg.extendedTextMessage?.contextInfo ||
+            innerMsg.imageMessage?.contextInfo ||
+            innerMsg.videoMessage?.contextInfo ||
+            innerMsg.audioMessage?.contextInfo;
+
+          // Handle Image / Media / Voice Note / Video (check innerMsg + quoted audio/image)
           let mediaPayload = null;
           let isAudio = false;
           let isVideo = false;
-          if (msg.message.imageMessage) {
+          if (innerMsg.imageMessage) {
             try {
               const buffer = await downloadMediaMessage(msg, 'buffer', {});
               mediaPayload = {
-                mimetype: msg.message.imageMessage.mimetype || 'image/jpeg',
+                mimetype: innerMsg.imageMessage.mimetype || 'image/jpeg',
                 data: buffer.toString('base64'),
                 isImage: true
               };
             } catch (mediaErr) {
               console.error('Failed to download image:', mediaErr.message);
             }
-          } else if (msg.message.audioMessage) {
+          } else if (innerMsg.audioMessage) {
             try {
               console.log(`🎙️ [Incoming Voice Note] Downloading audio stream from ${remoteJid}...`);
               const buffer = await downloadMediaMessage(msg, 'buffer', {});
-              const rawMime = msg.message.audioMessage.mimetype || 'audio/ogg; codecs=opus';
+              const rawMime = innerMsg.audioMessage.mimetype || 'audio/ogg; codecs=opus';
               const cleanMime = rawMime.split(';')[0].trim();
               mediaPayload = {
                 mimetype: cleanMime || 'audio/ogg',
@@ -480,9 +486,9 @@ async function connectToWhatsApp() {
             } catch (mediaErr) {
               console.error('Failed to download audio message:', mediaErr.message);
             }
-          } else if (msg.message.videoMessage) {
+          } else if (innerMsg.videoMessage) {
             try {
-              const videoMsg = msg.message.videoMessage;
+              const videoMsg = innerMsg.videoMessage;
               const seconds = videoMsg.seconds || 0;
               const fileLength = Number(videoMsg.fileLength || 0);
 
@@ -507,15 +513,29 @@ async function connectToWhatsApp() {
             } catch (mediaErr) {
               console.error('Failed to download video message:', mediaErr.message);
             }
+          } else if (contextInfo?.quotedMessage?.audioMessage) {
+            try {
+              console.log(`🎙️ [Quoted Voice Note] Downloading quoted audio from ${remoteJid}...`);
+              const quotedSynthetic = {
+                key: { remoteJid, id: contextInfo.stanzaId, participant: contextInfo.participant },
+                message: contextInfo.quotedMessage
+              };
+              const buffer = await downloadMediaMessage(quotedSynthetic, 'buffer', {});
+              const rawMime = contextInfo.quotedMessage.audioMessage.mimetype || 'audio/ogg; codecs=opus';
+              const cleanMime = rawMime.split(';')[0].trim();
+              mediaPayload = {
+                mimetype: cleanMime || 'audio/ogg',
+                data: buffer.toString('base64'),
+                isAudio: true
+              };
+              isAudio = true;
+              console.log(`🎙️ [Quoted Voice Note Downloaded] ${buffer.length} bytes, MIME: ${cleanMime}`);
+            } catch (mediaErr) {
+              console.error('Failed to download quoted audio message:', mediaErr.message);
+            }
           }
 
           const modeIntentEarly = detectModeSwitchIntent(body);
-
-          // Check if message quotes the bot or @mentions the bot in a group
-          const contextInfo = innerMsg.extendedTextMessage?.contextInfo ||
-            innerMsg.imageMessage?.contextInfo ||
-            innerMsg.videoMessage?.contextInfo ||
-            innerMsg.audioMessage?.contextInfo;
 
           const myJid = sock.user?.id || '';
           const myDigits = myJid.replace(/\D/g, '').slice(0, 10);
