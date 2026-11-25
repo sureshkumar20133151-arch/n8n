@@ -835,7 +835,8 @@ Listen carefully to the attached audio (in Tamil, Tanglish, or English)${userTex
    ✅ *Google Sheet அப்டேட் செய்யப்பட்டது!* (or 🗑️ *நீக்கப்பட்டது!* / ⚙️ *விதி மாற்றப்பட்டது!*)
    • *ப்ராடக்ட்:* <Product Name>
    • *விலை:* ₹<Price>
-   • *ஸ்டாக்:* <Stock / Out of Stock>`;
+   • *ஸ்டாக்:* <Stock / Out of Stock>
+   - IMPORTANT: If the speaker updated/added a price WITHOUT mentioning whether stock is available (or stock count), STILL update the price first, and at the end of your reply ALWAYS ask in Tamil: "👉 *இதற்கு ஸ்டாக் இருக்கிறதா (எவ்வளவு ஸ்டாக்) அல்லது Out of Stock-ஆ? சொன்னால் ஸ்டாக்கையும் உடனே அப்டேட் செய்கிறேன்!*"`;
         } else {
           audioInstruction = (userText && userText.trim().length > 0)
             ? `The user sent this voice note with additional text: "${userText.trim()}". Listen carefully to the voice note, understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply naturally, politely, and concisely in that same language following your knowledge base rules.`
@@ -870,7 +871,7 @@ The customer shared a house construction / elevation video or reel (${media.seco
 
         if (mode === 'wholesale') {
           if (options.isWholesaleAdminGroup) {
-            contextualText = `[AUTHORIZED ADMIN GROUP: Annamaiyar oil group. If adding/updating a product, changing price, removing a product/price, marking stock = 0 (Out of Stock), sharing a Google Sheet link, or changing agent behavior rules, call upsertWholesaleProduct, updateWholesaleStockOrPrice, removeWholesaleProduct, setWholesaleGoogleSheet, or manageLiveBehaviorRule immediately and reply with a clear confirmation in Tamil]: ${contextualText}`;
+            contextualText = `[AUTHORIZED ADMIN GROUP: Annamaiyar oil group. If adding/updating a product, changing price, removing a product/price, marking stock = 0 (Out of Stock), sharing a Google Sheet link, or changing agent behavior rules, call upsertWholesaleProduct, updateWholesaleStockOrPrice, removeWholesaleProduct, setWholesaleGoogleSheet, or manageLiveBehaviorRule immediately and reply with a clear confirmation in Tamil. IMPORTANT: Whenever a price is added/updated WITHOUT explicitly mentioning stock availability/quantity, update the price first and ALWAYS ask at the end of your reply whether stock is available (how much) or Out of Stock so you can update stock too]: ${contextualText}`;
           } else {
             contextualText = `[Annamaliyar Oil Store Customer Inquiry - Mattuthavani Vegetable Market, Shop No. 13, Madurai (Open 4 AM - 3 PM / up to 5 PM, closed on Market Leave days). Retail (1-2 pouches) & Wholesale (boxes/tins) both available. STRICT FIXED PRICES from Google Sheet — NEVER accept customer bargaining or price changes. Only mention asked products. If stock is 0, say out of stock and only mention last sold price if asked]: ${contextualText}`;
           }
