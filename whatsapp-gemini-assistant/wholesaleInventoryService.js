@@ -100,12 +100,13 @@ class WholesaleInventoryService {
       if (isSimple3Col) {
         const prodName = row.Products || row.products || '';
         if (!prodName) continue;
+        const catName = row.Category || row.category || 'Edible Oil';
         const priceNum = parseInt((row.Price || row.price || '').replace(/\D/g, ''), 10) || 0;
         const stockNum = parseInt((row.Stock || row.stock || '0').replace(/\D/g, ''), 10) || 0;
         items.push({
           productId: `OIL-${i}`,
-          category: 'Edible Oil',
-          brand: prodName.toLowerCase().includes('gold winner') ? 'Gold Winner' : 'Annamaliyar / Local',
+          category: catName,
+          brand: prodName.toLowerCase().includes('gold winner') ? 'Gold Winner' : (prodName.toLowerCase().includes('nalan') ? 'Nalan' : 'Annamaliyar / Local'),
           name: prodName,
           packSize: '',
           unitsPerBox: 1,
@@ -346,7 +347,7 @@ class WholesaleInventoryService {
    • Status: OUT OF STOCK (Stock: 0) — DO NOT quote as available for sale.
    • Last Sold Reference Price: ₹${it.unitWholesaleRate} / unit | ₹${it.boxWholesaleRate} per Box (mention ONLY if customer asks for last price)`;
       }
-      return `${idx + 1}. ${it.name} - ${it.packSize}:
+      return `${idx + 1}. ${it.name}${it.packSize && !it.name.toLowerCase().includes(it.packSize.toLowerCase()) ? ` - ${it.packSize}` : ''} [Category: ${it.category || 'Edible Oil'}]:
    • Units per Box: ${it.unitsPerBox} ${it.unitsPerBox === 1 ? 'Tin/Can' : 'Pouches'}
    • Retail / Single Unit Rate: ₹${it.unitWholesaleRate} / unit | Box Rate: ₹${it.boxWholesaleRate} per Box
    • MRP: ₹${it.unitMrp} / unit | ₹${it.boxMrp} per Box
@@ -392,7 +393,7 @@ class WholesaleInventoryService {
         return { success: false, message: 'Google service account not configured' };
       }
       const token = await googleDrive.getAccessToken();
-      const headers = ['Products', 'Price', 'Stock'];
+      const headers = ['Products', 'Category', 'Price', 'Stock'];
       const rows = this.getAll().map(it => {
         const displayPrice = (it.unitWholesaleRate && it.unitWholesaleRate > 0)
           ? it.unitWholesaleRate
@@ -401,20 +402,21 @@ class WholesaleInventoryService {
           it.packSize && !it.name.toLowerCase().includes(it.packSize.toLowerCase())
             ? `${it.name} (${it.packSize})`
             : it.name,
+          it.category || 'Edible Oil',
           displayPrice,
           it.stockBoxes ?? 0
         ];
       });
       // Pad empty rows to clear any previously removed / stale rows in Sheet1
-      const emptyPad = Array.from({ length: Math.max(0, 50 - rows.length) }, () => ['', '', '']);
+      const emptyPad = Array.from({ length: Math.max(0, 50 - rows.length) }, () => ['', '', '', '']);
       const values = [headers, ...rows, ...emptyPad];
 
-      const payload = JSON.stringify({ range: `${this.sheetTab}!A1:C${values.length}`, majorDimension: 'ROWS', values });
+      const payload = JSON.stringify({ range: `${this.sheetTab}!A1:D${values.length}`, majorDimension: 'ROWS', values });
 
       return await new Promise((resolve) => {
         const req = https.request({
           hostname: 'sheets.googleapis.com',
-          path: `/v4/spreadsheets/${this.sheetId}/values/${encodeURIComponent(`${this.sheetTab}!A1:C${values.length}`)}?valueInputOption=USER_ENTERED`,
+          path: `/v4/spreadsheets/${this.sheetId}/values/${encodeURIComponent(`${this.sheetTab}!A1:D${values.length}`)}?valueInputOption=USER_ENTERED`,
           method: 'PUT',
           headers: {
             Authorization: `Bearer ${token}`,
