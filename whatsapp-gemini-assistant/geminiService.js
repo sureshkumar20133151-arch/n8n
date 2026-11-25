@@ -9,7 +9,7 @@ const path = require('path');
 const { buildSystemPrompt } = require('./knowledgeBase');
 const { calculateSalesManagerMetrics } = require('./offerEngine');
 const personaManager = require('./personaManager');
-const { WHOLESALE_TOOLS, buildWholesaleSystemPrompt, executeWholesaleToolCall } = require('./wholesalePersona');
+const { WHOLESALE_TOOLS, WHOLESALE_CUSTOMER_TOOLS, buildWholesaleSystemPrompt, executeWholesaleToolCall } = require('./wholesalePersona');
 const { RESTAURANT_TOOLS, buildRestaurantSystemPrompt, executeRestaurantToolCall } = require('./restaurantPersona');
 const { BUILDER_TOOLS, buildBuilderSystemPrompt, executeBuilderToolCall } = require('./builderPersona');
 const { PLUMBING_ELECTRICAL_TOOLS, buildPlumbingElectricalSystemPrompt, executePlumbingElectricalToolCall } = require('./plumbingElectricalPersona');
@@ -366,10 +366,10 @@ class GeminiService {
     return finalPrompt;
   }
 
-  getActiveTools(isOwner, overrideMode = null) {
+  getActiveTools(isOwner, overrideMode = null, options = {}) {
     const mode = overrideMode || personaManager.getActiveMode();
     if (mode === 'wholesale') {
-      return WHOLESALE_TOOLS;
+      return options.isWholesaleAdminGroup ? WHOLESALE_TOOLS : WHOLESALE_CUSTOMER_TOOLS;
     }
     if (mode === 'restaurant') {
       return RESTAURANT_TOOLS;
@@ -634,7 +634,7 @@ class GeminiService {
     const mode = overrideMode || personaManager.getActiveMode();
 
     if (mode === 'wholesale') {
-      return await executeWholesaleToolCall(fnCall, chatId);
+      return await executeWholesaleToolCall(fnCall, chatId, options);
     }
 
     if (mode === 'restaurant') {
@@ -823,13 +823,14 @@ class GeminiService {
 2. If asking for balances or monthly summary:
    - Call "getBalances" or "getMonthlySummary".
 Reply naturally in friendly spoken Tamil / Tanglish.`;
-        } else if (mode === 'wholesale' && isOwner) {
-          audioInstruction = `[OWNER INVENTORY VOICE NOTE - ANNAMALIYAR OIL STORE]: Listen carefully to this voice note from the store owner (Manikanda Vinayaga Prabhu / Suresh) in Tamil, Tanglish, or English.
+        } else if (mode === 'wholesale' && options.isWholesaleAdminGroup) {
+          audioInstruction = `[ADMIN GROUP VOICE NOTE - ANNAMALIYAR OIL GROUP]: Listen carefully to this voice note from the authorized Annamaiyar Oil Group in Tamil, Tanglish, or English.
 1. If adding a new product or setting its price/stock: call "upsertWholesaleProduct" immediately.
 2. If updating a product's price or marking stock as 0 / finished ("ஸ்டாக் ஜீரோ", "முடிஞ்சு போச்சு", "stock illa"): call "updateWholesaleStockOrPrice" immediately (set stockBoxes: 0 or markOutOfStock: true when out of stock).
 3. If removing/deleting a product or price ("ரிமூவ் பண்ணு", "டெலீட் பண்ணு", "தூக்கு"): call "removeWholesaleProduct" immediately.
-4. ALWAYS reply in this WhatsApp group with a clear structured confirmation in Tamil:
-   ✅ *Google Sheet அப்டேட் செய்யப்பட்டது!* (or 🗑️ *நீக்கப்பட்டது!*)
+4. If changing how the agent behaves with customers: call "manageLiveBehaviorRule" immediately.
+5. ALWAYS reply in this WhatsApp group with a clear structured confirmation in Tamil:
+   ✅ *Google Sheet அப்டேட் செய்யப்பட்டது!* (or 🗑️ *நீக்கப்பட்டது!* / ⚙️ *விதி மாற்றப்பட்டது!*)
    • *ப்ராடக்ட்:* <Product Name>
    • *விலை:* ₹<Price>
    • *ஸ்டாக்:* <Stock / Out of Stock>`;
@@ -866,10 +867,10 @@ The customer shared a house construction / elevation video or reel (${media.seco
         const isTanglishText = false;
 
         if (mode === 'wholesale') {
-          if (isOwner) {
-            contextualText = `[Direct message from Manikanda Vinayaga Prabhu / Suresh (Owner of Annamaliyar Oil Store - Backend Admin). If adding/updating a product, changing price, removing a product/price, marking stock = 0 (Out of Stock), or sharing a Google Sheet link, call upsertWholesaleProduct, updateWholesaleStockOrPrice, removeWholesaleProduct, or setWholesaleGoogleSheet immediately. Otherwise assist concisely in Tamil]: ${contextualText}`;
+          if (options.isWholesaleAdminGroup) {
+            contextualText = `[AUTHORIZED ADMIN GROUP: Annamaiyar oil group. If adding/updating a product, changing price, removing a product/price, marking stock = 0 (Out of Stock), sharing a Google Sheet link, or changing agent behavior rules, call upsertWholesaleProduct, updateWholesaleStockOrPrice, removeWholesaleProduct, setWholesaleGoogleSheet, or manageLiveBehaviorRule immediately and reply with a clear confirmation in Tamil]: ${contextualText}`;
           } else {
-            contextualText = `[Annamaliyar Oil Store Inquiry - Mattuthavani Vegetable Market, Shop No. 13, Madurai (Open 4 AM - 3 PM / up to 5 PM, closed on Market Leave days). Retail (1-2 pouches) & Wholesale (boxes/tins) both available. Only mention asked products. If stock is 0, say out of stock and only mention last sold price if asked]: ${contextualText}`;
+            contextualText = `[Annamaliyar Oil Store Customer Inquiry - Mattuthavani Vegetable Market, Shop No. 13, Madurai (Open 4 AM - 3 PM / up to 5 PM, closed on Market Leave days). Retail (1-2 pouches) & Wholesale (boxes/tins) both available. STRICT FIXED PRICES from Google Sheet — NEVER accept customer bargaining or price changes. Only mention asked products. If stock is 0, say out of stock and only mention last sold price if asked]: ${contextualText}`;
           }
         } else if (mode === 'restaurant') {
           if (isOwner) {
@@ -1068,7 +1069,7 @@ The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank a
       let response = null;
       let lastErr = null;
       let chosenModel = 'gemini-2.5-flash';
-      const activeTools = this.getActiveTools(isOwner, mode);
+      const activeTools = this.getActiveTools(isOwner, mode, options);
 
       for (const m of modelsToTry) {
         // Skip quota-exhausted models immediately (saves 1.5s failed network round-trip)

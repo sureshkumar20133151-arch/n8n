@@ -646,7 +646,8 @@ async function connectToWhatsApp() {
           // Handle Boss / Admin Commands from Suresh (e.g. !rule, /rule, !rules, /rules, !delrule, !setslots, !setprice, !help)
           // [Fixed] Removed dangerous 1,2,3 global mode hijack - 1,2,3 are valid customer answers (e.g. 3 BHK)
 
-          if (isOwner && (prompt.startsWith('!') || prompt.startsWith('/'))) {
+          const allowAdminSlashCmd = isOwner && (personaManager.getActiveMode() !== 'wholesale' || isWholesaleAdminGroup);
+          if (allowAdminSlashCmd && (prompt.startsWith('!') || prompt.startsWith('/'))) {
             const adminReply = adminRules.handleAdminCommand(prompt);
             if (adminReply) {
               await sendBotMessage(sock, replyJid, { text: adminReply }, quoteOption);
@@ -670,6 +671,7 @@ async function connectToWhatsApp() {
             recordGeminiRequest();
             const reply = await gemini.generateResponse(replyJid, prompt, mediaPayload, {
               isOwner,
+              isWholesaleAdminGroup,
               senderName,
               pushName: msg.pushName,
               remoteJid,
