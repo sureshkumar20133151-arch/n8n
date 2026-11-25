@@ -823,6 +823,16 @@ class GeminiService {
 2. If asking for balances or monthly summary:
    - Call "getBalances" or "getMonthlySummary".
 Reply naturally in friendly spoken Tamil / Tanglish.`;
+        } else if (mode === 'wholesale' && isOwner) {
+          audioInstruction = `[OWNER INVENTORY VOICE NOTE - ANNAMALIYAR OIL STORE]: Listen carefully to this voice note from the store owner (Manikanda Vinayaga Prabhu / Suresh) in Tamil, Tanglish, or English.
+1. If adding a new product or setting its price/stock: call "upsertWholesaleProduct" immediately.
+2. If updating a product's price or marking stock as 0 / finished ("ஸ்டாக் ஜீரோ", "முடிஞ்சு போச்சு", "stock illa"): call "updateWholesaleStockOrPrice" immediately (set stockBoxes: 0 or markOutOfStock: true when out of stock).
+3. If removing/deleting a product or price ("ரிமூவ் பண்ணு", "டெலீட் பண்ணு", "தூக்கு"): call "removeWholesaleProduct" immediately.
+4. ALWAYS reply in this WhatsApp group with a clear structured confirmation in Tamil:
+   ✅ *Google Sheet அப்டேட் செய்யப்பட்டது!* (or 🗑️ *நீக்கப்பட்டது!*)
+   • *ப்ராடக்ட்:* <Product Name>
+   • *விலை:* ₹<Price>
+   • *ஸ்டாக்:* <Stock / Out of Stock>`;
         } else {
           audioInstruction = (userText && userText.trim().length > 0)
             ? `The user sent this voice note with additional text: "${userText.trim()}". Listen carefully to the voice note, understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply naturally, politely, and concisely in that same language following your knowledge base rules.`
@@ -857,9 +867,9 @@ The customer shared a house construction / elevation video or reel (${media.seco
 
         if (mode === 'wholesale') {
           if (isOwner) {
-            contextualText = `[Direct message from Manikanda Vinayaga Prabhu / Suresh. Greet respectfully ("வணக்கம் அண்ணா") and provide live wholesale stock, box pricing, or order dispatch details]: ${contextualText}`;
+            contextualText = `[Direct message from Manikanda Vinayaga Prabhu / Suresh (Owner of Annamaliyar Oil Store - Backend Admin). If adding/updating a product, changing price, removing a product/price, marking stock = 0 (Out of Stock), or sharing a Google Sheet link, call upsertWholesaleProduct, updateWholesaleStockOrPrice, removeWholesaleProduct, or setWholesaleGoogleSheet immediately. Otherwise assist concisely in Tamil]: ${contextualText}`;
           } else {
-            contextualText = `[Wholesale Oil Inquiry: Annamaliyar Oil Store, Mattuthavani Wholesale Market, Madurai. MOQ is strictly 1 Box or 1 Tin. State box rate and pouch breakdown. Clarify 15Ltr Tin (Volume ₹2,180) vs 15Kg Tin (Weight ₹2,420). If ordering, collect Store Name, Madurai Delivery Area, Contact Person, and call bookWholesaleOrder]: ${contextualText}`;
+            contextualText = `[Annamaliyar Oil Store Inquiry - Mattuthavani Vegetable Market, Shop No. 13, Madurai (Open 4 AM - 3 PM / up to 5 PM, closed on Market Leave days). Retail (1-2 pouches) & Wholesale (boxes/tins) both available. Only mention asked products. If stock is 0, say out of stock and only mention last sold price if asked]: ${contextualText}`;
           }
         } else if (mode === 'restaurant') {
           if (isOwner) {

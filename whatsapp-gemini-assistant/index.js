@@ -534,11 +534,27 @@ async function connectToWhatsApp() {
           );
 
           // Decide whether to reply
+          let isWholesaleAdminGroup = false;
           if (isGroup) {
-            if (!enableGroups && !modeIntentEarly) continue;
+            const activeMode = personaManager.getActiveMode();
+            if (activeMode === 'wholesale') {
+              try {
+                if (!global.__groupSubjectCache) global.__groupSubjectCache = new Map();
+                let groupSubject = global.__groupSubjectCache.get(remoteJid);
+                if (!groupSubject) {
+                  const meta = await sock.groupMetadata(remoteJid).catch(() => null);
+                  groupSubject = meta?.subject || '';
+                  if (groupSubject) global.__groupSubjectCache.set(remoteJid, groupSubject);
+                }
+                if (/annam[ai]l?iyar/i.test(groupSubject)) {
+                  isWholesaleAdminGroup = true;
+                }
+              } catch (e) {}
+            }
+
+            if (!enableGroups && !modeIntentEarly && !isWholesaleAdminGroup) continue;
             
             // Smart Personal Assistant Group Bypass: Auto-reply to site photos, audio voice notes, quotes, mentions, any question/inquiry, greetings, or site/worker queries
-            const activeMode = personaManager.getActiveMode();
             const isPlumberMode = (activeMode === 'plumber');
 
             const isQuestionOrInquiry = body.includes('?') ||
@@ -550,14 +566,14 @@ async function connectToWhatsApp() {
 
             const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|படங்கள்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|எலக்ட்ரிக்கல்|ஒயரிங்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|சுவர்|தரை|டைல்ஸ்|டிரைனேஜ்|சேம்பர்|மெயின்\s*டிபி|எர்திங்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|தொழிலாளி|வேலை|விவரம்|விபரம்|லிஸ்ட்|டிரைவ்|கூகுள்|ஷீட்|லிங்க்|ஃபோல்டர்|அப்டேட்|ஸ்டேட்டஸ்|செக்|அரசன்|சாட்|பழைய|மெசேஜ்|படி|காட்டு|அனுப்பு|உதவி|எப்படி|என்ன|எங்கே|அட்டெண்டன்ஸ்|வருகை|சம்பளம்|கூலி|அட்வான்ஸ்|கழிவு|கழி|வார|வாரம்|செட்டில்|செட்டில்மெண்ட்|கணக்கு|கொடுத்தாச்சு|கொடுத்தேன்|போட்டாச்சு|பில்|பில்கள்|ரசீது|செலவு|பொருட்கள்|மாத்து|திருத்து|தவறு|photo|pic|picture|pipe|plumb|electr|wir|roof|concrete|slab|chasing|wall|floor|tile|bath|drain|sewage|chamber|main\s*db|earth|mcb|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|phone|mobile|number|details|list|drive|google|sheet|link|folder|update|status|check|add|added|save|saved|store|stored|record|archive|doc|file|arasan|mep|chat|chats|old|history|read|view|send|show|tell|help|how|what|where|who|can\s*u|can\s*you|able|super|attendance|salary|wage|wages|advance|deduct|deduction|weekend|settle|settlement|paid|settled|bill|bills|receipt|invoice|expense|expenses|material|materials|purchase|bought|correct|mistake|fix/i.test(body);
 
-            const allowGroupBypass = isPlumberMode && (
+            const allowGroupBypass = isWholesaleAdminGroup || (isPlumberMode && (
               Boolean(mediaPayload) ||
               isQuotingBot ||
               isMentioningBot ||
               isQuestionOrInquiry ||
               isGreeting ||
               hasPlumbingKeyword
-            );
+            ));
 
             if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly && !allowGroupBypass) continue;
           } else {
@@ -586,7 +602,7 @@ async function connectToWhatsApp() {
           const cleanSenderDigits = remoteJid ? remoteJid.replace(/\D/g, '') : '';
           const altDigits = remoteJidAlt ? remoteJidAlt.replace(/\D/g, '') : '';
           const ownerPhone = (process.env.OWNER_PHONE || '919361599097').replace(/\D/g, '');
-          const isOwner = Boolean(isFromMe || cleanSenderDigits === ownerPhone || altDigits === ownerPhone);
+          const isOwner = Boolean(isFromMe || isWholesaleAdminGroup || cleanSenderDigits === ownerPhone || altDigits === ownerPhone);
 
           // Routable destination JID: route self-chat or @lid to owner phone @s.whatsapp.net (groups always route to remoteJid)
           const isSelfRoute = isFromMe && !isGroup && (remoteJid === 'me' || remoteJid.endsWith('@lid') || (typeof isSelfChat !== 'undefined' && isSelfChat));
