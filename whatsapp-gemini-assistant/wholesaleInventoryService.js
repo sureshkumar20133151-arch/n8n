@@ -393,18 +393,22 @@ class WholesaleInventoryService {
       }
       const token = await googleDrive.getAccessToken();
       const headers = ['Products', 'Price', 'Stock'];
-      const values = [
-        headers,
-        ...this.getAll().map(it => [
+      const rows = this.getAll().map(it => {
+        const displayPrice = (it.unitWholesaleRate && it.unitWholesaleRate > 0)
+          ? it.unitWholesaleRate
+          : (it.boxWholesaleRate || 0);
+        return [
           it.packSize && !it.name.toLowerCase().includes(it.packSize.toLowerCase())
             ? `${it.name} (${it.packSize})`
             : it.name,
-          it.unitWholesaleRate || 0,
+          displayPrice,
           it.stockBoxes ?? 0
-        ])
-      ];
+        ];
+      });
+      // Pad empty rows to clear any previously removed / stale rows in Sheet1
+      const emptyPad = Array.from({ length: Math.max(0, 50 - rows.length) }, () => ['', '', '']);
+      const values = [headers, ...rows, ...emptyPad];
 
-      const rangeStr = `${this.sheetTab}!A1:C${values.length + 10}`;
       const payload = JSON.stringify({ range: `${this.sheetTab}!A1:C${values.length}`, majorDimension: 'ROWS', values });
 
       return await new Promise((resolve) => {
