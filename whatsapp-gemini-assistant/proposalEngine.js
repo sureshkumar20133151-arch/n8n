@@ -32,57 +32,58 @@ function generateProposalDossier(leadData = {}) {
   const avgDeal = benchmark.avgDeal;
   const unit = benchmark.unit;
 
-  // 3-Tier Investment Options (Aligned to Low 10-20k / Mid 20-30k / High 30-50k Ticket Size)
+  // 3-Tier Investment Options (Starter / Pro / Enterprise aligned to Low 10-20k / Mid 20-30k / High 30-50k)
   const pricingTiers = [
     {
-      tierName: "Tier 1: Starter Foundation",
+      tierName: "Tier 1: Starter",
       price: "₹9,999",
       period: "one-time setup",
       highlight: false,
-      tagline: "Essential digital presence & lead capture (Only WhatsApp AI starts at ₹4,999)",
+      tagline: "Basic Website with Contact Form Fill, SEO & Front-End WhatsApp AI Support",
       deliverables: [
-        "Modern Mobile-First Portfolio / Business Landing Page",
-        "Direct WhatsApp Instant Inquiry CTA",
-        "Google Business & Maps Local SEO Setup",
-        "Lead Contact Form with Instant Email Alert",
-        "High-Speed Cloud Hosting Deployment"
+        "Basic Mobile-First Website with Contact Form Fill",
+        "SEO Optimization & Google Maps Local Setup",
+        "WhatsApp AI Agent for Front-End Customer Support Only",
+        "Instant Email & WhatsApp Lead Capture Alerts",
+        "30 Days Free Post-Launch Support"
       ],
-      idealFor: "Low Ticket (₹10k–₹20k): Businesses wanting a clean online presence with direct WhatsApp lead capture."
+      idealFor: "Low Ticket (₹10k–₹20k): Businesses wanting a clean SEO website with 24/7 front-end WhatsApp customer support."
     },
     {
-      tierName: "Tier 2: Autonomous AI Growth System",
+      tierName: "Tier 2: Pro",
       price: "₹24,999",
       period: "one-time turnkey sprint",
       highlight: true,
       badge: "MOST POPULAR — RECOMMENDED",
-      tagline: "24/7 AI-driven customer capture, Photo Vault & workflow automation",
+      tagline: "Premium Business Website, SEO, Customer AI + Backend Attendance & AI Vault",
       deliverables: [
-        "Full High-Speed Business Web Portal",
-        "24/7 Autonomous WhatsApp AI Agent (Tamil & English NLP)",
-        "AI Photo Vault (Upload & On-Demand Photo Retrieval)",
-        "Instant Inquiry Pre-Qualification & Budget Filtering",
-        "Automated Google Meet / Site Visit Calendar Booking",
-        "Google Sheets & n8n Multi-Stage CRM Pipeline Integration",
+        "Premium Business Website (Scroll Animations & Micro-Interactions)",
+        "Full SEO Optimization & High-Speed Architecture",
+        "WhatsApp AI Assistant for Front-End Customer Support & Qualification",
+        "Backend Daily Labor / Staff Attendance Tracking via WhatsApp",
+        "Backend AI Vault (Upload & Instant On-Demand Site/Work Photo Retrieval)",
+        "Automated Demo / Site Visit Calendar Booking + Google Sheets CRM",
         "All 4 Objection-Busting Bonuses Included Free (₹18,998 value)"
       ],
-      idealFor: `Mid Ticket (₹20k–₹30k): Growing ${industry} companies automating leads, photos & daily workflows.`
+      idealFor: `Mid Ticket (₹20k–₹30k): Growing ${industry} businesses automating customer replies, attendance & AI photo vault.`
     },
     {
-      tierName: "Tier 3: Enterprise AI Operating System",
+      tierName: "Tier 3: Enterprise",
       price: "₹49,999",
       period: "one-time enterprise build",
       highlight: false,
-      tagline: "Full multi-agent automation, Tally/Zoho sync & custom portal",
+      tagline: "Everything in Pro + Full End-to-End Business Automation",
       deliverables: [
-        "Everything in Tier 2 Growth System",
-        "WhatsApp-to-Tally Prime / Zoho Books / Excel Direct Sync",
+        "Everything in Pro (Premium Website + SEO + Customer AI + Attendance + AI Vault)",
         "Multi-Agent AI Ecosystem (Inquiry + Support + Outreach)",
-        "Automated A4 GST Invoice & Thermal Receipt PDFs",
-        "Custom Client / Admin Analytics Dashboard & Multi-Branch Routing",
-        "ERP / Inventory / Payment Gateway Automation",
+        "WhatsApp-to-Tally Prime / Zoho Books / Excel Direct Sync",
+        "Construction / Business Bills, Site Stocks & Machines Handling Automation",
+        "Customer Payment Invoice & Automated Payment Reminders through WhatsApp",
+        "Custom Client / Admin Analytics Dashboard & Multi-Branch / Multi-Staff Routing",
+        "ERP / Inventory / Payment Gateway Automation & Ecommerce Workflows",
         "Dedicated Server Deployment + 90-Day Priority VIP Support"
       ],
-      idealFor: "High Ticket (₹30k–₹50k): Established businesses automating end-to-end operations, accounting & sales."
+      idealFor: "High Ticket (₹30k–₹50k): Established businesses automating entire operations, accounting, stocks, machines & sales."
     }
   ];
 

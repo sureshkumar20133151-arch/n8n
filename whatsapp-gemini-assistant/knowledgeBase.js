@@ -35,8 +35,8 @@ const soloDeveloperKnowledge = {
       whatItDoes: "Upload site, work-progress, or bill photos on WhatsApp — AI auto-tags and archives them to Google Drive / structured storage. Retrieve any photo anytime on-demand in Group or DM (e.g., roof concrete pipes, wall chasing, site stage photos)."
     },
     {
-      name: "Automated A4 GST Invoice & Thermal Receipt Generation",
-      whatItDoes: "Generate and dispatch professional A4 GST PDF invoices and thermal POS receipts directly from WhatsApp voice or text commands."
+      name: "Automated Customer Payment Invoice & WhatsApp Payment Reminders",
+      whatItDoes: "Generate and dispatch customer payment invoices directly on WhatsApp and trigger automated due-date & follow-up payment reminders."
     },
     {
       name: "Voice, Bill & Screenshot Cashflow / Expense Tracker",
@@ -61,7 +61,7 @@ const soloDeveloperKnowledge = {
   ],
 
   workflowAutomationPossibilities: {
-    accountingAndBilling: "Connect WhatsApp directly to Tally Prime, Zoho Books, or Excel so voice/text entries become instant GST invoices, construction bills, receipts, and payment vouchers.",
+    accountingAndBilling: "Connect WhatsApp directly to Tally Prime, Zoho Books, or Excel so voice/text entries become instant customer payment invoices, construction bills, receipts, payment vouchers, and automated WhatsApp payment reminders.",
     photoAndDocumentVault: "Upload site pictures, work progress photos, inspections, or receipts via WhatsApp; AI organizes them by project/date/stage so anyone on the team can retrieve them in seconds.",
     inventoryAndOrders: "Track site stocks (cement, steel, electrical/plumbing materials), wholesale inventory, and machines/equipment handling directly via WhatsApp synced with Excel/Google Sheets.",
     fieldAndSiteOperations: "Manage construction bills, daily labor attendance, contractor advances, owner vs. contractor bills, site pictures, site stocks, and machines handling — all done by AI inside WhatsApp.",
@@ -69,85 +69,72 @@ const soloDeveloperKnowledge = {
   },
 
   services: {
-    portfolio: {
-      name: "Portfolio Website",
-      startingPrice: 7999,
-      priceRange: [7999, 9999],
-      formattedPrice: "₹7,999 – ₹9,999",
+    starter: {
+      name: "Starter Package (Basic Website + Front-End WhatsApp AI)",
+      startingPrice: 9999,
+      priceRange: [9999, 14999],
+      formattedPrice: "₹9,999",
       deliveryDays: [5, 7],
       deliveryText: "5–7 days",
       benefits: [
-        "Professional online presence & brand credibility",
-        "Mobile-first, responsive user experience",
-        "Modern visual presentation with subtle micro-interactions",
-        "Contact and WhatsApp inquiry capture",
-        "Vercel edge hosting setup & search visibility foundations"
+        "Basic Mobile-First Website with Contact Form Fill",
+        "SEO Optimization & Google Maps Local Setup",
+        "WhatsApp AI Agent for Front-End Customer Support & Lead Capture Only",
+        "Instant Email & WhatsApp Lead Alerts",
+        "30 Days Free Post-Launch Support"
       ],
-      idealFor: "Freelancers, doctors, consultants, creators, and professionals seeking premium brand perception."
+      idealFor: "Businesses wanting a clean website with SEO and 24/7 front-end WhatsApp customer support."
     },
 
-    business: {
-      name: "Business Website",
-      startingPrice: 12999,
-      priceRange: [12999, 49999],
-      formattedPrice: "₹12,999 – ₹49,999",
+    pro: {
+      name: "Pro Package (Premium Website + Customer AI + Backend Attendance & AI Vault)",
+      startingPrice: 24999,
+      priceRange: [24999, 34999],
+      formattedPrice: "₹24,999",
       deliveryDays: [7, 10],
       deliveryText: "7–10 days",
       benefits: [
-        "Business credibility & modern digital presence",
-        "Detailed service presentation & portfolio showcases",
-        "Scroll animations & engaging micro-interactions",
-        "Direct WhatsApp CTA & Google Maps local integration",
-        "Lead capture forms & high-performance architecture"
+        "Premium Business Website (Scroll Animations & Micro-Interactions)",
+        "Full SEO Optimization & High-Speed Next.js Architecture",
+        "WhatsApp AI Assistant for Front-End Customer Support & Qualification",
+        "Backend Daily Attendance Tracking via WhatsApp",
+        "Backend AI Photo & Document Vault (Upload & Instant On-Demand Retrieval)",
+        "Automated Demo / Site Visit Calendar Booking + Google Sheets CRM"
       ],
-      idealFor: "Builders, clinics, retail showrooms, manufacturers, restaurants, and local businesses wanting to stand out from cheap ₹5,000 templates."
+      idealFor: "Builders, clinics, and growing businesses needing premium web presence, customer AI, attendance, and an AI photo/document vault."
     },
 
-    ecommerce: {
-      name: "Ecommerce Website",
-      startingPrice: 19999,
-      priceRange: [19999, 49999],
-      formattedPrice: "₹19,999 – ₹49,999",
+    enterprise: {
+      name: "Enterprise Package (Pro + Full Business Automation)",
+      startingPrice: 49999,
+      priceRange: [44999, 49999],
+      formattedPrice: "₹49,999",
       deliveryDays: [10, 14],
       deliveryText: "10–14 days",
       benefits: [
-        "Online product catalog with search & filtering",
-        "Shopping cart and checkout flows",
-        "Payment gateway integration (Razorpay / UPI / Cards)",
-        "Order management dashboard & notification workflows",
-        "Mobile-responsive design"
+        "Everything in Pro (Premium Website + SEO + Customer AI + Attendance + AI Vault)",
+        "Full End-to-End Business Automation inside WhatsApp",
+        "Multi-Agent AI Ecosystem (Inquiry + Support + Outreach)",
+        "WhatsApp-to-Tally Prime / Zoho Books / Excel Direct Sync",
+        "Construction / Business Bills, Site Stocks & Machines Handling Automation",
+        "Customer Payment Invoice & Automated Payment Reminders through WhatsApp",
+        "Custom Client / Admin Analytics Dashboard & Multi-Branch / Multi-Staff Routing",
+        "ERP / Inventory / Payment Gateway Automation & Ecommerce Workflows",
+        "Dedicated Server Deployment + 90-Day Priority VIP Support"
       ],
-      idealFor: "Direct-to-consumer brands, boutiques, specialty food stores, and retail shops."
+      idealFor: "Construction firms, wholesalers, traders, and multi-site businesses automating their entire operations end-to-end."
     },
 
-    aiAgents: {
-      name: "Only WhatsApp AI Assistant",
-      startingPrice: 4999,
-      pricing: "Starting at ₹4,999 (More features as per requirement)",
-      formattedPrice: "Starting at ₹4,999 (More features as per your requirement)",
-      deliveryText: "3–7 days",
+    careAndSupport: {
+      name: "Post-Launch Care & On-Demand Fix Options (After 30 Days Free Support)",
+      monthlyCarePrice: "₹1,999 / month (Optional)",
+      oneTimeFixPricing: "Minor Fix ₹999 | Medium Workflow Fix ₹1,999 – ₹2,499 | New Feature/Integration ₹4,999+",
+      formattedPrice: "₹1,999/mo Care Plan OR Pay-Per-Fix from ₹999",
       benefits: [
-        "24/7 customer inquiry handling on WhatsApp",
-        "Consultative lead qualification & zero-interrogation CRM logging",
-        "Instant order intake or appointment booking",
-        "Direct n8n workflow integration & Google Sheets synchronization",
-        "Bilingual NLP in English and pure Tamil script"
-      ],
-      idealFor: "Wholesale merchants, high-volume restaurants, clinics, real estate firms, and service agencies."
-    },
-
-    automation: {
-      name: "n8n Workflow Automation",
-      pricing: "Custom Quote",
-      formattedPrice: "Custom Quote (Tailored to volume)",
-      deliveryText: "3–5 days",
-      benefits: [
-        "Elimination of repetitive manual data entry",
-        "Seamless synchronization between Google Sheets, WhatsApp, and CRM",
-        "Automated notifications & follow-up triggers",
-        "Zero expensive monthly SaaS retainers via self-hosted cloud instances"
-      ],
-      idealFor: "Businesses wanting to eliminate manual staff tasks and connect fragmented tools."
+        "First 30 Days Free Post-Launch Support included on all packages",
+        "Optional Monthly Care Plan (₹1,999/mo): Unlimited minor updates, 24/7 monitoring & priority support",
+        "Or One-Time Problem Fix (No monthly fee): Minor update ₹999, Medium workflow tweak ₹1,999–₹2,499, New integration ₹4,999+"
+      ]
     }
   },
 
@@ -361,7 +348,7 @@ You are the official Autonomous AI Sales Strategist and Business Consultant for 
 • NEVER call yourself a chatbot. Describe yourself as an AI Business Assistant or Autonomous AI Sales Assistant.
 
 ### 2. Core Behavioral Principles (Non-Negotiable)
-1. DIRECT ANSWER FIRST WITH QUALIFICATION: If the customer asks for pricing, share the transparent starting range first (e.g., Only WhatsApp AI Assistant starts at ₹4,999, Portfolio Website ₹7,999–₹9,999, Business Website ₹12,999–₹49,999, Ecommerce ₹19,999–₹49,999, with more features priced as per requirement). Then IMMEDIATELY ask ONE diagnostic question to understand what specific workflow or project they want automated. NEVER rush into proposing specific calendar slots (like 'today at 4:30 PM or tomorrow at 11 AM') before understanding their requirements!
+1. DIRECT ANSWER FIRST WITH QUALIFICATION: If the customer asks for pricing, share our 3 clear packages transparently first: Starter (₹9,999 — Basic Website with Contact Form, SEO & Front-End WhatsApp AI Customer Support), Pro (₹24,999 — Premium Business Website, SEO, Customer WhatsApp AI + Backend Attendance & AI Vault), and Enterprise (₹49,999 — Everything in Pro + Full Business Automation like Tally/Zoho Sync, Bills, Stocks & Machines). Then IMMEDIATELY ask ONE diagnostic question to understand what specific workflow or project they want automated. NEVER rush into proposing specific calendar slots (like 'today at 4:30 PM or tomorrow at 11 AM') before understanding their requirements!
 2. ONE QUESTION LIMIT: Ask a maximum of ONE question per WhatsApp message. Never combine multiple questions.
 3. CONTEXTUAL AWARENESS: Never repeat a question whose answer is already known from previous messages or stored contact details.
 4. ADAPTIVE DISCOVERY: Never force customers through a rigid questionnaire. Adapt fluidly to the information they share.
@@ -422,13 +409,14 @@ Recommend only services that address demonstrated needs:
 • Retail / Boutique ➔ Ecommerce store with Razorpay/UPI or WhatsApp catalog ordering.
 • Professional Services ➔ Premium portfolio website, inquiry qualification, strategy demo booking.
 
-### 8. Official Services and Indicative Starting Prices
-• Only WhatsApp AI Assistant: Starting at ₹4,999 (More features like Tally/Zoho Sync, AI Photo Vault, GST Billing & multi-agent workflows priced as per your requirement).
-• Portfolio Website: ₹7,999 – ₹9,999 (5–7 days delivery).
-• Business Website: ₹12,999 – ₹49,999 (7–10 days delivery).
-• Ecommerce Website: ₹19,999 – ₹49,999 (10–14 days delivery).
-• n8n Workflow Automation: Custom quotation based on integration complexity (Tally Prime, Zoho Books, Excel/Sheets, Google Drive, etc.).
-* These are indicative starting prices and ranges, not unconditional guarantees. Final scope, pricing, and timeline depend on required features and integrations. Never invent additional service prices.
+### 8. Official Packages and Indicative Pricing (One-Time Setup)
+• Starter — ₹9,999 (5–7 days): Basic Website with Contact Form Fill + SEO Optimization + WhatsApp AI Agent for Front-End Customer Support Only.
+• Pro — ₹24,999 (7–10 days, Most Popular): Premium Business Website + SEO Optimization + WhatsApp AI Assistant for Customers + Backend Daily Attendance + AI Photo/Document Vault.
+• Enterprise — ₹49,999 (10–14 days): Everything in Pro + Full Business Automation (Multi-Agent AI Ecosystem, Construction/Business Bills, Tally Prime/Zoho Books/Excel Sync, Site Stocks, Machines Handling, Customer Payment Invoice & Payment Reminders through WhatsApp, Custom Admin Analytics Dashboard, Multi-Branch Routing, ERP/Inventory/Payment Gateway Automation, Dedicated Server + 90-Day Priority VIP Support).
+• Post-Launch Support (After 30 Days Free Support):
+  - Optional Monthly Care Plan: ₹1,999/month (unlimited minor updates, 24/7 monitoring & priority support).
+  - Or One-Time Problem Fix (No monthly fee): Minor update ₹999 | Medium workflow tweak ₹1,999–₹2,499 | New feature/integration ₹4,999+.
+* Note: If a client already has a website or needs custom scope, packages can be tailored accordingly. Never invent unauthorized discounts or unstated prices.
 
 ### 8.5. Built Systems & End-to-End Business Automation Possibilities (Explain When Asked What We Do)
 When a prospect asks what we have built, what features are possible, or how we can automate their business beyond just websites, draw from these REAL systems we have already built (keep replies concise — highlight the 2–3 most relevant to their business, then ask 1 question about their current tools/workflow):
@@ -436,8 +424,8 @@ When a prospect asks what we have built, what features are possible, or how we c
    - Staff or owners speak/text in Tamil, Tanglish, or English on WhatsApp (even from a site or shop counter) → AI parses Party, Item, Qty, Rate, and Payer (Owner/Contractor/Self) and automatically creates Sales, Purchase, Receipt, and Payment vouchers in Tally Prime or Zoho Books (with offline Google Sheets sync so zero data is lost).
 2. **AI Photo Vault & On-Demand Photo Retrieval:**
    - Teams upload site work photos (e.g., roof concrete pipes, wall chasing, plumbing, completed stages), bills, or product images via WhatsApp → AI auto-tags and archives them to Google Drive/Cloud → Anyone authorized can retrieve specific photos on-demand in Group or DM in seconds.
-3. **Instant A4 GST Invoice & Thermal Receipt PDFs:**
-   - Generate and send A4 GST invoices or thermal POS receipts directly from a WhatsApp voice/text command.
+3. **Customer Payment Invoice & Payment Reminders through WhatsApp:**
+   - Generate and send customer payment invoices directly on WhatsApp, with automated scheduled payment reminders so pending collections arrive on time.
 4. **Voice, Bill & Screenshot Expense / Cashflow Tracker:**
    - Send voice notes, paper bills, or GPay/UPI screenshots on WhatsApp → AI extracts amounts, categories, and parties to log daily expenses, labor advances, and income automatically.
 5. **Wholesale B2B Inventory, MOQ & Dispatch Engine:**

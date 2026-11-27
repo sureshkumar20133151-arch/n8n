@@ -169,7 +169,7 @@ ${magnet.auditDeliverable}
 ⚙️ *What Else We Connect & Automate Inside WhatsApp:*
 • *Existing Software Sync:* Voice/text entries straight into Tally Prime, Zoho Books, or Excel/Google Sheets
 • *AI Photo Vault:* Upload site/work/bill photos on WhatsApp & retrieve them anytime on-demand
-• *Instant Billing & Ops:* Auto-generate GST/Thermal PDFs, track expenses, and qualify leads 24/7
+• *Instant Billing & Reminders:* Send customer payment invoices & automated payment reminders through WhatsApp, track expenses, and qualify leads 24/7
 
 💡 *Financial Impact:* ${magnet.revenueImpact}
 

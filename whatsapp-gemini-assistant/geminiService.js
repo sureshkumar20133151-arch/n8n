@@ -1029,7 +1029,7 @@ User message: "${userText.trim()}"`;
           // INTERRUPTION & INQUIRY HANDLING DIRECTIVE
           const isAskingQuestion = /\?|price|cost|rate|pricing|how much|epdi|evalo|evvalavu|enge|where|portfolio|sample|demo|website irukka/i.test(trimmedLower);
           if (isAskingQuestion && !isOwner) {
-            contextualText = `[INTERRUPTION & INQUIRY DIRECTIVE: The user asked a direct question. Answer their question directly, transparently, and politely in 2-3 lines first (e.g. Only WhatsApp AI Assistant starts at ₹4,999, Portfolio ₹7,999–₹9,999, Business ₹12,999–₹49,999, Ecommerce ₹19,999–₹49,999). Then seamlessly continue the discovery flow by asking ONE diagnostic question. Do NOT ignore their question and do NOT restart the greeting]: ${contextualText}`;
+            contextualText = `[INTERRUPTION & INQUIRY DIRECTIVE: The user asked a direct question. Answer their question directly, transparently, and politely in 2-3 lines first (e.g. Starter ₹9,999 for Basic Website + Contact Form + SEO + Front-End WhatsApp AI, Pro ₹24,999 for Premium Business Website + SEO + Customer AI + Backend Attendance & AI Vault, Enterprise ₹49,999 for Pro + Full Business Automation). Then seamlessly continue the discovery flow by asking ONE diagnostic question. Do NOT ignore their question and do NOT restart the greeting]: ${contextualText}`;
           }
 
           // SCRIPT & LANGUAGE DIRECTIVE
