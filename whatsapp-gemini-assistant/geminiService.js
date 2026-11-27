@@ -16,6 +16,7 @@ const { PLUMBING_ELECTRICAL_TOOLS, buildPlumbingElectricalSystemPrompt, executeP
 const { FINANCE_TOOLS, buildFinanceSystemPrompt, executeFinanceToolCall } = require('./financePersona');
 const { DHANAM_INTERNAL_TOOLS, buildDhanamInternalSystemPrompt, executeDhanamInternalToolCall } = require('./dhanamInternalPersona');
 const { SMT_TOOLS, buildSmtSystemPrompt, executeSmtToolCall } = require('./meenakshiTradersPersona');
+const { SOLODEV_PA_TOOLS, buildSolodevPaSystemPrompt, executeSolodevPaToolCall, isAuthorizedPaUser } = require('./solodevPersonalAssistant');
 const builderCustomerMemory = require('./builderCustomerMemory');
 
 const LEAD_TOOLS = [{
@@ -346,6 +347,8 @@ class GeminiService {
       base = buildDhanamInternalSystemPrompt();
     } else if (mode === 'meenakshi_traders') {
       base = buildSmtSystemPrompt(chatId, options);
+    } else if (mode === 'solodev_pa') {
+      base = buildSolodevPaSystemPrompt();
     } else {
       base = buildSystemPrompt();
     }
@@ -388,6 +391,9 @@ class GeminiService {
     }
     if (mode === 'meenakshi_traders') {
       return SMT_TOOLS;
+    }
+    if (mode === 'solodev_pa') {
+      return isAuthorizedPaUser(isOwner, options.remoteJid || '', options) ? SOLODEV_PA_TOOLS : [];
     }
     return isOwner ? OWNER_TOOLS : LEAD_TOOLS;
   }
@@ -677,6 +683,10 @@ class GeminiService {
 
     if (mode === 'meenakshi_traders') {
       return await executeSmtToolCall(fnCall, chatId, options);
+    }
+
+    if (mode === 'solodev_pa') {
+      return await executeSolodevPaToolCall(fnCall, chatId, isOwner, options);
     }
 
     if (fnName === 'saveLeadDetails') {

@@ -45,6 +45,16 @@ const PERSONAS = {
     icon: '💻',
     switchMessage: '✅ *Switched!* Mode is now active: 💻 *Suresh Kumar SoloDeveloper.pro Sales Operating System*.\n• Hormozi 3-Way Qualification, Proposal Engine & Demo Booking active.\nReady for web & AI automation prospects!'
   },
+  solodev_pa: {
+    id: 'solodev_pa',
+    name: 'SoloDeveloper Personal Assistant (Boss OS)',
+    client: 'Suresh Kumar — Internal Operations',
+    proprietor: 'Suresh Kumar',
+    tagline: 'Tasks & Sprints • Client Projects • WhatsApp Payment Invoices & Reminders • Outreach Control',
+    badge: 'Personal Assistant Mode',
+    icon: '🧠',
+    switchMessage: '✅ *Switched!* Mode is now active: 🧠 *SoloDeveloper Personal Assistant (Boss OS)*.\n• Tasks, Sprint Tracker & Voice Notes ready.\n• Client Projects & Payment Invoice Reminders on WhatsApp active.\n• Ask "daily briefing", "add task", or "send payment reminder" anytime!'
+  },
   plumber: {
     id: 'plumber',
     name: 'Arasan Electrical & Plumbing Site Assistant',
@@ -170,12 +180,14 @@ class PersonaManager {
       selectedKey = 'dhanam_internal';
     } else if (normalized === 'meenakshi_traders' || normalized === 'smt' || normalized === 'meenakshi' || normalized === 'traders' || normalized === 'hardware') {
       selectedKey = 'meenakshi_traders';
+    } else if (normalized === 'solodev_pa' || normalized === 'pa' || normalized === 'personal_assistant' || normalized === 'personal assistant' || normalized === 'assistant' || normalized === 'suresh_pa') {
+      selectedKey = 'solodev_pa';
     }
 
     if (!selectedKey || !PERSONAS[selectedKey]) {
       return {
         success: false,
-        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev, plumber, finance, dhanam_internal, meenakshi_traders.`
+        error: `Unknown mode "${targetMode}". Valid options: wholesale, restaurant, builder, dev, solodev_pa, plumber, finance, dhanam_internal, meenakshi_traders.`
       };
     }
 

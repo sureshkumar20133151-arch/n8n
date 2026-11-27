@@ -28,6 +28,7 @@ const sessionPersistence = require('./sessionPersistence');
 const instagramService = require('./instagramService');
 const channelControls = require('./channelControls');
 const MultiSessionManager = require('./multiSessionManager');
+const solodevPa = require('./solodevPersonalAssistant');
 
 const gemini = new GeminiService();
 const multiSession = new MultiSessionManager(gemini);
@@ -232,6 +233,14 @@ function detectModeSwitchIntent(rawText) {
     /^(smt\s*mode|meenakshi\s*mode|traders\s*mode)$/i.test(cleaned)
   ) {
     return { target: 'meenakshi_traders' };
+  }
+
+  if (
+    /(?:switch|change|set|activate|turn on|mathu|maathu)\s*(?:mode)?\s*(?:to|ku)?\s*(?:pa|personal\s*assistant|solodev\s*pa|suresh\s*pa)/i.test(cleaned) ||
+    /(?:pa|personal\s*assistant|solodev\s*pa)\s*(?:mode\s*)?(?:ku\s*)?(?:switch|mathu|maathu)/i.test(cleaned) ||
+    /^(pa\s*mode|personal\s*assistant\s*mode|solodev\s*pa)$/i.test(cleaned)
+  ) {
+    return { target: 'solodev_pa' };
   }
 
   return null;
@@ -1738,6 +1747,66 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // SoloDeveloper Personal Assistant REST APIs (/api/pa/*)
+  if (req.url.startsWith('/api/pa/')) {
+    if (!authenticateRequest(req, res)) return;
+    const parsedPaUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const paPath = parsedPaUrl.pathname;
+
+    if (paPath === '/api/pa/summary' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+      return res.end(JSON.stringify(solodevPa.getDailyBriefingSummary()));
+    }
+
+    if (paPath === '/api/pa/tasks' && req.method === 'GET') {
+      const tRes = await solodevPa.handleTasksCrud({ operation: 'read' });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+      return res.end(JSON.stringify(tRes));
+    }
+
+    if (paPath === '/api/pa/leads' && req.method === 'GET') {
+      const lRes = await solodevPa.handleLeadGenSheet({ operation: 'read_summary' });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+      return res.end(JSON.stringify(lRes));
+    }
+
+    if (paPath === '/api/pa/invoices' && req.method === 'GET') {
+      const invRes = await solodevPa.handleInvoicesAndReminders({ operation: 'read' });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+      return res.end(JSON.stringify(invRes));
+    }
+
+    if (req.method === 'POST' && ['/api/pa/tasks', '/api/pa/projects', '/api/pa/invoices', '/api/pa/notes', '/api/pa/leads', '/api/pa/outreach'].includes(paPath)) {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          let out;
+          if (paPath === '/api/pa/tasks') out = await solodevPa.handleTasksCrud(payload);
+          else if (paPath === '/api/pa/projects') out = solodevPa.handleProjectsCrud(payload);
+          else if (paPath === '/api/pa/invoices') out = await solodevPa.handleInvoicesAndReminders(payload);
+          else if (paPath === '/api/pa/leads') out = await solodevPa.handleLeadGenSheet(payload);
+          else if (paPath === '/api/pa/outreach') {
+            if (payload.action === 'activate' || payload.action === 'pause' || payload.action === 'status' || payload.action === 'list') {
+              out = await solodevPa.controlN8nOutreachWorkflow(payload);
+            } else {
+              out = await solodevPa.runLeadGenOutreachBatch(payload, payload.notifyPhone || '919361599097');
+            }
+          } else {
+            out = solodevPa.handleNotesCrud(payload);
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+          res.end(JSON.stringify(out));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': allowedOrigin });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+  }
+
   // Serve the complete Interactive Multi-Persona Switcher Dashboard for Home (/) and (/switcher)
   const candidatePaths = [
     path.resolve(__dirname, 'switcher_web_page.html'),
@@ -1761,6 +1830,22 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 Web service listening on port ${PORT}`);
+
+  // Connect SoloDeveloper Personal Assistant WhatsApp sender to active Baileys socket
+  solodevPa.setWhatsAppSender(async (rawPhone, messageText) => {
+    if (!isClientReady || !sock) {
+      return { success: false, error: 'WhatsApp client is not connected' };
+    }
+    let digits = (rawPhone || '').toString().replace(/\D/g, '');
+    if (digits.length === 10) digits = '91' + digits;
+    if (!digits || isDummyPhoneNumber(digits)) {
+      return { success: false, error: 'Invalid or dummy phone number' };
+    }
+    const jid = `${digits}@s.whatsapp.net`;
+    await sendBotMessage(sock, jid, { text: messageText });
+    gemini.recordOutboundMessage(jid, messageText);
+    return { success: true, jid };
+  });
 
   // 24/7 Keep-Alive Self-Ping (Prevents Render Free Tier from going to sleep after 15m)
   const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || 'https://whatsapp-assistant-iqpi.onrender.com';
