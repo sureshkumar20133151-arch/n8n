@@ -47,13 +47,13 @@ const PERSONAS = {
   },
   solodev_pa: {
     id: 'solodev_pa',
-    name: 'SoloDeveloper Personal Assistant (Boss OS)',
-    client: 'Suresh Kumar — Internal Operations',
+    name: 'SoloDeveloper Super PA + Budget Tracker',
+    client: 'Suresh Kumar — Business & Personal Finance OS',
     proprietor: 'Suresh Kumar',
-    tagline: 'Todoist Sync • 432-Lead Sheet • Outreach Control • Invoices & Reminders',
-    badge: 'Personal Assistant Mode',
+    tagline: 'Todoist Sync • Budget Tracker & GPay • 432-Lead Sheet • Outreach • Invoices',
+    badge: 'Super Personal Assistant',
     icon: '🧠',
-    switchMessage: '✅ *Switched!* Mode is now active: 🧠 *SoloDeveloper Personal Assistant (Boss OS)*.\n• *Todoist Sync* & Daily Tasks ready.\n• *solo dev lead gen* Sheet (Prospects) + 5/10 Outreach Control active.\n• Client Projects & WhatsApp Payment Invoice Reminders ready!'
+    switchMessage: '✅ *Switched!* Mode is now active: 🧠 *SoloDeveloper Super PA + Budget Tracker*.\n• *Todoist Sync* & Daily Tasks ready.\n• *Personal Finance & Budget Tracker* (Voice/GPay/Bills/Balances) merged!\n• *solo dev lead gen* Sheet (432 leads) + 5/10 Outreach Control + Invoices ready!'
   },
   plumber: {
     id: 'plumber',

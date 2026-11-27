@@ -16,6 +16,11 @@ const http = require('http');
 const adminRules = require('./adminRulesManager');
 const googleDriveService = require('./googleDriveService');
 const { generateOutreachScript, generateFollowUpMessage } = require('./outreachEngine');
+const { FINANCE_TOOLS, buildFinanceSystemPrompt, executeFinanceToolCall } = require('./financePersona');
+
+const FINANCE_TOOL_NAMES = new Set(
+  (FINANCE_TOOLS?.[0]?.functionDeclarations || []).map(f => f.name)
+);
 
 const DATA_DIR = path.resolve(__dirname, 'data');
 const STORE_PATH = path.join(DATA_DIR, 'solodev_pa_store.json');
@@ -291,6 +296,24 @@ async function handleTasksCrud(args = {}) {
   }
 
   if (op === 'delete') {
+    if (args.deleteAll) {
+      let todoistDeletedCount = 0;
+      if (hasTodoist) {
+        const listRes = await todoistRequest('GET', '/tasks');
+        if (listRes.ok) {
+          const rawList = Array.isArray(listRes.data) ? listRes.data : (listRes.data?.results || []);
+          const results = await Promise.all(
+            rawList.map(t => todoistRequest('DELETE', `/tasks/${t.id}`).then(r => r.ok).catch(() => false))
+          );
+          todoistDeletedCount = results.filter(Boolean).length;
+        }
+      }
+      const localCleared = store.tasks.length;
+      store.tasks = [];
+      saveStore(store);
+      return { success: true, action: 'deleted_all', localCleared, todoistDeletedCount };
+    }
+
     const target = store.tasks.find(t => args.taskId && (t.id.toLowerCase() === args.taskId.toLowerCase() || t.todoistId === String(args.taskId)));
     const todoistId = target?.todoistId || args.todoistId;
     let todoistDeleted = false;
@@ -979,6 +1002,7 @@ const SOLODEV_PA_TOOLS = [{
           dueTime: { type: 'STRING', description: 'Optional time e.g. 10:00 AM' },
           priority: { type: 'STRING', enum: ['Low', 'Medium', 'High', 'Urgent'] },
           status: { type: 'STRING', enum: ['Pending', 'In Progress', 'Done'] },
+          deleteAll: { type: 'BOOLEAN', description: 'Set true ONLY when Suresh explicitly confirms deleting ALL tasks at once' },
           notes: { type: 'STRING' },
           searchText: { type: 'STRING' }
         },
@@ -1128,7 +1152,8 @@ const SOLODEV_PA_TOOLS = [{
         },
         required: ['action']
       }
-    }
+    },
+    ...(FINANCE_TOOLS?.[0]?.functionDeclarations || [])
   ]
 }];
 
@@ -1144,6 +1169,7 @@ You work strictly for Suresh Kumar (and authorized numbers: +91 93615 99097, +91
 
 ### LIVE CONNECTED INTEGRATIONS STATUS (REAL-TIME FACTS):
 • **Todoist App Integration:** ${todoistConnected ? '✅ CONNECTED & ACTIVE (API Token verified — real-time sync with Suresh\'s Todoist app)' : '⚠️ Local store mode (TODOIST_API_TOKEN missing)'}
+• **Personal Finance & Budget Tracker Pro (MCP):** ✅ CONNECTED & ACTIVE (Log expenses/income via text, voice, GPay screenshots, bills; check balances, categories, loans & recurring bills)
 • **Google Sheet (\`solo dev lead gen\` -> \`Prospects\` tab):** ✅ CONNECTED & ACTIVE (Sheet ID: ${LEAD_GEN_SPREADSHEET_ID})
 • **Outreach Batch Runner (5/10 leads on command):** ✅ READY (${store.outreachPaused ? 'Currently PAUSED' : 'Active / Ready on command'})
 • **Cloud n8n Workflow Toggle:** ${n8nConnected ? '✅ CONNECTED' : '⚙️ Local PA switch active (add N8N_API_KEY for remote n8n toggle)'}
@@ -1166,10 +1192,12 @@ You work strictly for Suresh Kumar (and authorized numbers: +91 93615 99097, +91
 ### Communication Rules:
 • Match Suresh's language: warm Tamil script (தமிழ் எழுத்துக்களில்) with clean English tech/business terms when he writes/speaks in Tamil/Tanglish; crisp English if he writes in English.
 • Action-First: Execute the requested tool immediately and confirm concisely with IDs/counts.
-• Never treat Suresh as a sales lead. Never send outreach unless Suresh explicitly commands it.`;
+• Never treat Suresh as a sales lead. Never send outreach unless Suresh explicitly commands it.
+
+${typeof buildFinanceSystemPrompt === 'function' ? buildFinanceSystemPrompt() : ''}`;
 }
 
-async function executeSolodevPaToolCall(fnCall, chatId, isOwner = false, options = {}) {
+async function executeSolodevPaToolCall(fnCall, chatId, isOwner = false, options = {}, targetUid = null) {
   const fnName = fnCall.name;
   const args = fnCall.args || {};
 
@@ -1178,6 +1206,10 @@ async function executeSolodevPaToolCall(fnCall, chatId, isOwner = false, options
       success: false,
       error: 'Unauthorized: SoloDeveloper Personal Assistant tools are restricted to authorized owner numbers.'
     };
+  }
+
+  if (FINANCE_TOOL_NAMES.has(fnName)) {
+    return await executeFinanceToolCall(fnCall, chatId, targetUid);
   }
 
   if (fnName === 'manageTasksCrud') return await handleTasksCrud(args);

@@ -686,7 +686,7 @@ class GeminiService {
     }
 
     if (mode === 'solodev_pa') {
-      return await executeSolodevPaToolCall(fnCall, chatId, isOwner, options);
+      return await executeSolodevPaToolCall(fnCall, chatId, isOwner, options, targetUid);
     }
 
     if (fnName === 'saveLeadDetails') {
@@ -932,7 +932,7 @@ The customer shared a house construction / elevation video or reel (${media.seco
 4. Seamlessly ask about their plot dimensions or locality to compute an exact preliminary estimate!`
             : '';
           contextualText = `${builderContext}${imagePrompt}\n[CUSTOMER INCOMING MESSAGE]: ${userText.trim()}`;
-        } else if (mode === 'finance') {
+        } else if (mode === 'finance' || mode === 'solodev_pa') {
           const imagePrompt = (media && !media.isAudio)
             ? `\n[FINANCE RECEIPT / BILL / GPAY SCREENSHOT ATTACHED]: The user sent an image or screenshot along with text: "${userText.trim()}".
 1. Carefully inspect the image:
@@ -1000,9 +1000,14 @@ If they place an order, collect shop name and area in Madurai, and call register
 User message: "${userText.trim()}"`;
           }
         } else if (mode === 'solodev_pa') {
-          contextualText = `[SOLODEVELOPER PERSONAL ASSISTANT - AUTHORIZED BOSS SESSION]:
-You are Suresh Kumar's internal Personal Assistant. Use your connected tools (manageTasksCrud for Todoist, manageLeadGenSheet for 'solo dev lead gen' Prospects sheet, controlN8nOutreachWorkflow, runLeadGenOutreachBatch, manageClientProjectsCrud, managePaymentInvoices, manageNotesCrud, getDailyBriefing) directly.
-If Suresh asks about Todoist, tasks, leads, or outreach status, call the matching tool immediately and share the live results!
+          const imagePrompt = (media && !media.isAudio)
+            ? `\n[FINANCE RECEIPT / BILL / GPAY SCREENSHOT ATTACHED]: The user sent an image or screenshot along with text: "${userText.trim()}".
+1. If it is a Google Pay / PhonePe / Paytm / Bank payment screenshot or printed bill/receipt: Extract Amount, Recipient/Merchant, Date & Payment Mode (UPI) and call "addTransaction" immediately to record it into Budget Tracker!
+2. If ANY critical detail is unreadable, ask Suresh briefly.`
+            : '';
+          contextualText = `[SOLODEVELOPER PERSONAL ASSISTANT + BUDGET TRACKER - AUTHORIZED BOSS SESSION]:
+You are Suresh Kumar's unified Personal Assistant & Personal Finance Accountant. Use BOTH Business PA tools (manageTasksCrud for Todoist, manageLeadGenSheet for 'solo dev lead gen' Prospects, controlN8nOutreachWorkflow, runLeadGenOutreachBatch, manageClientProjectsCrud, managePaymentInvoices, manageNotesCrud, getDailyBriefing) AND Personal Finance / Budget Tracker tools (addTransaction, getBalances, getMonthlySummary, getTransactions, listCategories, deleteTransaction, addRecurring, deleteRecurring, addLoan, deleteLoan).
+If Suresh asks about Todoist, expenses, balances, leads, or outreach, call the matching tool immediately!${imagePrompt}
 Suresh's message: "${userText.trim()}"`;
         } else {
           // Dev mode (SoloDeveloper)
@@ -1068,7 +1073,7 @@ The customer sent an image or video screenshot (house 3D elevation, floor plan, 
 4. Assure the customer that Danam Holdings in Madurai specializes in executing this exact turnkey elevation & construction with precision! Mention approved package rates (Standard ₹1,850–₹1,950/Sq.Ft or Premium Luxury ₹2,250–₹2,350/Sq.Ft).
 5. Seamlessly ask if they have a plot in Madurai or what their plot size is to calculate an instant preliminary estimate!`;
           userParts.push({ text: imageDirective });
-        } else if (mode === 'finance') {
+        } else if (mode === 'finance' || mode === 'solodev_pa') {
           const financeImageDirective = `[FINANCE RECEIPT / BILL / GPAY SCREENSHOT SHARED WITHOUT CAPTION]:
 The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank alert, or physical restaurant/store bill) without a text caption.
 1. Carefully inspect the image:
@@ -1307,6 +1312,8 @@ The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank a
             : "வணக்கம்! தாஜ் ஹோட்டல் மதுரை 🍗. இன்றைய ஸ்பெஷல் சிக்கன் பிரியாணி, மட்டன் பிரியாணி அல்லது வஞ்சிரம் மீன் பிரியாணி எத்தனை பார்சல் ரெடி பண்ண வேண்டும்?";
         } else if (mode === 'builder') {
           replyText = "வணக்கம் சார்! Danam Holdings Civil Engineering & Turnkey EPC 🏡. உங்கள் புதிய வீடு கட்டும் திட்டம், பிளாட் அளவு (Sq.Ft) அல்லது இடம் கூறினால் உடனடி மதிப்பீடு தருகிறோம்!";
+        } else if (mode === 'solodev_pa') {
+          replyText = "வணக்கம் சுரேஷ்! உங்கள் கோரிக்கையைச் செயலாக்குவதில் ஒரு சிறிய தாமதம் ஏற்பட்டது. தயவுசெய்து மீண்டும் ஒருமுறை அனுப்புங்கள் (Todoist, Budget Tracker, Leads அல்லது Outreach எதுவாக இருந்தாலும் கேளுங்கள்!).";
         } else if (hasTamil) {
           replyText = "நன்றி! உங்கள் விபரங்களை குறித்துக் கொண்டேன். உங்களுக்கு மிகச் சரியான தீர்வை பரிந்துரைக்க, மேலும் ஒரு சிறிய விபரம்...";
         } else if (asksForTanglish || isTanglishText) {
@@ -1375,6 +1382,10 @@ The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank a
           return "Hello and welcome to Danam Holdings Civil Engineering & Turnkey EPC! 🏡 How can we assist you with your dream home construction project today?";
         }
         return "வணக்கம் சார்! Danam Holdings House Construction & Civil EPC 🏡. உங்கள் வீடு கட்டும் இடம், பிளாட் அளவு அல்லது தேவையான சதுர அடி (Sq.Ft) விபரங்களை பகிருங்கள் சார், உடனே மதிப்பீடு மற்றும் விபரங்களை தருகிறேன்!";
+      }
+
+      if (mode === 'solodev_pa') {
+        return "வணக்கம் சுரேஷ்! சர்வரில் ஒரு சிறிய தாமதம் ஏற்பட்டது. உங்கள் Todoist, செலவு கணக்கு (Budget Tracker), Leads அல்லது Outreach கட்டளையை மீண்டும் ஒருமுறை அனுப்பவும்!";
       }
 
       const hasTamilInInput = /[\u0B80-\u0BFF]/.test(userText || '');
