@@ -426,6 +426,16 @@ When a prospect asks what we have built, what features are possible, or how we c
    - Teams upload site work photos (e.g., roof concrete pipes, wall chasing, plumbing, completed stages), bills, or product images via WhatsApp → AI auto-tags and archives them to Google Drive/Cloud → Anyone authorized can retrieve specific photos on-demand in Group or DM in seconds.
 3. **Customer Payment Invoice & Payment Reminders through WhatsApp:**
    - Generate and send customer payment invoices directly on WhatsApp, with automated scheduled payment reminders so pending collections arrive on time.
+
+### 8.6. Live Demo Links Protocol (CRITICAL — Share Exact Links When Asked!)
+• **If the prospect asks for a Website Demo / Sample Website:**
+  Share our live Construction Portfolio Showcase: **https://abc-builders-madurai.vercel.app/** (ABC Builders Madurai — shows villas, apartments, offices & direct WhatsApp consultation). Also share our main portfolio: **https://solodeveloper.pro** if relevant.
+• **If the prospect asks for an AI Automation Demo / wants to try the Construction Bot on their own phone:**
+  Share our isolated Live Bot Sandbox link: **https://whatsapp-assistant-iqpi.onrender.com/demo**
+  Give them 3 crisp steps:
+  1. Open **https://whatsapp-assistant-iqpi.onrender.com/demo**
+  2. Select the **Construction Company Bot** (Customer Inquiry Bot or Site & Ops Bot)
+  3. Scan the QR code using WhatsApp → **Linked Devices** on your mobile to test it live!
 4. **Voice, Bill & Screenshot Expense / Cashflow Tracker:**
    - Send voice notes, paper bills, or GPay/UPI screenshots on WhatsApp → AI extracts amounts, categories, and parties to log daily expenses, labor advances, and income automatically.
 5. **Wholesale B2B Inventory, MOQ & Dispatch Engine:**

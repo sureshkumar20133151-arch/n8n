@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoloDeveloper.pro — Live Construction & AI Bot Demo</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-2: #161f33;
+      --border: rgba(255,255,255,0.1);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #10b981;
+      --blue: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: radial-gradient(circle at 20% 0%, rgba(16,185,129,0.12), transparent 45%),
+                  radial-gradient(circle at 80% 0%, rgba(59,130,246,0.12), transparent 45%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+    .container { max-width: 780px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 24px; }
+    .badge {
+      display: inline-block; padding: 5px 12px; border-radius: 9999px;
+      background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4);
+      color: #34d399; font-size: 0.78rem; font-weight: 700; margin-bottom: 10px;
+    }
+    h1 { font-size: 1.55rem; font-weight: 800; margin-bottom: 8px; }
+    .sub { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; margin-bottom: 18px;
+    }
+    .card h2 { font-size: 1.05rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .web-demo-row {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 18px; border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+      border: none; cursor: pointer; text-decoration: none; transition: 0.15s;
+    }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-blue:hover { background: #2563eb; }
+    .btn-green { background: var(--accent); color: #052e16; }
+    .btn-green:hover { background: #34d399; }
+    .btn-red { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); }
+    .bot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 18px; }
+    @media (max-width: 600px) { .bot-grid { grid-template-columns: 1fr; } }
+    .bot-opt {
+      text-align: left; background: var(--surface-2); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px; cursor: pointer; color: var(--text); transition: 0.15s;
+    }
+    .bot-opt:hover { border-color: rgba(255,255,255,0.28); }
+    .bot-opt.selected { border-color: var(--accent); background: rgba(16,185,129,0.12); }
+    .bot-opt h3 { font-size: 0.95rem; margin-bottom: 4px; }
+    .bot-opt p { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+    .qr-area { text-align: center; padding: 18px; background: var(--surface-2); border-radius: 14px; border: 1px dashed var(--border); }
+    .qr-wrap { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; margin: 14px 0; }
+    .qr-wrap img { width: 220px; height: 220px; display: block; }
+    .status-pill {
+      display: inline-block; padding: 5px 14px; border-radius: 9999px; font-size: 0.8rem; font-weight: 700;
+      background: rgba(59,130,246,0.15); color: #93c5fd; margin-bottom: 8px;
+    }
+    .status-pill.connected { background: rgba(16,185,129,0.2); color: #34d399; }
+    .steps { font-size: 0.82rem; color: var(--muted); line-height: 1.7; text-align: left; max-width: 460px; margin: 12px auto 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">SoloDeveloper.pro • Interactive Live Demo</div>
+      <h1>Try Our Website &amp; AI Construction Bot Live</h1>
+      <p class="sub">Test our construction website showcase or connect a live WhatsApp AI Bot to your own mobile in 15 seconds (100% isolated demo sandbox).</p>
+    </div>
+
+    <div class="card">
+      <div class="web-demo-row">
+        <div>
+          <h2>🌐 Construction Website Demo</h2>
+          <p style="font-size:0.84rem;color:var(--muted);">Explore our live Madurai builder portfolio (Villas, Apartments, Offices &amp; WhatsApp CTA).</p>
+        </div>
+        <a href="https://abc-builders-madurai.vercel.app/" target="_blank" rel="noopener" class="btn btn-blue">Open ABC Builders Demo ↗</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🤖 Step 1: Select a Construction / Business AI Bot</h2>
+      <p style="font-size:0.82rem;color:var(--muted);">Pick the bot you want to test on your WhatsApp:</p>
+      <div class="bot-grid" id="botGrid">
+        <button class="bot-opt selected" data-mode="dhanam_internal" onclick="selectBot('dhanam_internal', this)">
+          <h3>🏗️💼 Construction Site &amp; Ops AI</h3>
+          <p>Construction bills, daily labor attendance, site pictures vault, site stocks &amp; machines handling via WhatsApp.</p>
+        </button>
+        <button class="bot-opt" data-mode="builder" onclick="selectBot('builder', this)">
+          <h3>🏗️ Construction Customer Sales Bot</h3>
+          <p>Answers client queries, calculates sq.ft BOQ estimates, shares 3D plans &amp; books site visits 24/7.</p>
+        </button>
+        <button class="bot-opt" data-mode="plumber" onclick="selectBot('plumber', this)">
+          <h3>⚡🔧 Site Photo Vault Bot</h3>
+          <p>Upload roof/plumbing/site stage photos on WhatsApp &amp; retrieve any photo on-demand in seconds.</p>
+        </button>
+        <button class="bot-opt" data-mode="dev" onclick="selectBot('dev', this)">
+          <h3>💻 SoloDeveloper Sales OS</h3>
+          <p>24/7 Bilingual AI Sales Assistant with Starter / Pro / Enterprise consultation &amp; demo booking.</p>
+        </button>
+      </div>
+
+      <div class="qr-area">
+        <div id="statusBadge" class="status-pill">Ready to Generate Demo QR</div>
+        <div id="qrMessage" style="font-size:0.86rem;color:var(--muted);margin-bottom:12px;">
+          Click below to generate your personal QR code and test the selected bot on your phone.
+        </div>
+        <div id="qrBox" class="qr-wrap" style="display:none;">
+          <img id="qrImg" alt="WhatsApp Demo QR Code" />
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+          <button id="startBtn" class="btn btn-green" onclick="startDemo()">📱 Generate QR &amp; Start Demo</button>
+          <button id="stopBtn" class="btn btn-red" style="display:none;" onclick="stopDemo()">Disconnect Demo</button>
+        </div>
+        <div class="steps">
+          <strong>How to test on your mobile:</strong><br>
+          1. Open WhatsApp on your phone → <strong>Settings / ⋮ → Linked Devices → Link a Device</strong>.<br>
+          2. Scan the QR code above.<br>
+          3. Send a message in your <em>"Message Yourself"</em> chat (or from another number) — the AI replies instantly! (Guest demos auto-disconnect after 10 minutes, or click Disconnect anytime).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedMode = 'dhanam_internal';
+    let pollTimer = null;
+
+    function getDemoUid() {
+      let uid = localStorage.getItem('solodev_demo_uid');
+      if (!uid || !uid.startsWith('demo_')) {
+        uid = 'demo_' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem('solodev_demo_uid', uid);
+      }
+      return uid;
+    }
+
+    async function selectBot(mode, el) {
+      selectedMode = mode;
+      document.querySelectorAll('.bot-opt').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      const uid = getDemoUid();
+      try {
+        await fetch('/api/whatsapp/mode?uid=' + encodeURIComponent(uid) + '&mode=' + encodeURIComponent(mode));
+      } catch (e) {}
+    }
+
+    async function startDemo() {
+      const uid = getDemoUid();
+      const badge = document.getElementById('statusBadge');
+      const msg = document.getElementById('qrMessage');
+      badge.className = 'status-pill';
+      badge.innerText = 'Generating QR Code...';
+      msg.innerText = 'Connecting isolated WhatsApp sandbox (~5 seconds)...';
+
+      try {
+        const res = await fetch('/api/whatsapp/start?uid=' + encodeURIComponent(uid) + '&mode=' + encodeURIComponent(selectedMode));
+        const data = await res.json();
+        updateUi(data);
+        if (!pollTimer) {
+          pollTimer = setInterval(pollStatus, 2500);
+        }
+      } catch (e) {
+        badge.innerText = 'Error starting demo';
+        msg.innerText = e.message;
+      }
+    }
+
+    async function pollStatus() {
+      const uid = getDemoUid();
+      try {
+        const res = await fetch('/api/whatsapp/status?uid=' + encodeURIComponent(uid));
+        const data = await res.json();
+        updateUi(data);
+      } catch (e) {}
+    }
+
+    function updateUi(data) {
+      const badge = document.getElementById('statusBadge');
+      const msg = document.getElementById('qrMessage');
+      const qrBox = document.getElementById('qrBox');
+      const qrImg = document.getElementById('qrImg');
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+
+      if (data.status === 'connected') {
+        badge.className = 'status-pill connected';
+        badge.innerText = '✅ Connected (+' + (data.phone || 'Demo') + ')';
+        msg.innerText = 'Bot is LIVE on your WhatsApp! Open your "Message Yourself" chat or message from another phone to test it. You can switch bots above anytime.';
+        qrBox.style.display = 'none';
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-flex';
+      } else if (data.status === 'qr_ready' && data.qr) {
+        badge.className = 'status-pill';
+        badge.innerText = '📷 Scan QR Code Now';
+        msg.innerText = 'Scan this QR with WhatsApp → Linked Devices → Link a Device.';
+        qrImg.src = data.qr;
+        qrBox.style.display = 'inline-block';
+        stopBtn.style.display = 'inline-flex';
+      } else if (data.status === 'initializing' || data.status === 'reconnecting') {
+        badge.className = 'status-pill';
+        badge.innerText = '⏳ Initializing Sandbox...';
+        qrBox.style.display = 'none';
+      } else {
+        badge.className = 'status-pill';
+        badge.innerText = 'Ready to Generate Demo QR';
+        qrBox.style.display = 'none';
+        startBtn.style.display = 'inline-flex';
+        stopBtn.style.display = 'none';
+      }
+    }
+
+    async function stopDemo() {
+      const uid = getDemoUid();
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      try {
+        await fetch('/api/whatsapp/disconnect?uid=' + encodeURIComponent(uid));
+      } catch (e) {}
+      localStorage.removeItem('solodev_demo_uid');
+      updateUi({ status: 'disconnected' });
+    }
+
+    pollStatus();
+  </script>
+</body>
+</html>

@@ -870,7 +870,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/whatsapp/start') {
-      multiSession.startSession(uid).then(result => {
+      const requestedMode = (parsedUrl.searchParams.get('mode') || '').trim();
+      multiSession.startSession(uid, requestedMode ? { mode: requestedMode } : {}).then(result => {
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': allowedOrigin
@@ -884,6 +885,16 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: err.message }));
       });
       return;
+    }
+
+    if (pathname === '/api/whatsapp/mode') {
+      const requestedMode = (parsedUrl.searchParams.get('mode') || 'builder').trim();
+      const modeRes = multiSession.setSessionMode(uid, requestedMode);
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(JSON.stringify(modeRes));
     }
 
     if (pathname === '/api/whatsapp/disconnect') {
@@ -1712,6 +1723,19 @@ const server = http.createServer(async (req, res) => {
       status: isClientReady ? 'online' : 'connecting',
       qrDataUrl: latestQrDataUrl || null
     }));
+  }
+
+  // Isolated Customer Live AI Sandbox Demo Page (/demo)
+  if (req.url === '/demo' || req.url.startsWith('/demo?')) {
+    const demoPath = path.resolve(__dirname, 'demo_sandbox.html');
+    if (fs.existsSync(demoPath)) {
+      const html = fs.readFileSync(demoPath, 'utf-8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': allowedOrigin
+      });
+      return res.end(html);
+    }
   }
 
   // Serve the complete Interactive Multi-Persona Switcher Dashboard for Home (/) and (/switcher)
