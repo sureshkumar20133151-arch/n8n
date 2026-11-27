@@ -314,8 +314,168 @@ async function processTallyVoucher({ company, voucherType, partyName, amount, it
   };
 }
 
+const TALLY_LEDGER_PATH = path.resolve(__dirname, 'data', 'dhanam_tally_vouchers.json');
+
+function loadLocalTallyLedger() {
+  try {
+    if (fs.existsSync(TALLY_LEDGER_PATH)) {
+      return JSON.parse(fs.readFileSync(TALLY_LEDGER_PATH, 'utf-8'));
+    }
+  } catch (e) { /* ignore */ }
+  return [];
+}
+
+function saveLocalTallyLedger(entries) {
+  const dir = path.dirname(TALLY_LEDGER_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(TALLY_LEDGER_PATH, JSON.stringify(entries, null, 2), 'utf-8');
+}
+
+/**
+ * Full CRUD helper for Tally Prime vouchers (with local ledger fallback for offline/read/update/delete)
+ */
+async function executeTallyCrud({
+  operation,
+  voucherId = null,
+  company = 'Dhanam Holdings',
+  voucherType = 'Receipt',
+  partyName = '',
+  amount = null,
+  siteName = '',
+  payerType = 'Owner',
+  isReceived = true,
+  narration = ''
+}) {
+  const op = (operation || 'read').toLowerCase();
+  const ledger = loadLocalTallyLedger();
+
+  if (op === 'create') {
+    const res = await processTallyVoucher({
+      company,
+      voucherType,
+      partyName,
+      amount: Number(amount) || 0,
+      siteName,
+      payerType,
+      isReceived,
+      narration
+    });
+    const record = {
+      id: `TLY-${Date.now().toString(36).toUpperCase()}`,
+      company: res.company,
+      voucherType: res.voucherType,
+      partyName: res.partyName,
+      amount: Number(amount) || 0,
+      siteName: siteName || 'General Project',
+      payerType: payerType || 'Owner',
+      isReceived: Boolean(isReceived),
+      narration: narration || `${siteName || 'Site'} - ${voucherType} for ${partyName}`,
+      tallySynced: res.tallySynced,
+      syncStatus: res.syncStatus,
+      createdAt: new Date().toISOString()
+    };
+    ledger.push(record);
+    saveLocalTallyLedger(ledger);
+    return { success: true, operation: 'create', record, ...res };
+  }
+
+  if (op === 'read' || op === 'list' || op === 'get') {
+    const pFilter = (partyName || '').toLowerCase().trim();
+    const sFilter = (siteName || '').toLowerCase().trim();
+    const idFilter = (voucherId || '').trim();
+
+    const matched = ledger.filter((v) => {
+      if (idFilter && v.id !== idFilter) return false;
+      if (pFilter && !(v.partyName || '').toLowerCase().includes(pFilter)) return false;
+      if (sFilter && !(v.siteName || '').toLowerCase().includes(sFilter)) return false;
+      return true;
+    });
+
+    return {
+      success: true,
+      operation: 'read',
+      count: matched.length,
+      vouchers: matched.slice(-20)
+    };
+  }
+
+  if (op === 'update' || op === 'alter') {
+    let idx = -1;
+    if (voucherId) {
+      idx = ledger.findIndex((v) => v.id === voucherId);
+    } else {
+      const pFilter = (partyName || '').toLowerCase().trim();
+      const sFilter = (siteName || '').toLowerCase().trim();
+      for (let i = ledger.length - 1; i >= 0; i--) {
+        const v = ledger[i];
+        const pOk = !pFilter || (v.partyName || '').toLowerCase().includes(pFilter);
+        const sOk = !sFilter || (v.siteName || '').toLowerCase().includes(sFilter);
+        if (pOk && sOk) { idx = i; break; }
+      }
+    }
+
+    if (idx === -1) {
+      return { success: false, error: 'Matching Tally voucher not found in ledger for update.' };
+    }
+
+    const target = ledger[idx];
+    if (voucherType) target.voucherType = voucherType;
+    if (partyName) target.partyName = partyName;
+    if (amount !== null && amount !== undefined) target.amount = Number(amount);
+    if (siteName) target.siteName = siteName;
+    if (payerType) target.payerType = payerType;
+    if (isReceived !== undefined) target.isReceived = Boolean(isReceived);
+    if (narration) target.narration = narration;
+    target.updatedAt = new Date().toISOString();
+
+    const xml = buildTallyVoucherXml({
+      company: target.company,
+      voucherType: target.voucherType,
+      partyName: target.partyName,
+      amount: target.amount,
+      narration: target.narration,
+      siteName: target.siteName,
+      payerType: target.payerType
+    }).replace('ACTION="Create"', 'ACTION="Alter"');
+
+    const tallyResult = await postXmlToTally(xml);
+    target.tallySynced = tallyResult.success;
+    target.syncStatus = tallyResult.success ? 'Altered in Tally' : 'Updated in Local Ledger (Tally Offline)';
+    saveLocalTallyLedger(ledger);
+
+    return { success: true, operation: 'update', record: target };
+  }
+
+  if (op === 'delete' || op === 'cancel') {
+    let idx = -1;
+    if (voucherId) {
+      idx = ledger.findIndex((v) => v.id === voucherId);
+    } else {
+      const pFilter = (partyName || '').toLowerCase().trim();
+      const sFilter = (siteName || '').toLowerCase().trim();
+      for (let i = ledger.length - 1; i >= 0; i--) {
+        const v = ledger[i];
+        const pOk = !pFilter || (v.partyName || '').toLowerCase().includes(pFilter);
+        const sOk = !sFilter || (v.siteName || '').toLowerCase().includes(sFilter);
+        if (pOk && sOk) { idx = i; break; }
+      }
+    }
+
+    if (idx === -1) {
+      return { success: false, error: 'Matching Tally voucher not found in ledger for delete.' };
+    }
+
+    const [removed] = ledger.splice(idx, 1);
+    saveLocalTallyLedger(ledger);
+    return { success: true, operation: 'delete', deletedVoucher: removed };
+  }
+
+  return { success: false, error: `Unsupported Tally operation: ${operation}` };
+}
+
 module.exports = {
   buildTallyVoucherXml,
   postXmlToTally,
-  processTallyVoucher
+  processTallyVoucher,
+  executeTallyCrud
 };

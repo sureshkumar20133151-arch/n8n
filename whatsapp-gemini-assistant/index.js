@@ -575,7 +575,7 @@ async function connectToWhatsApp() {
             if (!enableGroups && !modeIntentEarly && !isWholesaleAdminGroup) continue;
             
             // Smart Personal Assistant Group Bypass: Auto-reply to site photos, audio voice notes, quotes, mentions, any question/inquiry, greetings, or site/worker queries
-            const isPlumberMode = (activeMode === 'plumber');
+            const isPlumberOrDhanamMode = (activeMode === 'plumber' || activeMode === 'dhanam_internal');
 
             const isQuestionOrInquiry = body.includes('?') ||
               /^(what|when|where|who|whom|whose|which|why|how|can|could|will|would|is|are|am|do|does|did|have|has|had|should|may|please|tell|give|check|send|show|update|status|explain|help)\b/i.test(body) ||
@@ -586,13 +586,14 @@ async function connectToWhatsApp() {
 
             const hasPlumbingKeyword = /போட்டோ|போட்டோஸ்|படம்|படங்கள்|பைப்|கார்டி|பிளம்பிங்|எலக்ட்ரிக்|எலக்ட்ரிக்கல்|ஒயரிங்|கான்கிரீட்|ரூஃப்|பாத்ரூம்|சுவர்|தரை|டைல்ஸ்|டிரைனேஜ்|சேம்பர்|மெயின்\s*டிபி|எர்திங்|லேபர்|லேபர்ஸ்|ஆட்கள்|ஆள்|தொழிலாளி|வேலை|விவரம்|விபரம்|லிஸ்ட்|டிரைவ்|கூகுள்|ஷீட்|லிங்க்|ஃபோல்டர்|அப்டேட்|ஸ்டேட்டஸ்|செக்|அரசன்|சாட்|பழைய|மெசேஜ்|படி|காட்டு|அனுப்பு|உதவி|எப்படி|என்ன|எங்கே|அட்டெண்டன்ஸ்|வருகை|சம்பளம்|கூலி|அட்வான்ஸ்|கழிவு|கழி|வார|வாரம்|செட்டில்|செட்டில்மெண்ட்|கணக்கு|கொடுத்தாச்சு|கொடுத்தேன்|போட்டாச்சு|பில்|பில்கள்|ரசீது|செலவு|பொருட்கள்|மாத்து|திருத்து|தவறு|photo|pic|picture|pipe|plumb|electr|wir|roof|concrete|slab|chasing|wall|floor|tile|bath|drain|sewage|chamber|main\s*db|earth|mcb|labor|labour|worker|fitter|helper|supervisor|team|site|staff|contact|phone|mobile|number|details|list|drive|google|sheet|link|folder|update|status|check|add|added|save|saved|store|stored|record|archive|doc|file|arasan|mep|chat|chats|old|history|read|view|send|show|tell|help|how|what|where|who|can\s*u|can\s*you|able|super|attendance|salary|wage|wages|advance|deduct|deduction|weekend|settle|settlement|paid|settled|bill|bills|receipt|invoice|expense|expenses|material|materials|purchase|bought|correct|mistake|fix/i.test(body);
 
-            const allowGroupBypass = isWholesaleAdminGroup || (isPlumberMode && (
+            const allowGroupBypass = isWholesaleAdminGroup || (isPlumberOrDhanamMode && (
               Boolean(mediaPayload) ||
               isQuotingBot ||
               isMentioningBot ||
               isQuestionOrInquiry ||
               isGreeting ||
-              hasPlumbingKeyword
+              hasPlumbingKeyword ||
+              /tally|zoho|slack|arattai|arrattai|excel|onsite|dhanam|danam|voucher|invoice|expense|bill|delete|update|create|read/i.test(body)
             ));
 
             if (!body.toLowerCase().startsWith(triggerPrefix) && !modeIntentEarly && !allowGroupBypass) continue;
@@ -687,9 +688,23 @@ async function connectToWhatsApp() {
             // Send typing indicator (non-blocking)
             sock.sendPresenceUpdate('composing', replyJid).catch(() => {});
 
+            // Include quoted message text so replies like "Explain tamil" have full context
+            const qMsg = contextInfo?.quotedMessage;
+            const quotedText = (
+              qMsg?.conversation ||
+              qMsg?.extendedTextMessage?.text ||
+              qMsg?.imageMessage?.caption ||
+              qMsg?.videoMessage?.caption ||
+              qMsg?.documentMessage?.caption ||
+              ''
+            ).trim();
+            const effectivePrompt = quotedText
+              ? `[User is replying to this previous message: "${quotedText.slice(0, 1200)}"]\n\nUser reply: ${prompt}`
+              : prompt;
+
             // Generate response with Gemini AI
             recordGeminiRequest();
-            const reply = await gemini.generateResponse(replyJid, prompt, mediaPayload, {
+            const reply = await gemini.generateResponse(replyJid, effectivePrompt, mediaPayload, {
               isOwner,
               isWholesaleAdminGroup,
               senderName,
@@ -1491,6 +1506,7 @@ const server = http.createServer(async (req, res) => {
 
         const jid = `${cleanDigits}@s.whatsapp.net`;
         await sendBotMessage(sock, jid, { text: message });
+        gemini.recordOutboundMessage(jid, message);
         console.log(`📤 [Outbound] WhatsApp message sent to ${jid}`);
 
         res.writeHead(200, {

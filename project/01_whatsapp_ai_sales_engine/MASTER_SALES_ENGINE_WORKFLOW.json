@@ -946,7 +946,7 @@
         "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $('2. [Lead] Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. [Lead] Format & Sanitize Lead').item.json.Name }}! Suresh here from SoloDeveloper.\\n\\nYesterday you mentioned that {{ $('2. [Lead] Format & Sanitize Lead').item.json.Company }} is facing '{{ $('2. [Lead] Format & Sanitize Lead').item.json['Pain Point'] }}'.\\n\\nI put together a quick case study on how other {{ $('2. [Lead] Format & Sanitize Lead').item.json.Industry }} businesses solve this to achieve '{{ $('2. [Lead] Format & Sanitize Lead').item.json['Dream Outcome'] }}' without extra staff. Would you like to review the 3-minute video breakdown?\"\n}"
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. [Lead] Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. [Lead] Format & Sanitize Lead').item.json.Name }}! Suresh here from SoloDeveloper.pro.\\n\\nYesterday we discussed '{{ $('2. [Lead] Format & Sanitize Lead').item.json['Pain Point'] }}' at {{ $('2. [Lead] Format & Sanitize Lead').item.json.Company }}. Beyond websites, we connect WhatsApp AI directly to your existing tools (Tally, Zoho, Excel/Sheets, Billing & Photo Vault) so your {{ $('2. [Lead] Format & Sanitize Lead').item.json.Industry }} workflow runs 24/7 without extra staff.\\n\\nWould you like to see a 2-minute real example of how it works?\"\n}"
       }
     },
     {
@@ -979,7 +979,7 @@
         "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $('2. [Lead] Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. [Lead] Format & Sanitize Lead').item.json.Name }}, hope your week is going great!\\n\\nMost {{ $('2. [Lead] Format & Sanitize Lead').item.json.Industry }} leaders we consult lose high-ticket clients simply because inquiries take more than 5 minutes to respond to.\\n\\nWith your custom {{ $('2. [Lead] Format & Sanitize Lead').item.json['Grand Slam Offer'] }}, incoming inquiries are pre-qualified in 60 seconds 24/7. Do you have 10 minutes this week for a live walkthrough?\"\n}"
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. [Lead] Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. [Lead] Format & Sanitize Lead').item.json.Name }}, hope your week is going great!\\n\\nWith our AI Business Operating System ({{ $('2. [Lead] Format & Sanitize Lead').item.json['Grand Slam Offer'] }}), your team can log entries into Tally/Sheets, upload & retrieve site/work photos on-demand, and qualify incoming inquiries 24/7 — all inside WhatsApp.\\n\\nDo you have 10 minutes this week for a live walkthrough?\"\n}"
       }
     },
     {
@@ -1012,7 +1012,7 @@
         "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $('2. [Lead] Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. [Lead] Format & Sanitize Lead').item.json.Name }}, Suresh here. We are finalizing our implementation dates for this fortnight (we onboard only 2 custom client systems at a time to maintain 100% engineering quality).\\n\\nIf you'd still like to deploy your {{ $('2. [Lead] Format & Sanitize Lead').item.json['Grand Slam Offer'] }} for {{ $('2. [Lead] Format & Sanitize Lead').item.json.Company }} before your next busy cycle, let's connect and get your pilot live this week!\\n\\nDirect WhatsApp: https://wa.me/919361599097\"\n}"
+        "jsonBody": "={\n  \"phone\": \"{{ $('2. [Lead] Format & Sanitize Lead').item.json.Phone }}\",\n  \"message\": \"Hi {{ $('2. [Lead] Format & Sanitize Lead').item.json.Name }}, Suresh here. We onboard only 2 custom AI workflow systems at a time so every client's Tally/Sheets/Photo Vault & WhatsApp automation runs with 100% accuracy.\\n\\nIf you'd still like to deploy {{ $('2. [Lead] Format & Sanitize Lead').item.json['Grand Slam Offer'] }} for {{ $('2. [Lead] Format & Sanitize Lead').item.json.Company }} before your next busy cycle, just reply DEMO or message me here: https://wa.me/919361599097\"\n}"
       }
     },
     {

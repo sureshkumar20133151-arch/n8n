@@ -503,6 +503,24 @@ class GeminiService {
     }
   }
 
+  recordOutboundMessage(chatId, text) {
+    try {
+      if (!chatId || !text) return;
+      const history = this.getHistory(chatId);
+      // Ensure conversation starts with a 'user' turn for strict Gemini API turn alternation
+      if (history.length === 0) {
+        history.push({ role: 'user', parts: [{ text: '[System: Outbound outreach/follow-up message sent to this prospect]' }] });
+      } else if (history[history.length - 1].role === 'model') {
+        history.push({ role: 'user', parts: [{ text: '[System: Follow-up outbound message sent]' }] });
+      }
+      history.push({ role: 'model', parts: [{ text }] });
+      this.saveHistory(chatId);
+      console.log(`💾 [Outbound History Saved] Recorded outbound message for ${chatId}`);
+    } catch (e) {
+      console.warn(`[Outbound History Save Error] for ${chatId}:`, e.message);
+    }
+  }
+
   resetHistory(chatId) {
     const modes = ['dev', 'wholesale', 'restaurant'];
     modes.forEach(m => {
@@ -837,6 +855,18 @@ Listen carefully to the attached audio (in Tamil, Tanglish, or English)${userTex
    • *விலை:* ₹<Price>
    • *ஸ்டாக்:* <Stock / Out of Stock>
    - IMPORTANT: If the speaker updated/added a price WITHOUT mentioning whether stock is available (or stock count), STILL update the price first, and at the end of your reply ALWAYS ask in Tamil: "👉 *இதற்கு ஸ்டாக் இருக்கிறதா (எவ்வளவு ஸ்டாக்) அல்லது Out of Stock-ஆ? சொன்னால் ஸ்டாக்கையும் உடனே அப்டேட் செய்கிறேன்!*"`;
+        } else if (mode === 'dhanam_internal') {
+          audioInstruction = `[DHANAM HOLDINGS VOICE CRUD COMMAND - EXECUTE IMMEDIATELY]:
+Listen carefully to the attached voice note (in Tamil, Tanglish, or English)${userText && userText.trim() ? ` along with text "${userText.trim()}"` : ''}.
+1. Identify the target system(s): Tally Prime (tallyCrud), Zoho Books (zohoBooksCrud), Onsite (onsiteCrud), Slack (slackCrud), Zoho Arattai (arattaiCrud), and/or Local Excel (excelCrud).
+2. Identify the CRUD operation:
+   - CREATE ("போடு", "பதிவு பண்ணு", "add", "record", "send", "post")
+   - READ ("காட்டு", "எவ்வளவு", "list", "status", "check", "pending")
+   - UPDATE ("மாத்து", "அப்டேட் பண்ணு", "received", "paid", "edit")
+   - DELETE ("டெலீட் பண்ணு", "நீக்கு", "cancel", "remove")
+3. Extract siteName, partyName, amount, payerType (Owner/Contractor/Self), category, and message text.
+4. IMMEDIATELY call the appropriate tool(s) FIRST (call multiple tools if multiple systems are mentioned).
+5. Reply concisely in Tamil/Tanglish confirming the exact CRUD result for each system.`;
         } else {
           audioInstruction = (userText && userText.trim().length > 0)
             ? `The user sent this voice note with additional text: "${userText.trim()}". Listen carefully to the voice note, understand what they are asking in whichever language they spoke (Tamil, Tanglish, English, Hindi, or any other language), and reply naturally, politely, and concisely in that same language following your knowledge base rules.`
@@ -999,7 +1029,7 @@ User message: "${userText.trim()}"`;
           // INTERRUPTION & INQUIRY HANDLING DIRECTIVE
           const isAskingQuestion = /\?|price|cost|rate|pricing|how much|epdi|evalo|evvalavu|enge|where|portfolio|sample|demo|website irukka/i.test(trimmedLower);
           if (isAskingQuestion && !isOwner) {
-            contextualText = `[INTERRUPTION & INQUIRY DIRECTIVE: The user asked a direct question. Answer their question directly, transparently, and politely in 2-3 lines first (e.g. mention pricing from ₹8,999 to ₹24,999+). Then seamlessly continue the discovery flow by asking the next uncollected item from your state checklist. Do NOT ignore their question and do NOT restart the greeting]: ${contextualText}`;
+            contextualText = `[INTERRUPTION & INQUIRY DIRECTIVE: The user asked a direct question. Answer their question directly, transparently, and politely in 2-3 lines first (e.g. Only WhatsApp AI Assistant starts at ₹4,999, Portfolio ₹7,999–₹9,999, Business ₹12,999–₹49,999, Ecommerce ₹19,999–₹49,999). Then seamlessly continue the discovery flow by asking ONE diagnostic question. Do NOT ignore their question and do NOT restart the greeting]: ${contextualText}`;
           }
 
           // SCRIPT & LANGUAGE DIRECTIVE
@@ -1082,7 +1112,7 @@ The user sent an image or screenshot (Google Pay receipt, PhonePe, Paytm, Bank a
 
         try {
           const contentsToSend = this.sanitizeHistory(history);
-          const isAdminAudio = Boolean(media && media.isAudio && options.isWholesaleAdminGroup);
+          const isAdminAudio = Boolean(media && media.isAudio && (options.isWholesaleAdminGroup || mode === 'dhanam_internal'));
           const requestConfig = {
             systemInstruction: systemInstruction,
             temperature: 0.2,

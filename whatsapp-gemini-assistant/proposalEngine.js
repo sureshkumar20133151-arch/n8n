@@ -32,22 +32,22 @@ function generateProposalDossier(leadData = {}) {
   const avgDeal = benchmark.avgDeal;
   const unit = benchmark.unit;
 
-  // 3-Tier Investment Options (Hormozi Decoy & Recommended Anchor)
+  // 3-Tier Investment Options (Aligned to Low 10-20k / Mid 20-30k / High 30-50k Ticket Size)
   const pricingTiers = [
     {
       tierName: "Tier 1: Starter Foundation",
       price: "₹9,999",
       period: "one-time setup",
       highlight: false,
-      tagline: "Essential digital presence & lead capture",
+      tagline: "Essential digital presence & lead capture (Only WhatsApp AI starts at ₹4,999)",
       deliverables: [
-        "Modern Mobile-First Business Landing Page",
+        "Modern Mobile-First Portfolio / Business Landing Page",
         "Direct WhatsApp Instant Inquiry CTA",
         "Google Business & Maps Local SEO Setup",
         "Lead Contact Form with Instant Email Alert",
         "High-Speed Cloud Hosting Deployment"
       ],
-      idealFor: "Businesses wanting a clean online presence with direct WhatsApp lead capture."
+      idealFor: "Low Ticket (₹10k–₹20k): Businesses wanting a clean online presence with direct WhatsApp lead capture."
     },
     {
       tierName: "Tier 2: Autonomous AI Growth System",
@@ -55,32 +55,34 @@ function generateProposalDossier(leadData = {}) {
       period: "one-time turnkey sprint",
       highlight: true,
       badge: "MOST POPULAR — RECOMMENDED",
-      tagline: "24/7 AI-driven customer capture, qualification & booking",
+      tagline: "24/7 AI-driven customer capture, Photo Vault & workflow automation",
       deliverables: [
         "Full High-Speed Business Web Portal",
         "24/7 Autonomous WhatsApp AI Agent (Tamil & English NLP)",
+        "AI Photo Vault (Upload & On-Demand Photo Retrieval)",
         "Instant Inquiry Pre-Qualification & Budget Filtering",
         "Automated Google Meet / Site Visit Calendar Booking",
         "Google Sheets & n8n Multi-Stage CRM Pipeline Integration",
         "All 4 Objection-Busting Bonuses Included Free (₹18,998 value)"
       ],
-      idealFor: `Growing ${industry} companies losing deals due to delayed manual replies.`
+      idealFor: `Mid Ticket (₹20k–₹30k): Growing ${industry} companies automating leads, photos & daily workflows.`
     },
     {
       tierName: "Tier 3: Enterprise AI Operating System",
       price: "₹49,999",
       period: "one-time enterprise build",
       highlight: false,
-      tagline: "Full multi-agent automation & custom management portal",
+      tagline: "Full multi-agent automation, Tally/Zoho sync & custom portal",
       deliverables: [
         "Everything in Tier 2 Growth System",
+        "WhatsApp-to-Tally Prime / Zoho Books / Excel Direct Sync",
         "Multi-Agent AI Ecosystem (Inquiry + Support + Outreach)",
-        "Custom Client / Admin Analytics Dashboard",
-        "Multi-Branch / Multi-User Staff Routing",
+        "Automated A4 GST Invoice & Thermal Receipt PDFs",
+        "Custom Client / Admin Analytics Dashboard & Multi-Branch Routing",
         "ERP / Inventory / Payment Gateway Automation",
         "Dedicated Server Deployment + 90-Day Priority VIP Support"
       ],
-      idealFor: "Established multi-location enterprises requiring bespoke automation."
+      idealFor: "High Ticket (₹30k–₹50k): Established businesses automating end-to-end operations, accounting & sales."
     }
   ];
 

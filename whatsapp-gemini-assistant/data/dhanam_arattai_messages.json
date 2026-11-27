@@ -1,0 +1,23 @@
+[
+  {
+    "id": "AR-1795626201178",
+    "channelId": "Dhanam Site Ops",
+    "text": "🏗️ Dhanam Holdings Arattai Live Test Connected!",
+    "dispatched": true,
+    "createdAt": "2026-11-25T17:03:21.178Z"
+  },
+  {
+    "id": "AR-1795629404588",
+    "channelId": "Dhanam Site Ops",
+    "text": "Sample Dhanam Ops Message",
+    "dispatched": true,
+    "createdAt": "2026-11-25T17:56:44.588Z"
+  },
+  {
+    "id": "AR-1795629658610",
+    "channelId": "Dhanam Site Ops",
+    "text": "Sample Dhanam Ops Message",
+    "dispatched": true,
+    "createdAt": "2026-11-25T18:00:58.610Z"
+  }
+]

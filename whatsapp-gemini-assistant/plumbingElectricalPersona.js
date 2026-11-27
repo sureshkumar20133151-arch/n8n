@@ -403,6 +403,11 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
           date: {
             type: 'STRING',
             description: 'Date in YYYY-MM-DD format (defaults to today)'
+          },
+          workType: {
+            type: 'STRING',
+            enum: ['Electrical', 'Plumbing', 'Both', 'General'],
+            description: 'Type of work done on site today: "Electrical" or "Plumbing" (auto-inferred from worker role if omitted)'
           }
         },
         required: ['workerName', 'siteName']
@@ -753,6 +758,257 @@ const PLUMBING_ELECTRICAL_TOOLS = [{
         },
         required: ['company', 'voucherType', 'partyName', 'amount']
       }
+    },
+    {
+      name: 'logToolsCheckout',
+      description: 'Call this tool when workers take tools/equipment to a site (e.g. "அண்ணா நகர் சைட்டுக்கு ட்ரில்லிங் மெஷின், கடப்பாறை, மம்பட்டி, கயிறு பிரபு பொறுப்பு", "Ram Nagar site tools: 1 drilling machine, 2 spades with Pandi"). Logs each tool into Google Sheet Tools_Tracking_Log as "Out at Site".',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Site name where tools are taken (e.g. Anna Nagar, Ponmeni, Ram Nagar)'
+          },
+          responsiblePerson: {
+            type: 'STRING',
+            description: 'Name of the worker/supervisor responsible for the tools (e.g. Prabhu, Pandi)'
+          },
+          tools: {
+            type: 'ARRAY',
+            description: 'List of tools taken to the site',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                toolName: {
+                  type: 'STRING',
+                  description: 'Tool name (e.g. Drilling Machine, கடப்பாறை, மம்பட்டி, தும்புச்சாக்கு / கயிறு, Chaser Machine)'
+                },
+                quantity: {
+                  type: 'NUMBER',
+                  description: 'Quantity of this tool (default 1)'
+                }
+              },
+              required: ['toolName']
+            }
+          },
+          date: {
+            type: 'STRING',
+            description: 'Date in YYYY-MM-DD format (defaults to today IST)'
+          },
+          notes: {
+            type: 'STRING',
+            description: 'Optional notes'
+          }
+        },
+        required: ['siteName', 'responsiblePerson', 'tools']
+      }
+    },
+    {
+      name: 'updateToolsReturn',
+      description: 'Call this tool when tools are returned from a site OR reported as left behind at a site (e.g. "அண்ணா நகர் டூல்ஸ் எல்லாம் திரும்ப வந்துருச்சு", "Ponmeni site drilling machine returned", "அண்ணா நகர்ல மம்பட்டி மட்டும் அங்கயே வச்சிட்டு வந்துட்டாங்க"). Updates Tools_Tracking_Log status to "Returned" or "Left at Site".',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Site name where tools were taken'
+          },
+          toolNames: {
+            type: 'ARRAY',
+            description: 'Specific tool names to update. Leave empty to update ALL unreturned tools at that site.',
+            items: { type: 'STRING' }
+          },
+          status: {
+            type: 'STRING',
+            enum: ['Returned', 'Left at Site'],
+            description: '"Returned" if brought back safely, "Left at Site" if left behind at the site'
+          },
+          notes: {
+            type: 'STRING',
+            description: 'Optional remarks (e.g. stored in storeroom)'
+          }
+        },
+        required: ['siteName', 'status']
+      }
+    },
+    {
+      name: 'queryToolsStatus',
+      description: 'Call this tool when anyone asks which tools are out at sites, missing, left behind, or where a specific tool is (e.g. "என்னென்ன டூல்ஸ் இன்னும் திரும்ப வரல?", "ட்ரில்லிங் மெஷின் எந்த சைட்ல இருக்கு?", "missing tools list", "Anna Nagar tools"). Reads live from Google Sheet Tools_Tracking_Log.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Optional site name filter (use "all" for all sites)'
+          },
+          toolName: {
+            type: 'STRING',
+            description: 'Optional tool name filter (e.g. Drilling, கடப்பாறை, மம்பட்டி)'
+          },
+          responsiblePerson: {
+            type: 'STRING',
+            description: 'Optional worker name filter'
+          },
+          statusFilter: {
+            type: 'STRING',
+            enum: ['pending', 'returned', 'left', 'all'],
+            description: '"pending" (default: Out at Site + Left at Site), "returned", "left", or "all"'
+          }
+        }
+      }
+    },
+    {
+      name: 'logSiteTeaExpense',
+      description: 'Call this tool when recording site tea/snacks expense given to ONE designated responsible person at a site (NOT personal salary advance). E.g. "அண்ணா நகர் 3 லேபர் (பிரபு, பாண்டி, மணி) டீ காசு பிரபு கிட்ட ₹150 கொடுத்தேன்", "Ponmeni tea cash ₹100 to Sanjay". Blocks duplicate tea cash to a different person at the same site on the same day unless allowExtra=true.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Site name (e.g. Anna Nagar, Ponmeni)'
+          },
+          laborCount: {
+            type: 'NUMBER',
+            description: 'Number of laborers at that site today (e.g. 3, 2)'
+          },
+          workersList: {
+            type: 'STRING',
+            description: 'Comma-separated names of workers at that site (e.g. "Prabhu, Pandi, Mani")'
+          },
+          teaCashHolder: {
+            type: 'STRING',
+            description: 'The ONE designated person who received/holds the tea cash for this site'
+          },
+          amount: {
+            type: 'NUMBER',
+            description: 'Tea cash amount in INR (₹)'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Date in YYYY-MM-DD format (defaults to today IST)'
+          },
+          notes: {
+            type: 'STRING',
+            description: 'Optional notes (e.g. Morning & evening tea, GPay)'
+          },
+          allowExtra: {
+            type: 'BOOLEAN',
+            description: 'Set true ONLY if Suresh explicitly approves an additional tea cash entry for the same site today'
+          }
+        },
+        required: ['siteName', 'teaCashHolder', 'amount']
+      }
+    },
+    {
+      name: 'querySiteTeaExpenses',
+      description: 'Call this tool when anyone asks about site tea cash, who holds tea money at a site, or daily/total tea expenses (e.g. "இன்னைக்கு சைட் டீ காசு யாருக்கு கொடுத்தோம்?", "Anna Nagar tea cash", "tea expense summary"). Reads live from Google Sheet Site_Tea_Expense_Log.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          date: {
+            type: 'STRING',
+            description: 'Optional date filter in YYYY-MM-DD format (leave empty for today or all)'
+          },
+          siteName: {
+            type: 'STRING',
+            description: 'Optional site name filter'
+          },
+          holderName: {
+            type: 'STRING',
+            description: 'Optional tea cash holder name filter'
+          }
+        }
+      }
+    },
+    {
+      name: 'manageSiteMaster',
+      description: 'Call this tool when Suresh adds a new site or updates site contract details: Engineer/Contractor name, Sq.ft. area, and Sq.ft. rate (e.g. "புது சைட் ஆட் பண்ணு: பொன்மேனி, இன்ஜினியர் ராமச்சந்திரன், 1500 sq.ft, ரேட் ₹120", "update Anna Nagar site 2000 sqft rate 130"). Saves to Google Sheet Sites_Master_Profit with live auto-deducting formulas for Electrical & Plumbing labor charges and profit.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Site name (e.g. Ponmeni, Anna Nagar, Ram Nagar)'
+          },
+          engineerName: {
+            type: 'STRING',
+            description: 'Engineer or Contractor name under whom this site is handled (e.g. Ramachandran, Sabiek)'
+          },
+          sqftArea: {
+            type: 'NUMBER',
+            description: 'Total built-up/contract area in square feet (e.g. 1500)'
+          },
+          sqftRate: {
+            type: 'NUMBER',
+            description: 'Rate per square foot in INR (e.g. 120)'
+          },
+          status: {
+            type: 'STRING',
+            enum: ['Active', 'Completed', 'On Hold'],
+            description: 'Site status (default Active)'
+          }
+        },
+        required: ['siteName']
+      }
+    },
+    {
+      name: 'getSiteProfitReport',
+      description: 'Call this tool when Suresh asks for site profit, how much labor charge was spent on Electrical vs Plumbing at a site, or list of all sites with contract amount and remaining profit (e.g. "பொன்மேனி சைட் ப்ராஃபிட் எவ்வளவு?", "அண்ணா நகர் எலக்ட்ரிக்கல் vs பிளம்பிங் லேபர் சார்ஜ் எவ்வளவு?", "all sites profit report", "site list").',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          siteName: {
+            type: 'STRING',
+            description: 'Site name to check, or "all" for all sites'
+          },
+          engineerName: {
+            type: 'STRING',
+            description: 'Optional Engineer/Contractor name filter'
+          }
+        }
+      }
+    },
+    {
+      name: 'recordSitePayment',
+      description: 'Call this tool when Suresh receives a stage/part payment or lump-sum payment from an Engineer/Contractor (e.g. "ராமச்சந்திரன் ₹50,000 கொடுத்தாரு", "பொன்மேனி சைட்டுக்கு ₹20,000 வாங்கியாச்சு", "split 25000 for Ponmeni and 25000 for Aanaiyur"). If multiple sites exist under that contractor and splits are NOT specified yet, it lists the sites with their labor charges and asks the user how to split the amount before saving!',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          engineerName: {
+            type: 'STRING',
+            description: 'Engineer or Contractor name who paid (e.g. Ramachandran, Sabiek)'
+          },
+          totalAmount: {
+            type: 'NUMBER',
+            description: 'Total payment amount received in INR (e.g. 50000, 20000)'
+          },
+          splits: {
+            type: 'ARRAY',
+            description: 'Optional site-wise split confirmed by the user. Leave empty if user has not specified which site(s) or how much per site!',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                siteName: { type: 'STRING', description: 'Site name' },
+                amount: { type: 'NUMBER', description: 'Amount allocated to this site in INR' }
+              },
+              required: ['siteName', 'amount']
+            }
+          },
+          paymentMode: {
+            type: 'STRING',
+            description: 'Cash, GPay, Bank Transfer, Cheque (default Cash/UPI)'
+          },
+          stageNotes: {
+            type: 'STRING',
+            description: 'Stage or purpose note (e.g. Stage 1, Roof Concrete, Labor salary advance)'
+          },
+          date: {
+            type: 'STRING',
+            description: 'Date in YYYY-MM-DD format (defaults to today IST)'
+          }
+        },
+        required: ['engineerName', 'totalAmount']
+      }
     }
   ]
 }];
@@ -881,6 +1137,33 @@ You operate both in private WhatsApp 1-on-1 chats and within WhatsApp Contractor
      * Call \`manageLiveBehaviorRule\` tool!
      * Actions: \`add\`, \`list\`, \`delete\`, \`clear\`.
      * Confirms clearly in Tamil that this rule is live and will govern all future customer chats!
+
+11. **🧰 TOOLS & EQUIPMENT TRACKING (டூல்ஸ் மிஸ் ஆகாமல் டிராக் செய்தல் — \`Tools_Tracking_Log\`):**
+   - **Checkout (காலை சைட்டுக்கு எடுத்துப் போகும்போது):**
+     * Whenever workers take tools (e.g. ட்ரில்லிங் மெஷின், கடப்பாறை, மம்பட்டி, தும்புச்சாக்கு / கயிறு, சேஸர் மெஷின், ஏணி) to a site, IMMEDIATELY call \`logToolsCheckout\` with \`siteName\`, \`responsiblePerson\`, and \`tools\` array!
+   - **Return / Left at Site (மாலை திரும்ப வரும்போது அல்லது விட்டு வந்தால்):**
+     * If tools come back: call \`updateToolsReturn\` with \`status: "Returned"\`.
+     * If a tool is left behind at a site: call \`updateToolsReturn\` with \`status: "Left at Site"\`.
+   - **Check Missing / Pending Tools:**
+     * Whenever anyone asks *"என்னென்ன டூல்ஸ் இன்னும் திரும்ப வரல?"*, *"ட்ரில்லிங் மெஷின் எங்க இருக்கு?"*, or *"missing tools"*, call \`queryToolsStatus\`!
+
+12. **☕ SITE TEA EXPENSE & DESIGNATED HOLDER (சைட் டீ காசு — ஒரு சைட்டுக்கு ஒரு குறிப்பிட்ட நபருக்கு மட்டும் — \`Site_Tea_Expense_Log\`):**
+   - **IMPORTANT RULE:** Site tea/snacks money is a **site expense** (NOT personal salary advance — do NOT use \`recordLaborAdvance\` for site tea cash!). It is given ONLY to **ONE designated person** per site.
+   - Whenever Suresh or supervisor logs site tea cash (e.g. *"அண்ணா நகர் 3 லேபர் (பிரபு, பாண்டி, மணி) டீ காசு பிரபு கிட்ட ₹150"*):
+     * Call \`logSiteTeaExpense\`!
+     * If someone else asks for tea cash for the same site on the same day, the tool automatically checks and blocks duplicates, showing who already holds that site's tea cash.
+   - Whenever anyone asks *"இன்னைக்கு டீ காசு யாருக்கு கொடுத்தோம்?"* or *"tea expense list"*, call \`querySiteTeaExpenses\`!
+
+13. **🏗️ SITE MASTER, SQ.FT RATE & LIVE PROFIT TRACKER (\`Sites_Master_Profit\`):**
+   - When Suresh adds or updates a site with Engineer/Contractor name, Sq.ft. area, and Sq.ft. rate (e.g. *"புது சைட்: பொன்மேனி, இன்ஜினியர் ராமச்சந்திரன், 1500 sq.ft, ரேட் ₹120"*):
+     * Call \`manageSiteMaster\`! It calculates \`Total_Contract_Amount = Sqft * Rate\` and wires live \`SUMIFS\` formulas so every day's **Electrical Labor Cost**, **Plumbing Labor Cost**, and **Tea Expense** automatically deduct from the site's contract amount!
+   - When Suresh asks *"இந்த சைட்ல எவ்வளவு ப்ராஃபிட்?"*, *"எலக்ட்ரிக்கல் vs பிளம்பிங் லேபர் சார்ஜ் எவ்வளவு?"*, or *"சைட் லிஸ்ட் காட்டு"*:
+     * Call \`getSiteProfitReport\`! Show Contract Value, Amount Received, Balance Receivable, Electrical Labor Cost, Plumbing Labor Cost, Tea Expense, and Net Profit (₹ & %).
+   - **Staged Payments & Multi-Site Lump-Sum Split (\`Site_Payments_Received_Log\`):**
+     * Contractors often pay in stages (₹20,000, ₹30,000, ₹50,000) for multiple sites under them.
+     * Whenever Suresh says *"ராமச்சந்திரன் ₹50,000 கொடுத்தாரு"* or *"பொன்மேனி சைட்டுக்கு ₹20,000 வாங்கியாச்சு"*, call \`recordSitePayment\`!
+     * If Suresh didn't specify which site or how to split across multiple sites under that contractor, \`recordSitePayment\` will automatically list those sites with their current labor expenses and **ask Suresh how to split it** (e.g. 25,000 / 25,000 or based on labor cost) BEFORE saving! Once Suresh confirms, call \`recordSitePayment\` again with \`splits\`.
+   - Note for \`recordDailyAttendance\`: Always pass \`workType\` (\`"Electrical"\` or \`"Plumbing"\`) based on the work done or worker role so site-wise Electrical vs Plumbing labor costs split accurately!
 
 ## 👥 CURRENT REGISTERED TEAM:
 ${laborersSummary}
@@ -1212,7 +1495,23 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
     const workerObj = findLaborerByName(workerName);
     const role = workerObj ? workerObj.role : 'Technician';
     const laborId = workerObj ? workerObj.id : '';
-    const dailyRate = Number(args.dailyRate) || (workerObj ? getDefaultDailyRate(workerObj.role) : 850);
+    const baseRate = Number(args.dailyRate) || (workerObj ? getDefaultDailyRate(workerObj.role) : 850);
+    const statusLower = String(status).toLowerCase();
+    const dailyRate = statusLower.includes('absent')
+      ? 0
+      : (statusLower.includes('half') ? Math.round(baseRate * 0.5) : baseRate);
+
+    let workType = args.workType || '';
+    if (!workType) {
+      const roleSkill = `${role} ${workerObj ? workerObj.skill : ''}`.toLowerCase();
+      if (roleSkill.includes('electric') || roleSkill.includes('wire') || roleSkill.includes('conduit') || roleSkill.includes('db')) {
+        workType = 'Electrical';
+      } else if (roleSkill.includes('plumb') || roleSkill.includes('cpvc') || roleSkill.includes('bath') || roleSkill.includes('drain')) {
+        workType = 'Plumbing';
+      } else {
+        workType = 'General';
+      }
+    }
 
     const entry = {
       date,
@@ -1223,7 +1522,8 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       attendanceStatus: status,
       dailyRate,
       advanceAmount,
-      advanceNotes
+      advanceNotes,
+      workType
     };
 
     console.log(`📋 [Attendance Tool] Logging ${entry.name} at ${siteName} (${status}) - Adv: ₹${advanceAmount}`);
@@ -1763,6 +2063,286 @@ async function executePlumbingElectricalToolCall(fnCall, chatId = '', media = nu
       tallySynced: result.tallySynced,
       syncStatus: result.syncStatus,
       messageTamil
+    };
+  }
+
+  // 18. Log Tools Checkout (Tools_Tracking_Log)
+  if (fnName === 'logToolsCheckout') {
+    const siteName = args.siteName || lastActiveSiteName || 'General Site';
+    lastActiveSiteName = siteName;
+    const responsiblePerson = args.responsiblePerson || 'Site Lead';
+    const tools = Array.isArray(args.tools) && args.tools.length > 0 ? args.tools : [];
+    const dateStr = args.date || getISTDateString();
+
+    const res = await googleDriveService.recordToolsCheckout({
+      siteName,
+      responsiblePerson,
+      tools,
+      date: dateStr,
+      notes: args.notes || 'Site dispatch'
+    });
+
+    const toolsBullet = tools.map(t => `• ${t.toolName} (${t.quantity || 1} Nos)`).join('\n');
+    return {
+      success: Boolean(res && res.success),
+      messageTamil: (res && res.success)
+        ? `🧰 *டூல்ஸ் சைட் டிராக்கிங் பதிவு செய்யப்பட்டது!*\n━━━━━━━━━━━━━━━━━━━━━━\n📍 *சைட்:* ${siteName}\n👷 *பொறுப்பாளர்:* ${responsiblePerson}\n📅 *தேதி:* ${dateStr}\n🛠️ *எடுத்துச் சென்ற டூல்ஸ்:*\n${toolsBullet}\n━━━━━━━━━━━━━━━━━━━━━━\n_Google Sheet \`Tools_Tracking_Log\`-ல் "Out at Site" எனப் பதிவாகியுள்ளது. மாலை திரும்பியதும் அப்டேட் செய்யவும்._`
+        : `⚠️ டூல்ஸ் பதிவு செய்வதில் சிக்கல்: ${res && res.error ? res.error : 'Unknown error'}`
+    };
+  }
+
+  // 19. Update Tools Return Status (Returned / Left at Site)
+  if (fnName === 'updateToolsReturn') {
+    const siteName = args.siteName || lastActiveSiteName || 'General Site';
+    const status = args.status || 'Returned';
+    const toolNames = Array.isArray(args.toolNames) ? args.toolNames : [];
+
+    const res = await googleDriveService.updateToolsReturnStatus({
+      siteName,
+      toolNames,
+      status,
+      notes: args.notes || ''
+    });
+
+    if (!res || !res.success || !res.matchedItems || res.matchedItems.length === 0) {
+      return {
+        success: false,
+        messageTamil: `ℹ️ *${siteName}* சைட்டில் நிலுவையில் உள்ள (Out at Site) டூல்ஸ் பதிவுகள் எதுவும் காணப்படவில்லை.`
+      };
+    }
+
+    const listText = res.matchedItems.map(m => `• ${m.tool} (${m.qty}) — ${m.person}`).join('\n');
+    const isReturned = status === 'Returned';
+    return {
+      success: true,
+      messageTamil: isReturned
+        ? `✅ *டூல்ஸ் திரும்பப் பெறப்பட்டதாகப் பதிவு செய்யப்பட்டது!*\n━━━━━━━━━━━━━━━━━━━━━━\n📍 *சைட்:* ${siteName}\n🛠️ *திரும்பிய டூல்ஸ் (${res.matchedItems.length}):*\n${listText}\n━━━━━━━━━━━━━━━━━━━━━━\n_\`Tools_Tracking_Log\`-ல் "Returned" என அப்டேட் செய்யப்பட்டது._`
+        : `⚠️ *சைட்டில் டூல்ஸ் விட்டு வரப்பட்டதாகக் குறிக்கப்பட்டது!*\n━━━━━━━━━━━━━━━━━━━━━━\n📍 *சைட்:* ${siteName}\n🛠️ *சைட்டில் உள்ள டூல்ஸ்:*\n${listText}\n━━━━━━━━━━━━━━━━━━━━━━\n_\`Tools_Tracking_Log\`-ல் "Left at Site" எனப் பதிவாகியுள்ளது._`
+    };
+  }
+
+  // 20. Query Tools Status
+  if (fnName === 'queryToolsStatus') {
+    const res = await googleDriveService.queryToolsStatus({
+      siteName: args.siteName || null,
+      toolName: args.toolName || null,
+      responsiblePerson: args.responsiblePerson || null,
+      statusFilter: args.statusFilter || 'pending'
+    });
+
+    if (!res || !res.success || res.records.length === 0) {
+      return {
+        success: true,
+        messageTamil: `✅ *எந்த டூல்ஸும் சைட்டில் நிலுவையில் இல்லை!* (அனைத்து டூல்ஸும் திரும்ப வந்துவிட்டன.)`
+      };
+    }
+
+    const lines = res.records.map((r, idx) =>
+      `${idx + 1}. 🛠️ *${r.toolName}* (${r.quantity}) — 📍 *${r.siteName}*\n   👷 பொறுப்பு: ${r.responsiblePerson} | 📅 ${r.date} | நிலை: *${r.status}*`
+    ).join('\n');
+
+    return {
+      success: true,
+      count: res.records.length,
+      messageTamil: `🧰 *டூல்ஸ் டிராக்கிங் நிலவரம் (${res.records.length} பதிவுகள்):*\n━━━━━━━━━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━━━━━━━━━\n📊 *Google Sheet:* \`Tools_Tracking_Log\``
+    };
+  }
+
+  // 21. Log Site Tea Expense (Site_Tea_Expense_Log)
+  if (fnName === 'logSiteTeaExpense') {
+    const siteName = args.siteName || lastActiveSiteName || 'General Site';
+    lastActiveSiteName = siteName;
+    const dateStr = args.date || getISTDateString();
+    const teaCashHolder = args.teaCashHolder || 'Site Lead';
+    const amount = Number(args.amount) || 0;
+    const laborCount = Number(args.laborCount) || 1;
+    const workersList = args.workersList || teaCashHolder;
+
+    const res = await googleDriveService.recordSiteTeaExpense({
+      date: dateStr,
+      siteName,
+      laborCount,
+      workersList,
+      teaCashHolder,
+      amount,
+      notes: args.notes || 'Tea & Snacks',
+      allowExtra: Boolean(args.allowExtra)
+    });
+
+    if (res && res.duplicateBlocked && res.existing) {
+      return {
+        success: false,
+        duplicateBlocked: true,
+        messageTamil: `⚠️ *டீ காசு எச்சரிக்கை (Duplicate Blocked)!*\n\n📍 *${res.existing.siteName}* சைட்டுக்கு இன்று (${res.existing.date}) ஏற்கனவே *${res.existing.teaCashHolder}* கிட்ட *₹${res.existing.amount}* டீ காசு கொடுக்கப்பட்டுவிட்டது.\n👷 *சைட் ஆட்கள்:* ${res.existing.workersList}\n\n_எல்லாருக்கும் தனித்தனியா டீ காசு கொடுக்கப்படாது. கூடுதல் செலவு அவசியம் என்றால் "கூடுதல் டீ காசு சேர்" எனக் குறிப்பிடவும்._`
+      };
+    }
+
+    return {
+      success: Boolean(res && res.success),
+      messageTamil: (res && res.success)
+        ? `☕ *சைட் டீ காசு கணக்கு பதிவு செய்யப்பட்டது!*\n━━━━━━━━━━━━━━━━━━━━━━\n📍 *சைட்:* ${siteName}\n👷 *ஆட்கள் (${laborCount} பேர்):* ${workersList}\n👤 *டீ காசு பொறுப்பாளர்:* ${teaCashHolder}\n💵 *தொகை:* ₹${amount}\n📅 *தேதி:* ${dateStr}\n━━━━━━━━━━━━━━━━━━━━━━\n_Google Sheet \`Site_Tea_Expense_Log\`-ல் சேமிக்கப்பட்டது (சம்பளத்தில் கழியாது)._`
+        : `⚠️ டீ காசு பதிவு செய்வதில் சிக்கல்: ${res && res.error ? res.error : 'Unknown error'}`
+    };
+  }
+
+  // 22. Query Site Tea Expenses
+  if (fnName === 'querySiteTeaExpenses') {
+    const targetDate = args.date || getISTDateString();
+    const res = await googleDriveService.querySiteTeaExpenses({
+      date: args.date === 'all' ? null : targetDate,
+      siteName: args.siteName || null,
+      holderName: args.holderName || null
+    });
+
+    if (!res || !res.success || res.records.length === 0) {
+      return {
+        success: true,
+        messageTamil: `ℹ️ *${args.date === 'all' ? 'இதுவரை' : targetDate}* சைட் டீ காசு பதிவுகள் எதுவும் \`Site_Tea_Expense_Log\`-ல் இல்லை.`
+      };
+    }
+
+    const lines = res.records.map((r, idx) =>
+      `${idx + 1}. 📍 *${r.siteName}* (${r.laborCount} பேர்) — ₹${r.amount}\n   👤 பொறுப்பாளர்: *${r.teaCashHolder}* | 📅 ${r.date}`
+    ).join('\n');
+
+    return {
+      success: true,
+      totalAmount: res.totalAmount,
+      messageTamil: `☕ *சைட் டீ காசு விபரம்:*\n━━━━━━━━━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━━━━━━━━━\n💰 *மொத்த டீ செலவு:* ₹${res.totalAmount}\n📊 *Google Sheet:* \`Site_Tea_Expense_Log\``
+    };
+  }
+
+  // 23. Manage Site Master (Sites_Master_Profit)
+  if (fnName === 'manageSiteMaster') {
+    const siteName = args.siteName || lastActiveSiteName || 'General Site';
+    lastActiveSiteName = siteName;
+    const engineerName = args.engineerName || 'Arasan Team';
+    const sqftArea = Number(args.sqftArea) || 0;
+    const sqftRate = Number(args.sqftRate) || 0;
+    const status = args.status || 'Active';
+
+    const res = await googleDriveService.upsertSiteMaster({
+      siteName,
+      engineerName,
+      sqftArea,
+      sqftRate,
+      status
+    });
+
+    if (!res || !res.success) {
+      return {
+        success: false,
+        messageTamil: `⚠️ சைட் விபரம் சேமிப்பதில் சிக்கல்: ${res && res.error ? res.error : 'Unknown error'}`
+      };
+    }
+
+    return {
+      success: true,
+      ...res,
+      messageTamil: `🏗️ *சைட் மாஸ்டர் & ப்ராஃபிட் டிராக்கர் ${res.action === 'updated' ? 'அப்டேட் செய்யப்பட்டது' : 'சேர்க்கப்பட்டது'}!*\n━━━━━━━━━━━━━━━━━━━━━━\n📍 *சைட்:* ${res.siteName}\n👷‍♂️ *இன்ஜினியர் / கான்ட்ராக்டர்:* ${res.engineerName}\n📐 *அளவு (Sq.ft):* ${res.sqftArea.toLocaleString('en-IN')} sq.ft\n💵 *ரேட் / Sq.ft:* ₹${res.sqftRate}\n💰 *மொத்த காண்ட்ராக்ட் மதிப்பு:* ₹${res.totalContract.toLocaleString('en-IN')}\n━━━━━━━━━━━━━━━━━━━━━━\n_இனி இந்த சைட்டுக்குப் போகும் Electrical, Plumbing லேபர் சார்ஜ் & டீ காசு அனைத்தும் \`Sites_Master_Profit\` ஷீட்டில் தானாகக் கழிந்து நிகர ப்ராஃபிட் (Net Profit) காட்டும்._`
+    };
+  }
+
+  // 24. Get Site Profit Report
+  if (fnName === 'getSiteProfitReport') {
+    const siteName = args.siteName || null;
+    const engineerName = args.engineerName || null;
+    const res = await googleDriveService.getSiteProfitReport(siteName, engineerName);
+
+    if (!res || !res.success || res.sites.length === 0) {
+      return {
+        success: true,
+        messageTamil: `ℹ️ *\`Sites_Master_Profit\` ஷீட்டில் இன்னும் சைட் விபரங்கள் சேர்க்கப்படவில்லை.*\n\n_"புது சைட் ஆட் பண்ணு: பொன்மேனி, இன்ஜினியர் ராமச்சந்திரன், 1500 sq.ft, ரேட் ₹120"_ என்று அனுப்பினால் உடனே தொடங்கிவிடலாம்!`
+      };
+    }
+
+    const lines = res.sites.map((s, idx) =>
+      `${idx + 1}. 📍 *${s.siteName}* (${s.engineerName}) [${s.status}]\n` +
+      `   📐 ${s.sqftArea.toLocaleString('en-IN')} sq.ft × ₹${s.sqftRate} = *₹${s.totalContractAmount.toLocaleString('en-IN')}*\n` +
+      `   💵 இதுவரை வாங்கியது: ₹${s.amountReceived.toLocaleString('en-IN')} | பாக்கி: ₹${s.balanceReceivable.toLocaleString('en-IN')}\n` +
+      `   ⚡ Electrical லேபர்: ₹${s.electricalLaborCost.toLocaleString('en-IN')}\n` +
+      `   🔧 Plumbing லேபர்: ₹${s.plumbingLaborCost.toLocaleString('en-IN')}\n` +
+      (s.otherLaborCost > 0 ? `   👷 General லேபர்: ₹${s.otherLaborCost.toLocaleString('en-IN')}\n` : '') +
+      `   ☕ டீ செலவு: ₹${s.teaExpense.toLocaleString('en-IN')}\n` +
+      `   ✨ *நிகர ப்ராஃபிட் (Net Profit): ₹${s.netProfit.toLocaleString('en-IN')} (${s.profitPercent}%)*`
+    ).join('\n\n');
+
+    return {
+      success: true,
+      sites: res.sites,
+      messageTamil: `📊 *சைட் வாரியான லேபர் செலவு, வசூல் & ப்ராஃபிட் ரிப்போர்ட்:*\n━━━━━━━━━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━━━━━━━━━\n📊 *Google Sheet:* \`Sites_Master_Profit\``
+    };
+  }
+
+  // 25. Record Staged Site Payment (with Multi-Site Split Confirmation)
+  if (fnName === 'recordSitePayment') {
+    const engineerName = args.engineerName || 'Contractor';
+    const totalAmount = Number(args.totalAmount) || 0;
+    const splits = Array.isArray(args.splits) ? args.splits : [];
+    const paymentMode = args.paymentMode || 'Cash/UPI';
+    const stageNotes = args.stageNotes || 'Stage payment';
+    const dateStr = args.date || getISTDateString();
+
+    if (splits.length === 0) {
+      const siteLookup = await googleDriveService.getSiteProfitReport(null, engineerName);
+      const matchingSites = (siteLookup && siteLookup.sites) ? siteLookup.sites : [];
+
+      if (matchingSites.length === 1) {
+        // Only 1 site under this contractor — log directly to that site
+        const singleSite = matchingSites[0].siteName;
+        const saveRes = await googleDriveService.recordSitePaymentSplits({
+          engineerName,
+          splits: [{ siteName: singleSite, amount: totalAmount }],
+          paymentMode,
+          stageNotes,
+          date: dateStr
+        });
+        return {
+          success: Boolean(saveRes && saveRes.success),
+          messageTamil: (saveRes && saveRes.success)
+            ? `💰 *சைட் ஸ்டேஜ் பேமெண்ட் பதிவு செய்யப்பட்டது!*\n━━━━━━━━━━━━━━━━━━━━━━\n👷‍♂️ *கான்ட்ராக்டர்:* ${engineerName}\n📍 *சைட்:* ${singleSite}\n💵 *பெற்ற தொகை:* ₹${totalAmount.toLocaleString('en-IN')} (${paymentMode})\n📅 *தேதி:* ${dateStr}\n━━━━━━━━━━━━━━━━━━━━━━\n_\`Site_Payments_Received_Log\` & \`Sites_Master_Profit\`-ல் அப்டேட் செய்யப்பட்டது._`
+            : `⚠️ பேமெண்ட் பதிவு செய்வதில் சிக்கல்.`
+        };
+      }
+
+      if (matchingSites.length > 1) {
+        // Multiple sites under this contractor — suggest a split & ASK the user before saving!
+        const totalLabor = matchingSites.reduce((sum, s) => sum + (s.totalLaborCost || 0), 0);
+        const siteLines = matchingSites.map((s, idx) => {
+          const suggested = totalLabor > 0
+            ? Math.round((s.totalLaborCost / totalLabor) * totalAmount)
+            : Math.round(totalAmount / matchingSites.length);
+          return `${idx + 1}. 📍 *${s.siteName}* — லேபர் செலவு: ₹${s.totalLaborCost.toLocaleString('en-IN')} | இதுவரை வாங்கியது: ₹${s.amountReceived.toLocaleString('en-IN')} | பாக்கி: ₹${s.balanceReceivable.toLocaleString('en-IN')}\n   💡 *பரிந்துரை:* ₹${suggested.toLocaleString('en-IN')}`;
+        }).join('\n');
+
+        return {
+          success: true,
+          awaitingSplitConfirmation: true,
+          messageTamil: `🤔 *${engineerName}* கிட்ட இருந்து *₹${totalAmount.toLocaleString('en-IN')}* வந்துள்ளது. இவர் கீழ் *${matchingSites.length} சைட்டுகள்* உள்ளன:\n━━━━━━━━━━━━━━━━━━━━━━\n${siteLines}\n━━━━━━━━━━━━━━━━━━━━━━\n❓ *இந்த ₹${totalAmount.toLocaleString('en-IN')}-ஐ எந்தெந்த சைட்டுக்கு எவ்வளவு பிரித்துப் போடலாம்?* (உதாரணம்: *"50-50 போடு"* அல்லது *"பொன்மேனி 30,000, ஆனையூர் 20,000"* என்று சொல்லுங்கள் — உடனே அப்டேட் செய்துவிடுகிறேன்!)`
+        };
+      }
+
+      return {
+        success: false,
+        awaitingSplitConfirmation: true,
+        messageTamil: `ℹ️ *${engineerName}* பெயரில் \`Sites_Master_Profit\` ஷீட்டில் இன்னும் சைட்டுகள் சேர்க்கப்படவில்லை. எந்த சைட்டுக்கு இந்த *₹${totalAmount.toLocaleString('en-IN')}*-ஐப் பதிய வேண்டும் என்று சைட் பெயரைச் சொல்லுங்கள்!`
+      };
+    }
+
+    const saveRes = await googleDriveService.recordSitePaymentSplits({
+      engineerName,
+      splits,
+      paymentMode,
+      stageNotes,
+      date: dateStr
+    });
+
+    const splitLines = splits.map(s => `• 📍 *${s.siteName}:* ₹${Number(s.amount).toLocaleString('en-IN')}`).join('\n');
+    return {
+      success: Boolean(saveRes && saveRes.success),
+      messageTamil: (saveRes && saveRes.success)
+        ? `✅ *சைட் வாரியாக ஸ்டேஜ் பேமெண்ட் பிரித்துப் பதிவு செய்யப்பட்டது!*\n━━━━━━━━━━━━━━━━━━━━━━\n👷‍♂️ *கான்ட்ராக்டர்:* ${engineerName}\n💰 *மொத்த தொகை:* ₹${totalAmount.toLocaleString('en-IN')} (${paymentMode})\n${splitLines}\n📅 *தேதி:* ${dateStr}\n━━━━━━━━━━━━━━━━━━━━━━\n_\`Site_Payments_Received_Log\` & \`Sites_Master_Profit\` ஷீட்டில் அப்டேட் செய்யப்பட்டது._`
+        : `⚠️ பேமெண்ட் பதிவு செய்வதில் சிக்கல்: ${saveRes && saveRes.error ? saveRes.error : 'Unknown error'}`
     };
   }
 

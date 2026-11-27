@@ -40,7 +40,7 @@ const PERSONAS = {
     name: 'SoloDeveloper.pro Sales OS',
     client: 'SoloDeveloper.pro',
     proprietor: 'Suresh Kumar',
-    tagline: 'Senior AI & Web Consultant • Websites from ₹8,999 • WhatsApp AI & CRM Automations',
+    tagline: 'WhatsApp AI from ₹4,999 • Websites ₹7,999–₹49,999 • Full AI Business & Site Automation',
     badge: 'Default Developer Mode',
     icon: '💻',
     switchMessage: '✅ *Switched!* Mode is now active: 💻 *Suresh Kumar SoloDeveloper.pro Sales Operating System*.\n• Hormozi 3-Way Qualification, Proposal Engine & Demo Booking active.\nReady for web & AI automation prospects!'

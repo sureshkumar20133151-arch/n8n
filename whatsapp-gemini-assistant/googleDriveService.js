@@ -470,10 +470,11 @@ class GoogleDriveService {
         entry.siteAllocated || 'General Site',
         String(entry.dailyRate || 850),
         entry.attendanceStatus || 'Present',
-        String(entry.advanceAmount || 0)
+        String(entry.advanceAmount || 0),
+        entry.workType || 'General'
       ];
       const appendBody = JSON.stringify({ values: [row] });
-      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A:G:append?valueInputOption=USER_ENTERED`, {
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Daily_Attendance_Site_Log!A:H:append?valueInputOption=USER_ENTERED`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1239,6 +1240,495 @@ class GoogleDriveService {
       return delRes;
     } catch (err) {
       console.warn('[GoogleSheet] Error deleting bill:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async ensureSheetTab(tabTitle, headers = []) {
+    try {
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const metaRes = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const meta = JSON.parse(metaRes);
+      const exists = (meta.sheets || []).some(
+        s => s.properties.title.trim().toLowerCase() === tabTitle.trim().toLowerCase()
+      );
+      if (exists) {
+        return { success: true, created: false };
+      }
+
+      const batchBody = JSON.stringify({
+        requests: [{ addSheet: { properties: { title: tabTitle } } }]
+      });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(batchBody)
+        }
+      }, batchBody);
+
+      if (headers.length > 0) {
+        const headerBody = JSON.stringify({ values: [headers] });
+        await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabTitle)}!A1:append?valueInputOption=USER_ENTERED`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(headerBody)
+          }
+        }, headerBody);
+      }
+
+      console.log(`📊 [GoogleSheet] Created new tab "${tabTitle}" with headers`);
+      return { success: true, created: true };
+    } catch (err) {
+      console.warn(`[GoogleSheet] Error ensuring tab ${tabTitle}:`, err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async recordToolsCheckout(entry) {
+    try {
+      await this.ensureSheetTab('Tools_Tracking_Log', [
+        'Date', 'Site_Name', 'Responsible_Person', 'Tool_Name', 'Quantity', 'Status', 'Return_Date', 'Notes'
+      ]);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const dateStr = entry.date || this.getISTDateString();
+      const tools = Array.isArray(entry.tools) && entry.tools.length > 0
+        ? entry.tools
+        : [{ toolName: entry.toolName || 'General Tool', quantity: entry.quantity || 1 }];
+
+      const rows = tools.map(t => [
+        dateStr,
+        entry.siteName || 'General Site',
+        entry.responsiblePerson || 'Site Lead',
+        t.toolName || 'Tool',
+        String(t.quantity || 1),
+        'Out at Site',
+        '-',
+        entry.notes || 'Morning site dispatch'
+      ]);
+
+      const appendBody = JSON.stringify({ values: rows });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Tools_Tracking_Log!A:H:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+
+      console.log(`🧰 [GoogleSheet] Logged ${rows.length} tool(s) for ${entry.siteName} (${entry.responsiblePerson})`);
+      return { success: true, count: rows.length };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error logging tools checkout:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async updateToolsReturnStatus({ siteName, toolNames = [], status = 'Returned', notes = '', returnDate = null }) {
+    try {
+      await this.ensureSheetTab('Tools_Tracking_Log', [
+        'Date', 'Site_Name', 'Responsible_Person', 'Tool_Name', 'Quantity', 'Status', 'Return_Date', 'Notes'
+      ]);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Tools_Tracking_Log!A2:H`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanSite = (siteName || '').trim().toLowerCase();
+      const cleanTools = (Array.isArray(toolNames) ? toolNames : []).map(t => String(t).trim().toLowerCase()).filter(Boolean);
+      const actualReturnDate = status === 'Returned' ? (returnDate || this.getISTDateString()) : '-';
+
+      const updates = [];
+      const matchedItems = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const [rDate, rSite, rPerson, rTool, rQty, rStatus, rRetDate, rNotes] = rows[i];
+        const currentStatus = (rStatus || '').trim().toLowerCase();
+        if (currentStatus === 'returned') continue;
+        if (cleanSite && cleanSite !== 'all' && !(rSite || '').toLowerCase().includes(cleanSite)) continue;
+
+        if (cleanTools.length > 0) {
+          const toolLower = (rTool || '').toLowerCase();
+          const toolMatch = cleanTools.some(ct => toolLower.includes(ct) || ct.includes(toolLower));
+          if (!toolMatch) continue;
+        }
+
+        const rowNum = i + 2;
+        const newNotes = notes ? `${rNotes ? rNotes + ' | ' : ''}${notes}` : (rNotes || '');
+        updates.push({
+          range: `Tools_Tracking_Log!F${rowNum}:H${rowNum}`,
+          values: [[status, actualReturnDate, newNotes]]
+        });
+        matchedItems.push({ date: rDate, site: rSite, person: rPerson, tool: rTool, qty: rQty || '1' });
+      }
+
+      if (updates.length === 0) {
+        return { success: false, matchedItems: [] };
+      }
+
+      const batchBody = JSON.stringify({ valueInputOption: 'USER_ENTERED', data: updates });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(batchBody)
+        }
+      }, batchBody);
+
+      console.log(`🧰 [GoogleSheet] Updated ${matchedItems.length} tool(s) at ${siteName} to "${status}"`);
+      return { success: true, matchedItems };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error updating tools return status:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async queryToolsStatus({ siteName = null, toolName = null, responsiblePerson = null, statusFilter = 'pending' } = {}) {
+    try {
+      await this.ensureSheetTab('Tools_Tracking_Log', [
+        'Date', 'Site_Name', 'Responsible_Person', 'Tool_Name', 'Quantity', 'Status', 'Return_Date', 'Notes'
+      ]);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Tools_Tracking_Log!A2:H`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanSite = siteName ? siteName.trim().toLowerCase() : null;
+      const cleanTool = toolName ? toolName.trim().toLowerCase() : null;
+      const cleanPerson = responsiblePerson ? responsiblePerson.trim().toLowerCase() : null;
+      const cleanStatus = (statusFilter || 'pending').trim().toLowerCase();
+
+      const records = [];
+      for (const row of rows) {
+        const [rDate, rSite, rPerson, rTool, rQty, rStatus, rRetDate, rNotes] = row;
+        const stLower = (rStatus || '').trim().toLowerCase();
+        if (cleanStatus === 'pending' && stLower === 'returned') continue;
+        if (cleanStatus === 'returned' && stLower !== 'returned') continue;
+        if (cleanStatus === 'left' && !stLower.includes('left')) continue;
+        if (cleanSite && cleanSite !== 'all' && !(rSite || '').toLowerCase().includes(cleanSite)) continue;
+        if (cleanTool && !(rTool || '').toLowerCase().includes(cleanTool)) continue;
+        if (cleanPerson && !(rPerson || '').toLowerCase().includes(cleanPerson)) continue;
+
+        records.push({
+          date: rDate || '-',
+          siteName: rSite || '-',
+          responsiblePerson: rPerson || '-',
+          toolName: rTool || '-',
+          quantity: rQty || '1',
+          status: rStatus || 'Out at Site',
+          returnDate: rRetDate || '-',
+          notes: rNotes || ''
+        });
+      }
+      return { success: true, records };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error querying tools status:', err.message);
+      return { success: false, error: err.message, records: [] };
+    }
+  }
+
+  async recordSiteTeaExpense(entry) {
+    try {
+      await this.ensureSheetTab('Site_Tea_Expense_Log', [
+        'Date', 'Site_Name', 'Labor_Count', 'Workers_List', 'Tea_Cash_Holder', 'Amount_INR', 'Notes'
+      ]);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const dateStr = entry.date || this.getISTDateString();
+      const cleanSite = (entry.siteName || 'General Site').trim();
+      const cleanHolder = (entry.teaCashHolder || 'Site Lead').trim();
+
+      // Check if tea cash was already issued to a designated holder for this site today
+      if (!entry.allowExtra) {
+        const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Tea_Expense_Log!A2:G`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const rows = JSON.parse(res).values || [];
+        const existing = rows.find(r =>
+          (r[0] || '').trim() === dateStr &&
+          (r[1] || '').trim().toLowerCase() === cleanSite.toLowerCase()
+        );
+        if (existing) {
+          const existingHolder = (existing[4] || '').trim();
+          const holderMatches = existingHolder.toLowerCase().includes(cleanHolder.toLowerCase()) ||
+            cleanHolder.toLowerCase().includes(existingHolder.toLowerCase());
+          if (!holderMatches) {
+            return {
+              success: false,
+              duplicateBlocked: true,
+              existing: {
+                date: existing[0],
+                siteName: existing[1],
+                laborCount: existing[2],
+                workersList: existing[3],
+                teaCashHolder: existingHolder,
+                amount: Number(existing[5]) || 0
+              }
+            };
+          }
+        }
+      }
+
+      const row = [
+        dateStr,
+        cleanSite,
+        String(entry.laborCount || 1),
+        entry.workersList || cleanHolder,
+        cleanHolder,
+        String(entry.amount || 0),
+        entry.notes || 'Tea & Snacks'
+      ];
+      const appendBody = JSON.stringify({ values: [row] });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Tea_Expense_Log!A:G:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+
+      console.log(`☕ [GoogleSheet] Logged site tea expense: ${cleanSite} -> ${cleanHolder} (₹${entry.amount})`);
+      return { success: true };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error recording site tea expense:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async querySiteTeaExpenses({ date = null, siteName = null, holderName = null } = {}) {
+    try {
+      await this.ensureSheetTab('Site_Tea_Expense_Log', [
+        'Date', 'Site_Name', 'Labor_Count', 'Workers_List', 'Tea_Cash_Holder', 'Amount_INR', 'Notes'
+      ]);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Tea_Expense_Log!A2:G`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanDate = date ? date.trim() : null;
+      const cleanSite = siteName ? siteName.trim().toLowerCase() : null;
+      const cleanHolder = holderName ? holderName.trim().toLowerCase() : null;
+
+      const records = [];
+      let totalAmount = 0;
+      for (const row of rows) {
+        const [rDate, rSite, rCount, rWorkers, rHolder, rAmt, rNotes] = row;
+        if (cleanDate && rDate !== cleanDate) continue;
+        if (cleanSite && cleanSite !== 'all' && !(rSite || '').toLowerCase().includes(cleanSite)) continue;
+        if (cleanHolder && !(rHolder || '').toLowerCase().includes(cleanHolder)) continue;
+
+        const amt = Number(rAmt) || 0;
+        totalAmount += amt;
+        records.push({
+          date: rDate || '-',
+          siteName: rSite || '-',
+          laborCount: rCount || '-',
+          workersList: rWorkers || '-',
+          teaCashHolder: rHolder || '-',
+          amount: amt,
+          notes: rNotes || ''
+        });
+      }
+      return { success: true, records, totalAmount };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error querying site tea expenses:', err.message);
+      return { success: false, error: err.message, records: [], totalAmount: 0 };
+    }
+  }
+
+  async upsertSiteMaster({ siteName, engineerName = 'Arasan Team', sqftArea = 0, sqftRate = 0, status = 'Active' }) {
+    try {
+      const headers = [
+        'Site_Name', 'Engineer_Contractor', 'Sqft_Area', 'Sqft_Rate',
+        'Total_Contract_Amount', 'Electrical_Labor_Cost', 'Plumbing_Labor_Cost',
+        'Other_Labor_Cost', 'Total_Labor_Cost', 'Tea_Expense',
+        'Net_Profit', 'Profit_Percent', 'Status',
+        'Amount_Received', 'Balance_Receivable', 'Cash_Balance_On_Site'
+      ];
+      await this.ensureSheetTab('Sites_Master_Profit', headers);
+      await this.ensureSheetTab('Site_Payments_Received_Log', [
+        'Date', 'Site_Name', 'Engineer_Contractor', 'Amount_Received', 'Payment_Mode', 'Stage_Notes'
+      ]);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sites_Master_Profit!A2:P`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanSite = (siteName || '').trim();
+      const existingIdx = rows.findIndex(r => (r[0] || '').trim().toLowerCase() === cleanSite.toLowerCase());
+
+      if (existingIdx !== -1) {
+        const rowNum = existingIdx + 2;
+        const existingRow = rows[existingIdx];
+        const finalEng = engineerName && engineerName !== 'Arasan Team' ? engineerName : (existingRow[1] || 'Arasan Team');
+        const finalSqft = Number(sqftArea) > 0 ? Number(sqftArea) : (Number(existingRow[2]) || 0);
+        const finalRate = Number(sqftRate) > 0 ? Number(sqftRate) : (Number(existingRow[3]) || 0);
+        const finalStatus = status || existingRow[12] || 'Active';
+
+        const updateBody = JSON.stringify({
+          valueInputOption: 'USER_ENTERED',
+          data: [
+            { range: `Sites_Master_Profit!B${rowNum}:D${rowNum}`, values: [[finalEng, finalSqft, finalRate]] },
+            { range: `Sites_Master_Profit!M${rowNum}`, values: [[finalStatus]] }
+          ]
+        });
+        await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchUpdate`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(updateBody)
+          }
+        }, updateBody);
+
+        console.log(`🏗️ [GoogleSheet] Updated site "${cleanSite}" in Sites_Master_Profit (row ${rowNum})`);
+        return { success: true, action: 'updated', siteName: cleanSite, engineerName: finalEng, sqftArea: finalSqft, sqftRate: finalRate, totalContract: finalSqft * finalRate };
+      }
+
+      const nextRow = rows.length + 2;
+      const newRow = [
+        cleanSite,
+        engineerName || 'Arasan Team',
+        Number(sqftArea) || 0,
+        Number(sqftRate) || 0,
+        `=C${nextRow}*D${nextRow}`,
+        `=SUMIFS(Daily_Attendance_Site_Log!E:E, Daily_Attendance_Site_Log!D:D, "*"&A${nextRow}&"*", Daily_Attendance_Site_Log!F:F, "<>Absent", Daily_Attendance_Site_Log!H:H, "Electrical")`,
+        `=SUMIFS(Daily_Attendance_Site_Log!E:E, Daily_Attendance_Site_Log!D:D, "*"&A${nextRow}&"*", Daily_Attendance_Site_Log!F:F, "<>Absent", Daily_Attendance_Site_Log!H:H, "Plumbing")`,
+        `=SUMIFS(Daily_Attendance_Site_Log!E:E, Daily_Attendance_Site_Log!D:D, "*"&A${nextRow}&"*", Daily_Attendance_Site_Log!F:F, "<>Absent")-F${nextRow}-G${nextRow}`,
+        `=F${nextRow}+G${nextRow}+H${nextRow}`,
+        `=SUMIFS(Site_Tea_Expense_Log!F:F, Site_Tea_Expense_Log!B:B, "*"&A${nextRow}&"*")`,
+        `=E${nextRow}-I${nextRow}-J${nextRow}`,
+        `=IF(E${nextRow}>0, ROUND((K${nextRow}/E${nextRow})*100, 1), 0)`,
+        status || 'Active',
+        `=SUMIFS(Site_Payments_Received_Log!D:D, Site_Payments_Received_Log!B:B, "*"&A${nextRow}&"*")`,
+        `=E${nextRow}-N${nextRow}`,
+        `=N${nextRow}-I${nextRow}-J${nextRow}`
+      ];
+
+      const appendBody = JSON.stringify({ values: [newRow] });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sites_Master_Profit!A:P:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+
+      console.log(`🏗️ [GoogleSheet] Added new site "${cleanSite}" to Sites_Master_Profit (row ${nextRow})`);
+      return { success: true, action: 'created', siteName: cleanSite, engineerName, sqftArea: Number(sqftArea) || 0, sqftRate: Number(sqftRate) || 0, totalContract: (Number(sqftArea) || 0) * (Number(sqftRate) || 0) };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error upserting site master:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async getSiteProfitReport(siteName = null, engineerName = null) {
+    try {
+      const headers = [
+        'Site_Name', 'Engineer_Contractor', 'Sqft_Area', 'Sqft_Rate',
+        'Total_Contract_Amount', 'Electrical_Labor_Cost', 'Plumbing_Labor_Cost',
+        'Other_Labor_Cost', 'Total_Labor_Cost', 'Tea_Expense',
+        'Net_Profit', 'Profit_Percent', 'Status',
+        'Amount_Received', 'Balance_Receivable', 'Cash_Balance_On_Site'
+      ];
+      await this.ensureSheetTab('Sites_Master_Profit', headers);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+
+      const res = await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sites_Master_Profit!A2:P`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rows = JSON.parse(res).values || [];
+      const cleanSite = siteName ? siteName.trim().toLowerCase() : null;
+      const cleanEng = engineerName ? engineerName.trim().toLowerCase() : null;
+
+      const sites = [];
+      for (const r of rows) {
+        const sName = (r[0] || '').trim();
+        if (!sName) continue;
+        if (cleanSite && cleanSite !== 'all' && !sName.toLowerCase().includes(cleanSite)) continue;
+        if (cleanEng && !(r[1] || '').toLowerCase().includes(cleanEng)) continue;
+
+        sites.push({
+          siteName: sName,
+          engineerName: r[1] || '-',
+          sqftArea: Number(r[2]) || 0,
+          sqftRate: Number(r[3]) || 0,
+          totalContractAmount: Number(r[4]) || 0,
+          electricalLaborCost: Number(r[5]) || 0,
+          plumbingLaborCost: Number(r[6]) || 0,
+          otherLaborCost: Number(r[7]) || 0,
+          totalLaborCost: Number(r[8]) || 0,
+          teaExpense: Number(r[9]) || 0,
+          netProfit: Number(r[10]) || 0,
+          profitPercent: Number(r[11]) || 0,
+          status: r[12] || 'Active',
+          amountReceived: Number(r[13]) || 0,
+          balanceReceivable: Number(r[14]) || 0,
+          cashBalanceOnSite: Number(r[15]) || 0
+        });
+      }
+      return { success: true, sites };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error reading site profit report:', err.message);
+      return { success: false, error: err.message, sites: [] };
+    }
+  }
+
+  async recordSitePaymentSplits({ engineerName = 'Contractor', splits = [], paymentMode = 'Cash/UPI', stageNotes = 'Stage payment', date = null }) {
+    try {
+      await this.ensureSheetTab('Site_Payments_Received_Log', [
+        'Date', 'Site_Name', 'Engineer_Contractor', 'Amount_Received', 'Payment_Mode', 'Stage_Notes'
+      ]);
+      const token = await this.getAccessToken();
+      const sheetId = '1dH7K9IYVSSCAqznNxjz5j-Sv62i-vnw40I8t_3Ep5kc';
+      const dateStr = date || this.getISTDateString();
+
+      const rows = (Array.isArray(splits) ? splits : [])
+        .filter(s => s && s.siteName && Number(s.amount) > 0)
+        .map(s => [
+          dateStr,
+          s.siteName.trim(),
+          engineerName,
+          String(Number(s.amount)),
+          paymentMode,
+          stageNotes
+        ]);
+
+      if (rows.length === 0) {
+        return { success: false, error: 'No valid site payment splits provided.' };
+      }
+
+      const appendBody = JSON.stringify({ values: rows });
+      await this._makeHttpRequest(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Site_Payments_Received_Log!A:F:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(appendBody)
+        }
+      }, appendBody);
+
+      console.log(`💰 [GoogleSheet] Logged ${rows.length} site payment split(s) from ${engineerName}`);
+      return { success: true, count: rows.length };
+    } catch (err) {
+      console.warn('[GoogleSheet] Error logging site payment splits:', err.message);
       return { success: false, error: err.message };
     }
   }

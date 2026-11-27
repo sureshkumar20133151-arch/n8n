@@ -7,12 +7,12 @@ const { detectIndustry } = require('./industryKnowledgeBase');
 
 const INDUSTRY_LEAD_MAGNETS = {
   construction: {
-    leadMagnet: "Free 5-Minute Builder WhatsApp Sales Leakage Audit",
-    painPoint: "losing high-ticket villa enquiries when site teams are busy on construction sites",
-    dreamOutcome: "qualify every home buyer's budget in 60 seconds and book site visits 24/7 without extra staff",
+    leadMagnet: "Free 5-Minute Builder AI Site & Workflow Automation Audit",
+    painPoint: "managing construction bills, labor attendance, site pictures, site stocks, and machines manually across calls and notebooks",
+    dreamOutcome: "manage construction bills, attendance, site pictures, site stocks, machines handling, and 24/7 client inquiries — all done by AI inside WhatsApp",
     targetAudience: "construction firms and builders",
-    revenueImpact: "At ₹25L–₹40L per villa project, even 1 missed inquiry per month is a ₹30 Lakh+ revenue leak.",
-    auditDeliverable: "1. Speed-to-Lead Response Test (How fast buyers get brochures)\n2. 60-Second Budget Qualification Flow\n3. Instant Google Calendar Site Visit Booking Blueprint"
+    revenueImpact: "Eliminating missed material/bill leakage and 1 missed villa inquiry per month saves Lakhs in revenue & site overhead.",
+    auditDeliverable: "1. Construction Bills & Tally/Sheets Sync via WhatsApp\n2. Daily Labor Attendance, Site Stocks & Machines Handling AI\n3. Site Pictures Vault (Upload & Instant Retrieval) + 24/7 Client Qualifier"
   },
   interiorDesign: {
     leadMagnet: "Premium Interior Client Qualification Blueprint",
@@ -124,19 +124,19 @@ function generateOutreachScript(prospect = {}) {
 
   const englishHook = `Hi ${owner},
 
-It took me 5 years to solve the problem of ${magnet.painPoint}.
+We don't just build websites — we help ${magnet.targetAudience} operate and automate their entire business workflow using AI right inside WhatsApp.
 
-After 100+ trials I built a ${magnet.leadMagnet} that helps ${magnet.targetAudience} ${magnet.dreamOutcome}.
+Whether it's connecting WhatsApp to your existing tools (Tally, Zoho, Excel/Sheets, Billing), uploading & retrieving site/work photos on-demand, or handling ${magnet.painPoint} 24/7 — we automate it end-to-end.
 
-Mind if I share it with you?`;
+Mind if I share a quick breakdown of how our "${magnet.leadMagnet}" works for ${company}?`;
 
   const tamilHook = `வணக்கம் ${owner}!
 
-${company}-ல் ${magnet.painPoint} போன்ற சவால்களை தவிர்க்க 5 வருட அனுபவத்தில் ஒரு சிஸ்டம் உருவாக்கியுள்ளேன்.
+நாங்கள் வெறும் Website மட்டும் செய்து தருவதில்லை — உங்கள் Business-ன் முழு Workflow-ஐயும் AI & WhatsApp மூலம் Automate செய்து இயக்க உதவுகிறோம்.
 
-இதற்காக நாங்கள் உருவாக்கியுள்ள "${magnet.leadMagnet}" மூலம் ${magnet.dreamOutcome} எளிதாக சாத்தியமாகிறது.
+நீங்கள் ஏற்கனவே பயன்படுத்தும் Tally, Excel/Sheets, Billing போன்ற Software-களை WhatsApp AI Agent உடன் கனெக்ட் செய்வது, Site/Work Photos-ஐ WhatsApp-லேயே Upload செய்து தேவையானபோது எடுப்பது, மற்றும் ${magnet.painPoint} போன்ற சவால்களை 24/7 தீர்ப்பது என அனைத்தையும் Automate செய்கிறோம்.
 
-உங்களுக்கு இந்த 3-Minute Audit Breakdown-ஐ WhatsApp-ல் அனுப்பலாமா?`;
+"${magnet.leadMagnet}" உங்கள் ${company}-க்கு எப்படி உதவும் என்ற சின்ன Breakdown-ஐ அனுப்பலாமா?`;
 
   return {
     industryKey: indKey,
@@ -162,15 +162,18 @@ function generateAuditDeliveryMessage(prospect = {}) {
   const indKey = resolveIndustryKey(prospect.industry || '');
   const magnet = INDUSTRY_LEAD_MAGNETS[indKey] || INDUSTRY_LEAD_MAGNETS.construction;
 
-  return `Great to connect with you, ${owner}! Here is the core framework of the *${magnet.leadMagnet}* for ${company}:
+  return `Great to connect with you, ${owner}! Here is how we automate the workflow for ${company} (*${magnet.leadMagnet}*):
 
 ${magnet.auditDeliverable}
 
+⚙️ *What Else We Connect & Automate Inside WhatsApp:*
+• *Existing Software Sync:* Voice/text entries straight into Tally Prime, Zoho Books, or Excel/Google Sheets
+• *AI Photo Vault:* Upload site/work/bill photos on WhatsApp & retrieve them anytime on-demand
+• *Instant Billing & Ops:* Auto-generate GST/Thermal PDFs, track expenses, and qualify leads 24/7
+
 💡 *Financial Impact:* ${magnet.revenueImpact}
 
-We build autonomous WhatsApp systems that solve this in 60 seconds with zero staff overhead.
-
-Are most of your current inquiries coming from Instagram, Google, or referrals?`;
+Which tools or software do you currently use to manage daily work (e.g., Tally, Excel, WhatsApp, or manual notebooks)?`;
 }
 
 /**
@@ -182,15 +185,85 @@ function formatOutreachEnginePrompt() {
 ==================================================
 OUTREACH & LEAD GENERATION REPLY-HANDLING PLAYBOOK
 ==================================================
-When a prospect replies to an outbound outreach message (e.g. "Yes", "Sure", "Send it", "What is this?"):
+When a prospect replies to an outbound outreach message (e.g. "Yes", "Sure", "Send it", "What is this?", "How does it work?"):
 1. ACKNOWLEDGE & DELIVER:
-   Deliver the specific Lead Magnet for their industry concisely.
-2. FINANCIAL IMPACT ANCHOR:
-   State the revenue leakage in their industry (e.g. "Missing just 1 villa inquiry is a ₹30 Lakh revenue leak").
+   Deliver the specific Lead Magnet / Workflow Automation breakdown for their industry concisely. Highlight that we don't just build websites — we automate their entire business workflow inside WhatsApp by connecting to their existing software (Tally, Zoho, Excel/Sheets, Billing) and supporting photo upload/retrieval.
+2. FINANCIAL & TIME IMPACT ANCHOR:
+   State the revenue/time leakage in their industry (e.g. "Missing just 1 villa inquiry is a ₹30 Lakh revenue leak" or saving 10+ hours/week of manual entry).
 3. ASK 1 SHARP QUALIFICATION QUESTION:
-   Never interrogate. Ask ONLY ONE question to diagnose their current channel (e.g. "Are most of your inquiries coming from Instagram or referrals?").
+   Never interrogate. Ask ONLY ONE question to diagnose their current tools or channel (e.g. "Which tools do you currently use for billing/tracking — Tally, Excel, or WhatsApp/notebooks?").
 4. TRANSITION TO CRM PIPELINE:
    Once they share their situation, trigger saveLeadDetails tool to automatically move them into the CRM pipeline at stage "4. INTERESTED REPLY" or "5. QUALIFIED" so Suresh can review them in the Daily AI Sales Manager Briefing!`;
+}
+
+/**
+ * Generate Multi-Stage Follow-Up Message (Day 1, Day 3, Day 7, Day 14)
+ * Focused on End-to-End AI Business Workflow Automation (Software Sync + Photo Vault + 24/7 Ops)
+ * @param {object} prospect
+ * @param {number} day - 1, 3, 7, or 14
+ * @returns {object}
+ */
+function generateFollowUpMessage(prospect = {}, day = 1) {
+  const owner = prospect.ownerName || prospect.name || 'there';
+  const company = prospect.company || prospect.businessName || 'your business';
+  const indKey = resolveIndustryKey(prospect.industry || prospect.businessName || '');
+  const magnet = INDUSTRY_LEAD_MAGNETS[indKey] || INDUSTRY_LEAD_MAGNETS.construction;
+
+  const stages = {
+    1: {
+      stageName: 'Day 1 - Workflow Automation & Software Sync Value',
+      english: `Hi ${owner}, Suresh here from SoloDeveloper.pro.
+
+Just following up on my earlier message for *${company}*. Most ${magnet.targetAudience} think we only build websites — actually, we connect *WhatsApp AI directly to your existing software* (Tally, Zoho, Excel/Sheets, Billing) so your team can run billing, expenses, and ${magnet.painPoint} right from WhatsApp.
+
+Would you like to see a 2-minute real example of how it works?`,
+      tamil: `வணக்கம் ${owner}, SoloDeveloper.pro-லிருந்து சுரேஷ் பேசுகிறேன்.
+
+*${company}*-க்காக அனுப்பிய மெசேஜின் தொடர்ச்சியாக இது. நாங்கள் வெறும் Website மட்டுமல்ல — நீங்கள் ஏற்கனவே பயன்படுத்தும் *Tally, Zoho, Excel/Sheets, Billing* போன்ற Software-களை WhatsApp AI உடன் கனெக்ட் செய்து, உங்கள் தினசரி வேலைகளை WhatsApp-லேயே Automate செய்கிறோம்.
+
+இதன் 2-Minute Live Example-ஐ அனுப்பலாமா?`
+    },
+    3: {
+      stageName: 'Day 3 - AI Photo Vault & On-Demand Retrieval Proof',
+      english: `Hi ${owner}, quick follow-up for *${company}*!
+
+One feature our clients love most is the *WhatsApp AI Photo Vault* — your team simply sends site/work photos, bills, or receipts on WhatsApp, AI auto-organizes them, and anyone authorized can retrieve any photo in seconds on-demand. Combined with 24/7 customer qualification, it saves 10+ hours every week.
+
+Do you have 10 minutes this week for a quick live screen-share demo?`,
+      tamil: `வணக்கம் ${owner}! *${company}*-க்காக ஒரு சின்ன Follow-up.
+
+நம் கிளையன்ட்கள் அதிகம் விரும்பும் வசதி *WhatsApp AI Photo Vault* — உங்கள் டீம் Site/Work Photos அல்லது Bills-ஐ WhatsApp-ல் போட்டாலே AI அதைப் பிரித்து சேமித்துவிடும்; எப்போது வேண்டுமானாலும் 2 நொடியில் அந்த போட்டோவைத் திரும்ப எடுக்கலாம். கூடவே 24/7 AI Customer Reply-உம் கிடைக்கும்.
+
+இந்த வாரம் 10 நிமிடம் Live Demo பார்க்கலாமா?`
+    },
+    7: {
+      stageName: 'Day 7 - Priority Pilot Slot & ROI',
+      english: `Hi ${owner}, Suresh here. We onboard only 2 custom AI workflow systems at a time so every client's Tally/Sheets/WhatsApp setup runs with 100% accuracy.
+
+If you'd like to automate *${company}*'s daily operations and eliminate manual follow-ups before your next busy cycle, just reply *"DEMO"* and I'll share 2 quick time slots!`,
+      tamil: `வணக்கம் ${owner}, சுரேஷ் பேசுகிறேன். ஒவ்வொரு பிசினஸின் Tally/Sheets/WhatsApp Automation-உம் 100% துல்லியமாக இருக்க, ஒரு நேரத்தில் 2 கிளையன்ட்களுக்கு மட்டுமே Custom System அமைத்துத் தருகிறோம்.
+
+*${company}*-ன் தினசரி வேலைகளை Automate செய்ய விருப்பம் இருந்தால் *"DEMO"* என்று reply செய்யுங்கள் — 2 நேரங்களை அனுப்புகிறேன்!`
+    },
+    14: {
+      stageName: 'Day 14 - Polite Closing / Breakup',
+      english: `Hi ${owner}, I know you're busy running *${company}*, so I won't crowd your WhatsApp further.
+
+Whenever you're ready to connect your existing tools (Tally, Excel, Billing, Photo Vault) into one 24/7 WhatsApp AI system, just message me here or at https://wa.me/919361599097. Wishing ${company} great growth!`,
+      tamil: `வணக்கம் ${owner}, *${company}* வேலைகளில் பிஸியாக இருப்பீர்கள் எனப் புரிகிறது, அதனால் இனி அடிக்கடி மெசேஜ் அனுப்பி தொந்தரவு செய்ய மாட்டேன்.
+
+எப்போது உங்கள் Tally, Excel, Billing மற்றும் Photo Vault வேலைகளை WhatsApp AI மூலம் Automate செய்ய நினைக்கிறீர்களோ, அப்போது ஒரு மெசேஜ் செய்யுங்கள் (https://wa.me/919361599097). நன்றி!`
+    }
+  };
+
+  const selected = stages[day] || stages[1];
+  return {
+    day,
+    stageName: selected.stageName,
+    english: selected.english,
+    tamil: selected.tamil,
+    primaryMessage: selected.english
+  };
 }
 
 module.exports = {
@@ -198,5 +271,6 @@ module.exports = {
   resolveIndustryKey,
   generateOutreachScript,
   generateAuditDeliveryMessage,
+  generateFollowUpMessage,
   formatOutreachEnginePrompt
 };

@@ -22,14 +22,58 @@ const soloDeveloperKnowledge = {
     whatsappUrl: "https://wa.me/919361599097",
     email: "sureshkumar20133151@gmail.com",
     website: "https://solodeveloper.pro",
-    positioning: "We build Autonomous AI Business Systems that understand customers, automate workflows, qualify leads, and help businesses operate 24/7."
+    positioning: "We don't just build websites — we build Autonomous AI Business Operating Systems on WhatsApp that connect directly to your existing software (Tally Prime, Zoho Books, Excel/Google Sheets, Google Drive, Billing) to operate and automate your entire business workflow 24/7."
+  },
+
+  builtSystemsAndCapabilities: [
+    {
+      name: "WhatsApp-to-Tally Prime & Zoho Books Accounting Automation",
+      whatItDoes: "Speak or text in Tamil, Tanglish, or English on WhatsApp (even from a site or counter) — AI parses Party, Item, Qty, Rate, and Payer (Owner/Contractor/Self) and automatically punches Sales, Purchase, Receipt, and Payment vouchers into Tally Prime or Zoho Books, with offline Google Sheets fail-safe sync."
+    },
+    {
+      name: "AI Photo Vault & On-Demand Photo Retrieval",
+      whatItDoes: "Upload site, work-progress, or bill photos on WhatsApp — AI auto-tags and archives them to Google Drive / structured storage. Retrieve any photo anytime on-demand in Group or DM (e.g., roof concrete pipes, wall chasing, site stage photos)."
+    },
+    {
+      name: "Automated A4 GST Invoice & Thermal Receipt Generation",
+      whatItDoes: "Generate and dispatch professional A4 GST PDF invoices and thermal POS receipts directly from WhatsApp voice or text commands."
+    },
+    {
+      name: "Voice, Bill & Screenshot Cashflow / Expense Tracker",
+      whatItDoes: "Send voice notes, paper bills, or GPay/UPI screenshots on WhatsApp — AI extracts amounts, categories, and parties to log daily expenses, labor advances, and income automatically."
+    },
+    {
+      name: "Wholesale B2B Inventory, MOQ & Dispatch Engine",
+      whatItDoes: "Live stock and box/tin rate lookup, Minimum Order Quantity (MOQ) validation, Excel/Google Sheets sync, order capture, and dispatch alerts."
+    },
+    {
+      name: "Restaurant Pre-Ordering & Live Kitchen Display (KDS)",
+      whatItDoes: "WhatsApp menu browsing, live cart building, UPI payment links, digital pickup tokens, and real-time Kitchen Display System."
+    },
+    {
+      name: "Construction / Real Estate BOQ & Site Visit Automation",
+      whatItDoes: "Instant sq.ft cost estimation, 3D/brochure sharing, buyer budget qualification, and automated Google Calendar site inspection booking."
+    },
+    {
+      name: "24/7 Lead Capture, Instagram DM & Multi-Channel Outreach",
+      whatItDoes: "Website contact forms, Instagram Reel comment-to-DM, and Google Maps/Reddit lead pipelines connected to WhatsApp AI qualification, CRM logging, and automated follow-ups."
+    }
+  ],
+
+  workflowAutomationPossibilities: {
+    accountingAndBilling: "Connect WhatsApp directly to Tally Prime, Zoho Books, or Excel so voice/text entries become instant GST invoices, construction bills, receipts, and payment vouchers.",
+    photoAndDocumentVault: "Upload site pictures, work progress photos, inspections, or receipts via WhatsApp; AI organizes them by project/date/stage so anyone on the team can retrieve them in seconds.",
+    inventoryAndOrders: "Track site stocks (cement, steel, electrical/plumbing materials), wholesale inventory, and machines/equipment handling directly via WhatsApp synced with Excel/Google Sheets.",
+    fieldAndSiteOperations: "Manage construction bills, daily labor attendance, contractor advances, owner vs. contractor bills, site pictures, site stocks, and machines handling — all done by AI inside WhatsApp.",
+    salesAndFollowUps: "Qualify inbound leads from Website, Instagram, and Google Maps automatically, book Google Meet/site visits, and run multi-day follow-ups without manual effort."
   },
 
   services: {
     portfolio: {
       name: "Portfolio Website",
-      startingPrice: 8999,
-      formattedPrice: "₹8,999",
+      startingPrice: 7999,
+      priceRange: [7999, 9999],
+      formattedPrice: "₹7,999 – ₹9,999",
       deliveryDays: [5, 7],
       deliveryText: "5–7 days",
       benefits: [
@@ -44,8 +88,9 @@ const soloDeveloperKnowledge = {
 
     business: {
       name: "Business Website",
-      startingPrice: 9999,
-      formattedPrice: "₹9,999",
+      startingPrice: 12999,
+      priceRange: [12999, 49999],
+      formattedPrice: "₹12,999 – ₹49,999",
       deliveryDays: [7, 10],
       deliveryText: "7–10 days",
       benefits: [
@@ -60,8 +105,9 @@ const soloDeveloperKnowledge = {
 
     ecommerce: {
       name: "Ecommerce Website",
-      priceRange: [19999, 34999],
-      formattedPrice: "₹19,999 – ₹34,999",
+      startingPrice: 19999,
+      priceRange: [19999, 49999],
+      formattedPrice: "₹19,999 – ₹49,999",
       deliveryDays: [10, 14],
       deliveryText: "10–14 days",
       benefits: [
@@ -75,10 +121,11 @@ const soloDeveloperKnowledge = {
     },
 
     aiAgents: {
-      name: "Autonomous AI Business Assistants",
-      pricing: "Custom Quote",
-      formattedPrice: "Custom Quote (Tailored to workflow)",
-      deliveryText: "5–7 days",
+      name: "Only WhatsApp AI Assistant",
+      startingPrice: 4999,
+      pricing: "Starting at ₹4,999 (More features as per requirement)",
+      formattedPrice: "Starting at ₹4,999 (More features as per your requirement)",
+      deliveryText: "3–7 days",
       benefits: [
         "24/7 customer inquiry handling on WhatsApp",
         "Consultative lead qualification & zero-interrogation CRM logging",
@@ -308,12 +355,13 @@ function buildSystemPrompt() {
 ### 1. Identity
 You are the official Autonomous AI Sales Strategist and Business Consultant for SoloDeveloper.pro, owned by Suresh Kumar, based in Madurai, Tamil Nadu.
 • Website: ${id.website} | WhatsApp: ${id.phone} | Email: ${id.email}
-• Your role is to understand business problems, recommend appropriate digital solutions, qualify genuine opportunities, and help interested prospects connect with the owner.
+• Core Positioning: We don't just build websites — we help businesses operate and automate their ENTIRE workflow using AI right inside WhatsApp, connecting directly to whatever tools and software they already use (Tally Prime, Zoho Books, Excel/Google Sheets, Google Drive, Billing/POS, Calendar, etc.).
+• Your role is to understand business problems, explain relevant automation possibilities, recommend appropriate digital/AI solutions, qualify genuine opportunities, and help interested prospects connect with the owner.
 • You represent SoloDeveloper professionally, accurately, and respectfully.
 • NEVER call yourself a chatbot. Describe yourself as an AI Business Assistant or Autonomous AI Sales Assistant.
 
 ### 2. Core Behavioral Principles (Non-Negotiable)
-1. DIRECT ANSWER FIRST WITH QUALIFICATION: If the customer asks for pricing, share the transparent starting range first (e.g. basic business portfolio starts at ₹9,999, while growth systems with 24/7 WhatsApp AI range from ₹19,999 to ₹29,999+). Then IMMEDIATELY ask ONE diagnostic question to understand what specific projects they handle or what problem they want solved. NEVER rush into proposing specific calendar slots (like 'today at 4:30 PM or tomorrow at 11 AM') before understanding their requirements!
+1. DIRECT ANSWER FIRST WITH QUALIFICATION: If the customer asks for pricing, share the transparent starting range first (e.g., Only WhatsApp AI Assistant starts at ₹4,999, Portfolio Website ₹7,999–₹9,999, Business Website ₹12,999–₹49,999, Ecommerce ₹19,999–₹49,999, with more features priced as per requirement). Then IMMEDIATELY ask ONE diagnostic question to understand what specific workflow or project they want automated. NEVER rush into proposing specific calendar slots (like 'today at 4:30 PM or tomorrow at 11 AM') before understanding their requirements!
 2. ONE QUESTION LIMIT: Ask a maximum of ONE question per WhatsApp message. Never combine multiple questions.
 3. CONTEXTUAL AWARENESS: Never repeat a question whose answer is already known from previous messages or stored contact details.
 4. ADAPTIVE DISCOVERY: Never force customers through a rigid questionnaire. Adapt fluidly to the information they share.
@@ -375,12 +423,38 @@ Recommend only services that address demonstrated needs:
 • Professional Services ➔ Premium portfolio website, inquiry qualification, strategy demo booking.
 
 ### 8. Official Services and Indicative Starting Prices
-• Portfolio Website: Starting at ₹8,999 (5–7 days delivery).
-• Business Website: Starting at ₹9,999 (7–10 days delivery).
-• Ecommerce Website: ₹19,999–₹34,999 (10–14 days delivery).
-• Autonomous AI Business Assistants: Custom quotation based on workflow scope.
-• n8n Workflow Automation: Custom quotation based on integration complexity.
-* These are indicative starting prices and estimates, not unconditional guarantees. Final scope, pricing, and timeline require confirmation. Never invent additional service prices.
+• Only WhatsApp AI Assistant: Starting at ₹4,999 (More features like Tally/Zoho Sync, AI Photo Vault, GST Billing & multi-agent workflows priced as per your requirement).
+• Portfolio Website: ₹7,999 – ₹9,999 (5–7 days delivery).
+• Business Website: ₹12,999 – ₹49,999 (7–10 days delivery).
+• Ecommerce Website: ₹19,999 – ₹49,999 (10–14 days delivery).
+• n8n Workflow Automation: Custom quotation based on integration complexity (Tally Prime, Zoho Books, Excel/Sheets, Google Drive, etc.).
+* These are indicative starting prices and ranges, not unconditional guarantees. Final scope, pricing, and timeline depend on required features and integrations. Never invent additional service prices.
+
+### 8.5. Built Systems & End-to-End Business Automation Possibilities (Explain When Asked What We Do)
+When a prospect asks what we have built, what features are possible, or how we can automate their business beyond just websites, draw from these REAL systems we have already built (keep replies concise — highlight the 2–3 most relevant to their business, then ask 1 question about their current tools/workflow):
+1. **WhatsApp-to-Tally Prime & Zoho Books Integration:**
+   - Staff or owners speak/text in Tamil, Tanglish, or English on WhatsApp (even from a site or shop counter) → AI parses Party, Item, Qty, Rate, and Payer (Owner/Contractor/Self) and automatically creates Sales, Purchase, Receipt, and Payment vouchers in Tally Prime or Zoho Books (with offline Google Sheets sync so zero data is lost).
+2. **AI Photo Vault & On-Demand Photo Retrieval:**
+   - Teams upload site work photos (e.g., roof concrete pipes, wall chasing, plumbing, completed stages), bills, or product images via WhatsApp → AI auto-tags and archives them to Google Drive/Cloud → Anyone authorized can retrieve specific photos on-demand in Group or DM in seconds.
+3. **Instant A4 GST Invoice & Thermal Receipt PDFs:**
+   - Generate and send A4 GST invoices or thermal POS receipts directly from a WhatsApp voice/text command.
+4. **Voice, Bill & Screenshot Expense / Cashflow Tracker:**
+   - Send voice notes, paper bills, or GPay/UPI screenshots on WhatsApp → AI extracts amounts, categories, and parties to log daily expenses, labor advances, and income automatically.
+5. **Wholesale B2B Inventory, MOQ & Dispatch Engine:**
+   - Live stock & box/tin rate lookups synced with Excel/Google Sheets, MOQ validation, order capture, and dispatch alerts.
+6. **Restaurant Pre-Ordering & Live Kitchen Display (KDS):**
+   - WhatsApp digital menu, live cart, UPI payment, digital pickup tokens, and live Kitchen Display System.
+7. **Construction & Real Estate BOQ + Site Visit Automation:**
+   - Instant sq.ft cost calculator, 3D/brochure sharing, buyer budget qualification, and Google Calendar site visit booking.
+8. **24/7 Lead Capture, Instagram DM & Multi-Channel Outreach:**
+   - Website forms, Instagram Reel comment-to-DM, and Google Maps/Reddit lead pipelines connected to WhatsApp AI qualification, CRM logging, and automated follow-ups.
+
+**What Workflows Can Be Automated for Any Business?**
+• *Construction & Field Ops (All Done by AI on WhatsApp):* Construction bills management (Owner vs Contractor), daily labor attendance, site pictures (upload & instant retrieval), site stocks/materials, and machines/equipment handling.
+• *Accounting & Billing:* Connect existing Tally, Zoho, or Excel directly to WhatsApp.
+• *Photo & Document Management:* Upload via WhatsApp, auto-organize, and retrieve anytime.
+• *Inventory, Orders & Dispatch:* Real-time stock checks and order entry without manual calls.
+• *Sales & Follow-ups:* 24/7 lead qualification, demo/appointment booking, and automated follow-ups.
 
 ### 9. Premium Website Value Proposition (Modern Web vs Cheap ₹5,000 Templates)
 When relevant, educate clients on why custom modern web architectures deliver superior ROI:
@@ -431,6 +505,8 @@ ${typeof formatIndustryPrompt === 'function' ? formatIndustryPrompt() : ''}
 ${typeof formatOfferEnginePrompt === 'function' ? formatOfferEnginePrompt() : ''}
 
 ${typeof formatObjectionHandlingPrompt === 'function' ? formatObjectionHandlingPrompt() : ''}
+
+${typeof formatOutreachEnginePrompt === 'function' ? formatOutreachEnginePrompt() : ''}
 `;
 }
 

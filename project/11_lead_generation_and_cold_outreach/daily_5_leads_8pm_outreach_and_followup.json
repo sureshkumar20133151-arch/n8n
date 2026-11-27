@@ -1,0 +1,300 @@
+{
+  "name": "Daily 5 Leads 8 PM IST - WhatsApp Outreach & Day-3 Follow-Up",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger_8pm_ist",
+      "name": "Daily 8:05 PM IST Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "trigger_manual",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Prospects",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read_scraped_sheet",
+      "name": "Read Scraped Leads Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        400,
+        360
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XtknJPUddSwDeQRl",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Select max 5 NEW leads ('Pending'/empty) + due Follow-Ups matching Prospects Stage column\nconst MAX_NEW_DAILY = 5;\nconst MAX_FOLLOWUP_DAILY = 5;\n\nconst rows = $input.all();\nif (!rows || rows.length === 0) return [];\n\nconst todayStr = new Date().toISOString().split('T')[0];\nconst nowMs = Date.now();\nconst newLeads = [];\nconst followUps = [];\n\nfunction normalizePhone(raw) {\n  let p = (raw || '').toString().replace(/[^0-9+]/g, '');\n  if (!p) return '';\n  if (!p.startsWith('+')) {\n    if (p.length === 10) p = '+91' + p;\n    else if (p.length === 12 && p.startsWith('91')) p = '+' + p;\n    else p = '+' + p;\n  }\n  return p.length >= 11 ? p : '';\n}\n\nfunction addDays(days) {\n  const d = new Date(nowMs + days * 24 * 60 * 60 * 1000);\n  return d.toISOString().split('T')[0];\n}\n\nfor (const item of rows) {\n  const r = item.json;\n  const phone = normalizePhone(r['Phone'] || r['WhatsApp'] || r['Mobile'] || r['phone']);\n  if (!phone) continue;\n\n  const stage = (r['Stage'] || '').toString().trim();\n  const stageLower = stage.toLowerCase();\n\n  // Skip terminal / paused stages\n  if (['follow up 3', 'call booked', 'rejected', 'maybe later'].includes(stageLower)) continue;\n\n  const businessName = (r['Business'] || r['Business Name'] || r['Company'] || r['Name'] || 'Team').toString().trim();\n  const ownerName = (r['Owner Name'] || r['Contact Name'] || businessName).toString().trim();\n  const address = (r['Address'] || '').toString().trim();\n  const city = (r['City'] || r['Location'] || (address ? address.split(',').slice(-2, -1)[0]?.trim() : '') || 'your area').toString().trim();\n  const rating = r['Rating'] || '';\n  const reviews = r['Reviews'] || '';\n  const website = (r['Website'] || '').toString().trim();\n  const need = (r['Need'] || '').toString().trim();\n\n  // 1. Pick up to 5 NEW leads (Stage is Pending or empty)\n  if ((stageLower === '' || stageLower === 'pending') && newLeads.length < MAX_NEW_DAILY) {\n    newLeads.push({\n      json: {\n        actionType: 'OUTREACH',\n        nextStage: 'Cold outreach',\n        contactedDate: todayStr,\n        nextFollowUpDate: addDays(3),\n        phone,\n        businessName,\n        ownerName,\n        city,\n        rating,\n        reviews,\n        website,\n        need\n      }\n    });\n    continue;\n  }\n\n  // 2. Check due Follow-Ups (Cold outreach -> Follow up 1 -> Follow up 2 -> Follow up 3)\n  if (['cold outreach', 'follow up 1', 'follow up 2'].includes(stageLower) && followUps.length < MAX_FOLLOWUP_DAILY) {\n    const nextDue = (r['Next follow-up'] || '').toString().trim();\n    const contacted = (r['Contacted Date'] || '').toString().trim();\n\n    let isDue = false;\n    if (nextDue) {\n      isDue = nextDue <= todayStr;\n    } else if (contacted) {\n      const daysSince = (nowMs - Date.parse(contacted)) / (1000 * 60 * 60 * 24);\n      isDue = !isNaN(daysSince) && daysSince >= 3;\n    }\n\n    if (isDue) {\n      let actionType = 'FOLLOWUP_1';\n      let nextStage = 'Follow up 1';\n      let nextFollowUpDate = addDays(4);\n\n      if (stageLower === 'follow up 1') {\n        actionType = 'FOLLOWUP_2';\n        nextStage = 'Follow up 2';\n        nextFollowUpDate = addDays(7);\n      } else if (stageLower === 'follow up 2') {\n        actionType = 'FOLLOWUP_3';\n        nextStage = 'Follow up 3';\n        nextFollowUpDate = '';\n      }\n\n      followUps.push({\n        json: {\n          actionType,\n          nextStage,\n          contactedDate: contacted || todayStr,\n          nextFollowUpDate,\n          phone,\n          businessName,\n          ownerName,\n          city,\n          rating,\n          reviews,\n          website,\n          need\n        }\n      });\n    }\n  }\n}\n\nreturn [...newLeads, ...followUps];"
+      },
+      "id": "select_daily_5_and_followups",
+      "name": "Pick 5 New Leads + Due Day-3 Follow-Ups",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "loop_one_by_one",
+      "name": "Loop Leads (1 by 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        880,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json;\nconst name = lead.ownerName || lead.businessName;\nconst biz = lead.businessName;\nconst location = lead.city || 'your area';\nconst website = (lead.website || '').trim();\nconst isSocial = /(facebook\\.com|instagram\\.com|indiamart\\.com|justdial\\.com|linkedin\\.com)/i.test(website);\nconst hasWebsite = Boolean(website && website.length > 7 && !isSocial);\n\nconst revNum = parseInt(lead.reviews, 10);\nconst revText = !isNaN(revNum) && revNum > 0 ? ` and *${revNum} ${revNum === 1 ? 'review' : 'reviews'}*` : '';\nconst ratingStr = lead.rating ? ` (great to see your *${lead.rating}★* rating${revText}!)` : '';\n\nlet whatsappMessage = '';\n\nif (lead.actionType === 'OUTREACH') {\n  if (hasWebsite) {\n    // HAS WEBSITE: Short Intro + AI Site & Business Workflow Automation (No website pitch)\n    whatsappMessage =\n`Hi *${name}*,\n\nI'm Suresh Kumar, an AI & Software Automation Engineer from Madurai (SoloDeveloper.pro). I came across *${biz}* on Google Maps${ratingStr} and checked out your website (${website}) while researching builders in *${location}*.\n\nSince you already have a website, we help builders automate their *entire site & office workflow* inside WhatsApp — all done by AI:\n\n✔ *Construction Bills & Attendance* — manage site bills, Tally/Sheets sync & daily labor attendance via WhatsApp voice or text\n✔ *Site Pictures & Site Stocks* — upload/retrieve site stage photos in seconds and track cement, steel & material stock automatically\n✔ *Machines Handling & 24/7 AI* — track machinery usage/maintenance and qualify client enquiries automatically\n\n*(We also build custom software and mobile apps tailored for construction teams).*\n\nCan I send you a quick 2-minute concept preview designed for *${biz}*?`;\n  } else {\n    // NO WEBSITE: Short Intro + Website & Full AI Site & Business Workflow Automation\n    whatsappMessage =\n`Hi *${name}*,\n\nI'm Suresh Kumar, an AI & Software Automation Engineer from Madurai (SoloDeveloper.pro). I came across *${biz}* on Google Maps while researching builders in *${location}*${ratingStr}, and noticed you don't currently have a dedicated website yet.\n\nWe help builders launch a modern website and automate their *entire site & office workflow* inside WhatsApp — all done by AI:\n\n✔ *Website & Project Portfolio* — showcases your completed builds & cost estimator so clients trust you before calling\n✔ *Construction Bills, Attendance & Stocks* — manage bills (Tally/Sheets), daily labor attendance, site stocks & machines via WhatsApp\n✔ *Site Pictures Vault & 24/7 AI* — upload/retrieve site photos in seconds and qualify client enquiries automatically\n\n*(We also build custom software and mobile apps tailored for construction teams).*\n\nCan I send you a quick 2-minute concept preview designed for *${biz}*?`;\n  }\n} else if (lead.actionType === 'FOLLOWUP_1') {\n  whatsappMessage =\n`Hi *${name}*, Suresh here from SoloDeveloper.pro.\n\nJust a quick follow-up on my note for *${biz}* — I know site work gets busy! Most builders we work with love starting with just 1 AI workflow (like *Construction Bills + Attendance*, *Site Stocks/Machines*, or the *Site Pictures Vault*).\n\nWould you like to see a 2-minute real demo, or should I check back later? (No worries either way!)`;\n} else if (lead.actionType === 'FOLLOWUP_2') {\n  whatsappMessage =\n`Hi *${name}*, quick check-in for *${biz}*.\n\nWe recently helped a construction team save 10+ hours/week by managing their site bills, labor attendance, site stocks, machines, and site photos straight inside WhatsApp AI.\n\nIf automating *${biz}*'s site workflow is on your list this month, reply *\"DEMO\"* and I'll share a 2-minute walkthrough!`;\n} else {\n  whatsappMessage =\n`Hi *${name}*, I won't crowd your WhatsApp further! Whenever you're ready to manage construction bills, attendance, site pictures, stocks & machines via WhatsApp AI for *${biz}*, just message me anytime at https://wa.me/919361599097. Wishing you great growth!`;\n}\n\nreturn [{\n  json: {\n    ...lead,\n    hasWebsite,\n    whatsappMessage,\n    jitterSeconds: Math.floor(Math.random() * 75) + 45\n  }\n}];"
+      },
+      "id": "generate_message",
+      "name": "Build Outreach or Follow-Up Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://whatsapp-assistant-iqpi.onrender.com/api/send-message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"message\": {{ JSON.stringify($json.whatsappMessage) }}\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send_whatsapp_msg",
+      "name": "Send WhatsApp Message (Render Bot)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        360
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1dQF6zWA3NrOt21gRQnDcCR6eKsGFZCvz3WEx80uLdrw",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Prospects",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Business": "={{ $('Build Outreach or Follow-Up Message').item.json.businessName }}",
+            "Stage": "={{ $('Build Outreach or Follow-Up Message').item.json.nextStage }}",
+            "Contacted Date": "={{ $('Build Outreach or Follow-Up Message').item.json.contactedDate }}",
+            "Next follow-up": "={{ $('Build Outreach or Follow-Up Message').item.json.nextFollowUpDate }}"
+          },
+          "matchingColumns": [
+            "Business"
+          ]
+        },
+        "options": {}
+      },
+      "id": "update_sheet_status",
+      "name": "Update Lead Status in Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1600,
+        360
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XtknJPUddSwDeQRl",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Build Outreach or Follow-Up Message').item.json.jitterSeconds }}",
+        "unit": "seconds"
+      },
+      "id": "anti_ban_wait",
+      "name": "Anti-Ban Random Wait (45-120s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        360
+      ]
+    }
+  ],
+  "connections": {
+    "Daily 8:05 PM IST Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Scraped Leads Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Scraped Leads Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Scraped Leads Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Pick 5 New Leads + Due Day-3 Follow-Ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick 5 New Leads + Due Day-3 Follow-Ups": {
+      "main": [
+        [
+          {
+            "node": "Loop Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Leads (1 by 1)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Build Outreach or Follow-Up Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Outreach or Follow-Up Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Message (Render Bot)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Message (Render Bot)": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Status in Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead Status in Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Anti-Ban Random Wait (45-120s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anti-Ban Random Wait (45-120s)": {
+      "main": [
+        [
+          {
+            "node": "Loop Leads (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  }
+}
