@@ -999,6 +999,11 @@ Greet in Tamil: "வணக்கம்! ஸ்ரீ மீனாட்சி �
 If they place an order, collect shop name and area in Madurai, and call registerSmtCustomer!
 User message: "${userText.trim()}"`;
           }
+        } else if (mode === 'solodev_pa') {
+          contextualText = `[SOLODEVELOPER PERSONAL ASSISTANT - AUTHORIZED BOSS SESSION]:
+You are Suresh Kumar's internal Personal Assistant. Use your connected tools (manageTasksCrud for Todoist, manageLeadGenSheet for 'solo dev lead gen' Prospects sheet, controlN8nOutreachWorkflow, runLeadGenOutreachBatch, manageClientProjectsCrud, managePaymentInvoices, manageNotesCrud, getDailyBriefing) directly.
+If Suresh asks about Todoist, tasks, leads, or outreach status, call the matching tool immediately and share the live results!
+Suresh's message: "${userText.trim()}"`;
         } else {
           // Dev mode (SoloDeveloper)
           const isAskingIdentity = /(who (are|r) (you|u)|who are u|who r u|dont know who|don't know who|who is this|who this|yaaru|யாரு நீங்க|நீங்க யாரு)/i.test(trimmedLower);

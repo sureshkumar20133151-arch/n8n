@@ -50,10 +50,10 @@ const PERSONAS = {
     name: 'SoloDeveloper Personal Assistant (Boss OS)',
     client: 'Suresh Kumar — Internal Operations',
     proprietor: 'Suresh Kumar',
-    tagline: 'Tasks & Sprints • Client Projects • WhatsApp Payment Invoices & Reminders • Outreach Control',
+    tagline: 'Todoist Sync • 432-Lead Sheet • Outreach Control • Invoices & Reminders',
     badge: 'Personal Assistant Mode',
     icon: '🧠',
-    switchMessage: '✅ *Switched!* Mode is now active: 🧠 *SoloDeveloper Personal Assistant (Boss OS)*.\n• Tasks, Sprint Tracker & Voice Notes ready.\n• Client Projects & Payment Invoice Reminders on WhatsApp active.\n• Ask "daily briefing", "add task", or "send payment reminder" anytime!'
+    switchMessage: '✅ *Switched!* Mode is now active: 🧠 *SoloDeveloper Personal Assistant (Boss OS)*.\n• *Todoist Sync* & Daily Tasks ready.\n• *solo dev lead gen* Sheet (Prospects) + 5/10 Outreach Control active.\n• Client Projects & WhatsApp Payment Invoice Reminders ready!'
   },
   plumber: {
     id: 'plumber',
